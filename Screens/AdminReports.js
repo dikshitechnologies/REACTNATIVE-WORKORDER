@@ -332,7 +332,7 @@ const AdminReports = () => {
             {/* Table or Placeholder */}
             {selectedArtisans.length > 0 && filteredData.length > 0 ? (
                 <ScrollView horizontal style={{ marginBottom: 80 }}>
-                    <View style={{ minWidth: 650 }}>
+                    <View style={{ flex: 1 }}>
                         {/* Select All */}
                         <View style={{ flexDirection: "row", alignItems: "center", padding: 8 }}>
                             <TouchableOpacity style={{ width: 50 }} onPress={toggleSelectAll}>
