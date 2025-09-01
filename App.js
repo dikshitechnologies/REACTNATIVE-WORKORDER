@@ -5,13 +5,11 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import SplashScreen from "./Screens/Splash";
 import AnimatedLogin from "./Screens/Login";
+import ArtisansReport from "./Screens/ArtisansReport";
+import PendingReports from "./Screens/PendingReports";
+import DeliveredReports from "./Screens/DeliveredReports";
 
-export type RootStackParamList = {
-  Splash: undefined;
-  Login: undefined;
-};
-
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
@@ -20,6 +18,9 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash" component={SplashScreen} />
           <Stack.Screen name="Login" component={AnimatedLogin} />
+          <Stack.Screen name="ArtisansReport" component={ArtisansReport} />
+          <Stack.Screen name="PendingReports" component={PendingReports} />
+          <Stack.Screen name="DeliveredReports" component={DeliveredReports} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

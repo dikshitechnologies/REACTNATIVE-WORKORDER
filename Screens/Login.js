@@ -1,4 +1,4 @@
-// screens/LoginScreen.js
+
 import React, { useState, useRef } from "react";
 import {
   View,
@@ -17,8 +17,8 @@ import * as Animatable from "react-native-animatable";
 
 const { height } = Dimensions.get("window");
 
-const LoginScreen = () => {
-  const [mode, setMode] = useState(null); // "admin" | "achari" | null
+const LoginScreen = ({ navigation }) => {
+  const [mode, setMode] = useState("achari"); // "admin" | "achari" | null
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const imageOpacity = scrollY.interpolate({
@@ -26,6 +26,15 @@ const LoginScreen = () => {
     outputRange: [0, 1],
     extrapolate: "clamp",
   });
+
+  const handleLogin = () => {
+    if (mode === "achari") {
+      navigation.navigate("ArtisansReport");
+    } else {
+      // Later you can add admin navigation here
+      console.log("Admin login pressed");
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -110,7 +119,7 @@ const LoginScreen = () => {
                   />
                 )}
 
-                <TouchableOpacity style={styles.loginButton}>
+                <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
                   <Text style={styles.loginButtonText}>Login</Text>
                 </TouchableOpacity>
 
@@ -152,7 +161,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   header: {
-    height: height * 0.45, // Half the screen
+    height: height * 0.45,
     overflow: "hidden",
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
@@ -169,7 +178,7 @@ const styles = StyleSheet.create({
     bottom: 30,
   },
   formWrapper: {
-    height: height * 0.5, // Other half
+    height: height * 0.5,
     backgroundColor: "#fff",
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
@@ -204,3 +213,4 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
+
