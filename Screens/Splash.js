@@ -1,9 +1,7 @@
 // screens/SplashScreen.js
 import React, { useEffect } from "react";
-import { View, StyleSheet, ImageBackground, Dimensions } from "react-native";
+import { View, StyleSheet, ImageBackground, Platform } from "react-native";
 import * as Animatable from "react-native-animatable";
-
-const { width, height } = Dimensions.get("window");
 
 const SplashScreen = ({ navigation }) => {
   useEffect(() => {
@@ -17,21 +15,45 @@ const SplashScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={require("../asserts/Splash.png")} // 👈 full background image
+        source={require("../asserts/Splash.png")}
         style={styles.background}
         resizeMode="cover"
       >
-        {/* Expanding circular wave effect */}
+        {/* Ripple glowing rings */}
         <Animatable.View
           animation={{
-            0: { opacity: 0.6, scale: 0 },
-            0.5: { opacity: 0.3, scale: 1 },
+            0: { opacity: 0.9, scale: 0 },
+            0.5: { opacity: 0.5, scale: 1 },
             1: { opacity: 0, scale: 2 },
           }}
           iterationCount="infinite"
-          duration={2000}
+          duration={2500}
           easing="ease-out"
-          style={styles.wave}
+          style={styles.ring}
+        />
+        <Animatable.View
+          animation={{
+            0: { opacity: 0.9, scale: 0 },
+            0.5: { opacity: 0.5, scale: 1 },
+            1: { opacity: 0, scale: 2 },
+          }}
+          iterationCount="infinite"
+          duration={2500}
+          delay={800}
+          easing="ease-out"
+          style={styles.ring}
+        />
+        <Animatable.View
+          animation={{
+            0: { opacity: 0.9, scale: 0 },
+            0.5: { opacity: 0.5, scale: 1 },
+            1: { opacity: 0, scale: 2 },
+          }}
+          iterationCount="infinite"
+          duration={2500}
+          delay={1600}
+          easing="ease-out"
+          style={styles.ring}
         />
       </ImageBackground>
     </View>
@@ -45,17 +67,27 @@ const styles = StyleSheet.create({
   },
   background: {
     flex: 1,
-    width: "100%",
-    height: "100%",
     justifyContent: "center",
     alignItems: "center",
   },
-  wave: {
+  ring: {
     position: "absolute",
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(255,255,255,0.3)", // glowing circle
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    borderWidth: 10, // thicker ring
+    borderColor: "rgba(255,255,255,0.8)", // soft white glow
+    ...Platform.select({
+      ios: {
+        shadowColor: "white",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.9,
+        shadowRadius: 25,
+      },
+      android: {
+        elevation: 15,
+      },
+    }),
   },
 });
 
