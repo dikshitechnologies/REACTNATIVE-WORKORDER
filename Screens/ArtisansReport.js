@@ -1,28 +1,53 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  ImageBackground,
+  Image,
+} from "react-native";
 
 const ArtisansReport = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Header with Background Image */}
+      <ImageBackground
+        source={require("../asserts/1.jpg")}
+        style={styles.header}
+        imageStyle={{
+          borderBottomLeftRadius: 20,
+          borderBottomRightRadius: 20,
+        }}
+      >
         <Text style={styles.headerText}>Artisans Report</Text>
-      </View>
+      </ImageBackground>
 
-      {/* Buttons Section */}
-      <View style={styles.content}>
+      {/* Cards Section */}
+      <View style={styles.cardsContainer}>
+        {/* Pending Reports Card */}
         <TouchableOpacity
-          style={styles.button}
+          style={styles.card}
           onPress={() => navigation.navigate("PendingReports")}
         >
-          <Text style={styles.buttonText}>Pending Reports</Text>
+          <Image
+            source={require("../asserts/pending.png")}
+            style={styles.cardImage}
+          />
+          <Text style={styles.cardTitle}>Pending   Reports</Text>
         </TouchableOpacity>
 
+        {/* Delivered Reports Card */}
         <TouchableOpacity
-          style={styles.button}
+          style={styles.card}
           onPress={() => navigation.navigate("DeliveredReports")}
         >
-          <Text style={styles.buttonText}>Delivered Reports</Text>
+          <Image
+            source={require("../asserts/delivered.png")}
+            style={styles.cardImage}
+          />
+          <Text style={styles.cardTitle}>Delivered Reports</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -34,42 +59,56 @@ export default ArtisansReport;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#f4f6f9",
   },
   header: {
-    backgroundColor: "#2d531a",
-    paddingVertical: 15,
-    alignItems: "center",
+    height: 100, // reduced from 120 → less space below header
     justifyContent: "center",
-    elevation: 4,
+    alignItems: "center",
+    elevation: 6,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   headerText: {
     color: "#fff",
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
+    letterSpacing: 1,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
-  content: {
-    flex: 1,
+  cardsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    alignItems: "center",
+    marginTop: 20, // reduced gap below header
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
+    padding: 15,
+    width: "40%",
+    elevation: 10, // increased elevation
+    shadowColor: "#2d531a",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
   },
-  button: {
-    backgroundColor: "#2d531a",
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 12,
-    marginVertical: 15,
-    width: "80%",
-    alignItems: "center",
+  cardImage: {
+    width: 80,
+    height: 80,
+    resizeMode: "contain",
+    marginBottom: 10,
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
+  cardTitle: {
+    fontSize: 16,
     fontWeight: "600",
+    color: "#2d531a",
+    textAlign: "center",
   },
 });
