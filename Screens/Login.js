@@ -18,7 +18,7 @@ import * as Animatable from "react-native-animatable";
 const { height } = Dimensions.get("window");
 
 const LoginScreen = ({ navigation }) => {
-  const [mode, setMode] = useState("achari"); // "admin" | "achari" | null
+  const [mode, setMode] = useState(null); // "admin" | "achari" | null
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const imageOpacity = scrollY.interpolate({
@@ -32,7 +32,7 @@ const LoginScreen = ({ navigation }) => {
       navigation.navigate("ArtisansReport");
     } else {
       // Later you can add admin navigation here
-      console.log("Admin login pressed");
+      navigation.navigate("AdminReports");
     }
   };
 
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     bottom: 30,
   },
   formWrapper: {
-    height: height * 0.5,
+    height: height * 0.65,
     backgroundColor: "#fff",
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,

@@ -8,6 +8,7 @@ import AnimatedLogin from "./Screens/Login";
 import ArtisansReport from "./Screens/ArtisansReport";
 import PendingReports from "./Screens/PendingReports";
 import DeliveredReports from "./Screens/DeliveredReports";
+import AdminReports from "./Screens/AdminReports";
 
 const Stack = createNativeStackNavigator();
 
@@ -21,6 +22,7 @@ export default function App() {
           <Stack.Screen name="ArtisansReport" component={ArtisansReport} />
           <Stack.Screen name="PendingReports" component={PendingReports} />
           <Stack.Screen name="DeliveredReports" component={DeliveredReports} />
+          <Stack.Screen name="AdminReports" component={AdminReports} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
