@@ -117,6 +117,11 @@ const LoginScreen = () => {
                 <TouchableOpacity onPress={() => setMode(null)}>
                   <Text style={styles.backLink}>← Back</Text>
                 </TouchableOpacity>
+
+                {/* Footer */}
+                <Text style={styles.footerText}>
+                  @Dikshi Technologies - 7448880375
+                </Text>
               </ScrollView>
             </Animatable.View>
           </View>
@@ -202,5 +207,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#2d531a",
     fontWeight: "500",
+  },
+  footerText: {
+    marginTop: 30,
+    textAlign: "center",
+    fontSize: 12,
+    color: "#888",
+    fontStyle: "italic",
   },
 });

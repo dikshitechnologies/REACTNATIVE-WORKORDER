@@ -1,25 +1,39 @@
 // screens/SplashScreen.js
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet, Image, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ImageBackground, Dimensions } from "react-native";
+import * as Animatable from "react-native-animatable";
+
+const { width, height } = Dimensions.get("window");
 
 const SplashScreen = ({ navigation }) => {
   useEffect(() => {
-    // Simulate loading, then navigate to Login
     const timer = setTimeout(() => {
       navigation.replace("Login");
-    }, 2000);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [navigation]);
 
   return (
     <View style={styles.container}>
-      <Image
-        source={require(".././asserts/Splash.png")} // 👈 replace with your image
-        style={styles.logo}
-      />
-      <Text style={styles.title}>Welcome to MyApp</Text>
-      <ActivityIndicator size="large" color="#2d531a" style={{ marginTop: 20 }} />
+      <ImageBackground
+        source={require("../asserts/Splash.png")} // 👈 full background image
+        style={styles.background}
+        resizeMode="cover"
+      >
+        {/* Expanding circular wave effect */}
+        <Animatable.View
+          animation={{
+            0: { opacity: 0.6, scale: 0 },
+            0.5: { opacity: 0.3, scale: 1 },
+            1: { opacity: 0, scale: 2 },
+          }}
+          iterationCount="infinite"
+          duration={2000}
+          easing="ease-out"
+          style={styles.wave}
+        />
+      </ImageBackground>
     </View>
   );
 };
@@ -27,20 +41,21 @@ const SplashScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#2d531a", // your color shade
+    backgroundColor: "#2d531a",
+  },
+  background: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
     justifyContent: "center",
     alignItems: "center",
   },
-  logo: {
-    width: 120,
-    height: 120,
-    resizeMode: "contain",
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#fff",
+  wave: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255,255,255,0.3)", // glowing circle
   },
 });
 
