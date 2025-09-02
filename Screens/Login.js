@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import {
   View,
@@ -12,13 +11,22 @@ import {
   Platform,
   Animated,
   ScrollView,
+  Alert,
 } from "react-native";
 import * as Animatable from "react-native-animatable";
-
+import Ionicons from "react-native-vector-icons/Ionicons"; // 👈 for eye icon
+import AsyncStorage from "@react-native-async-storage/async-storage"; // 👈 for remember me
+import { BASE_URL } from './Links';
 const { height } = Dimensions.get("window");
-
 const LoginScreen = ({ navigation }) => {
   const [mode, setMode] = useState(null); // "admin" | "achari" | null
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const imageOpacity = scrollY.interpolate({
@@ -27,12 +35,136 @@ const LoginScreen = ({ navigation }) => {
     extrapolate: "clamp",
   });
 
-  const handleLogin = () => {
-    if (mode === "achari") {
-      navigation.navigate("ArtisansReport");
-    } else {
-      // Later you can add admin navigation here
-      navigation.navigate("AdminReports");
+  // Load saved credentials (if remember me was set)
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const savedMode = await AsyncStorage.getItem("loginMode");
+        const savedUser = await AsyncStorage.getItem("adminUser");
+        const savedPass = await AsyncStorage.getItem("adminPass");
+        const savedPhone = await AsyncStorage.getItem("achariPhone");
+
+        if (savedMode === "admin" && savedUser && savedPass) {
+          setMode("admin");
+          setUsername(savedUser);
+          setPassword(savedPass);
+          setRememberMe(true);
+        } else if (savedMode === "achari" && savedPhone) {
+          setMode("achari");
+          setPhone(savedPhone);
+          setRememberMe(true);
+        }
+      } catch (err) {
+        console.log("⚠️ Error loading saved credentials", err);
+      }
+    })();
+  }, []);
+
+
+  // handle login
+  const handleLogin = async () => {
+    try {
+      if (mode === "admin") {
+        const url = `${BASE_URL}Auth/Login`;
+        console.log("🔗 Admin Login API URL:", url);
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userName: username,
+            password: password,
+          }),
+        });
+
+        const text = await response.text();
+        console.log("📩 Admin Login Response:", text);
+
+        if (response.ok && text.trim().toLowerCase().includes("login success")) {
+          Alert.alert("Success", "Admin login successful");
+
+          // ✅ Remember me save
+          // inside handleLogin
+          if (rememberMe) {
+            if (mode === "admin") {
+              await AsyncStorage.setItem("adminUser", username);
+              await AsyncStorage.setItem("adminPass", password);
+              await AsyncStorage.setItem("loginMode", "admin");   // save mode
+              await AsyncStorage.removeItem("achariPhone");
+            } else if (mode === "achari") {
+              await AsyncStorage.setItem("achariPhone", phone);
+              await AsyncStorage.setItem("loginMode", "achari");  // save mode
+              await AsyncStorage.removeItem("adminUser");
+              await AsyncStorage.removeItem("adminPass");
+            }
+          } else {
+            await AsyncStorage.removeItem("adminUser");
+            await AsyncStorage.removeItem("adminPass");
+            await AsyncStorage.removeItem("achariPhone");
+            await AsyncStorage.removeItem("loginMode");
+          }
+
+
+          // ✅ Clear fields
+          setUsername("");
+          setPassword("");
+
+          navigation.navigate("AdminReports");
+        } else {
+          Alert.alert("Error", text || "Invalid admin credentials");
+        }
+      } else if (mode === "achari") {
+        const url = `${BASE_URL}Auth/GetByPhone/${phone}`;
+        console.log("🔗 Achari Login API URL:", url);
+
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        const data = await response.json();
+        console.log("📩 Achari Login Response:", data);
+
+        if (response.ok && data?.fAcname) {
+          Alert.alert("Welcome", `Hello ${data.fAcname}`);
+
+          // ✅ Remember me save
+          // inside handleLogin
+          if (rememberMe) {
+            if (mode === "admin") {
+              await AsyncStorage.setItem("adminUser", username);
+              await AsyncStorage.setItem("adminPass", password);
+              await AsyncStorage.setItem("loginMode", "admin");   // save mode
+              await AsyncStorage.removeItem("achariPhone");
+            } else if (mode === "achari") {
+              await AsyncStorage.setItem("achariPhone", phone);
+              await AsyncStorage.setItem("loginMode", "achari");  // save mode
+              await AsyncStorage.removeItem("adminUser");
+              await AsyncStorage.removeItem("adminPass");
+            }
+          } else {
+            await AsyncStorage.removeItem("adminUser");
+            await AsyncStorage.removeItem("adminPass");
+            await AsyncStorage.removeItem("achariPhone");
+            await AsyncStorage.removeItem("loginMode");
+          }
+
+          // ✅ Clear phone field
+          setPhone("");
+
+          navigation.navigate("ArtisansReport", { user: data });
+        } else {
+          Alert.alert("Error", "Phone number not found");
+        }
+      }
+    } catch (error) {
+      console.error("❌ Login Error:", error);
+      Alert.alert("Error", "Something went wrong, please try again");
     }
   };
 
@@ -42,7 +174,7 @@ const LoginScreen = ({ navigation }) => {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ImageBackground
-        source={require("../asserts/goldart.png")} // rectangle background
+        source={require("../asserts/goldart.png")}
         style={styles.background}
       >
         {/* If no mode selected → show 2 buttons */}
@@ -69,7 +201,7 @@ const LoginScreen = ({ navigation }) => {
 
         {mode && (
           <View style={{ flex: 1 }}>
-            {/* Header takes half screen */}
+            {/* Header */}
             <View style={styles.header}>
               <ImageBackground
                 source={require("../asserts/gold.png")}
@@ -84,7 +216,7 @@ const LoginScreen = ({ navigation }) => {
               </ImageBackground>
             </View>
 
-            {/* White form container takes other half */}
+            {/* Form */}
             <Animatable.View
               animation="slideInUp"
               duration={800}
@@ -100,23 +232,72 @@ const LoginScreen = ({ navigation }) => {
                       placeholder="Username"
                       style={styles.input}
                       placeholderTextColor="#aaa"
+                      value={username}
+                      onChangeText={setUsername}
                     />
-                    <TextInput
-                      placeholder="Password"
-                      secureTextEntry
-                      style={styles.input}
-                      placeholderTextColor="#aaa"
-                    />
+
+                    {/* Password with eye toggle */}
+                    <View style={styles.passwordWrapper}>
+                      <TextInput
+                        placeholder="Password"
+                        secureTextEntry={!showPassword}
+                        style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                        placeholderTextColor="#aaa"
+                        value={password}
+                        onChangeText={setPassword}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={styles.eyeButton}
+                      >
+                        <Ionicons
+                          name={showPassword ? "eye-off" : "eye"}
+                          size={22}
+                          color="#555"
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Remember me */}
+                    <TouchableOpacity
+                      style={styles.rememberMe}
+                      onPress={() => setRememberMe(!rememberMe)}
+                    >
+                      <Ionicons
+                        name={rememberMe ? "checkbox" : "square-outline"}
+                        size={20}
+                        color="#2d531a"
+                      />
+                      <Text style={{ marginLeft: 8, color: "#2d531a" }}>
+                        Remember Me
+                      </Text>
+                    </TouchableOpacity>
                   </>
                 )}
 
                 {mode === "achari" && (
-                  <TextInput
-                    placeholder="Phone Number"
-                    keyboardType="phone-pad"
-                    style={styles.input}
-                    placeholderTextColor="#aaa"
-                  />
+                  <>
+                    <TextInput
+                      placeholder="Phone Number"
+                      keyboardType="phone-pad"
+                      style={styles.input}
+                      placeholderTextColor="#aaa"
+                      value={phone}
+                      onChangeText={setPhone}
+                    />
+                    <TouchableOpacity
+                      style={styles.rememberMe}
+                      onPress={() => setRememberMe(!rememberMe)}
+                    >
+                      <Ionicons
+                        name={rememberMe ? "checkbox" : "square-outline"}
+                        size={20}
+                        color="#2d531a"
+                      />
+                      <Text style={{ marginLeft: 8, color: "#2d531a" }}>
+                        Remember Me
+                      </Text>
+                    </TouchableOpacity></>
                 )}
 
                 <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
@@ -127,7 +308,6 @@ const LoginScreen = ({ navigation }) => {
                   <Text style={styles.backLink}>← Back</Text>
                 </TouchableOpacity>
 
-                {/* Footer */}
                 <Text style={styles.footerText}>
                   @Dikshi Technologies - 7448880375
                 </Text>
@@ -143,16 +323,9 @@ const LoginScreen = ({ navigation }) => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  background: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  bottomButtons: {
-    padding: 20,
-  },
+  container: { flex: 1 },
+  background: { flex: 1, justifyContent: "flex-end" },
+  bottomButtons: { padding: 20 },
   choiceButton: {
     backgroundColor: "#2d531a",
     paddingVertical: 15,
@@ -160,22 +333,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginVertical: 10,
   },
-  choiceText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-  },
+  choiceText: { color: "#fff", fontSize: 18, fontWeight: "600" },
   header: {
     height: height * 0.45,
     overflow: "hidden",
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
   },
-  headerBackground: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  headerBackground: { flex: 1, justifyContent: "center", alignItems: "center" },
   headerImage: {
     width: 120,
     height: 120,
@@ -199,6 +364,17 @@ const styles = StyleSheet.create({
     color: "#333",
     width: "100%",
   },
+  passwordWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  eyeButton: { position: "absolute", right: 15 },
+  rememberMe: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
   loginButton: {
     backgroundColor: "#2d531a",
     paddingVertical: 15,
@@ -206,11 +382,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
   },
-  loginButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-  },
+  loginButtonText: { color: "#fff", fontSize: 18, fontWeight: "600" },
   backLink: {
     marginTop: 20,
     textAlign: "center",
@@ -225,4 +397,3 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 });
-
