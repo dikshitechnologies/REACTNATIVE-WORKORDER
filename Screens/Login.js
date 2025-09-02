@@ -203,14 +203,23 @@ const LoginScreen = ({ navigation }) => {
         {mode && (
           <View style={{ flex: 1 }}>
             {/* Header */}
+            {/* Header */}
             <View style={styles.header}>
               <ImageBackground
-                source={require("../asserts/gold.png")}
+                source={
+                  mode === "admin"
+                    ? require("../asserts/adminslogin.png") // 👈 Admin background image
+                    : require("../asserts/gold.png") // 👈 Achari background image
+                }
                 style={styles.headerBackground}
                 resizeMode="cover"
               >
                 <Animated.Image
-                  source={require("../asserts/gold.png")}
+                  source={
+                    mode === "admin"
+                      ? require("../asserts/adminslogin.png") // 👈 Admin logo/image
+                      : require("../asserts/gold.png") // 👈 Achari logo/image
+                  }
                   style={[styles.headerImage, { opacity: imageOpacity }]}
                   resizeMode="contain"
                 />
