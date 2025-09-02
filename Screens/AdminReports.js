@@ -10,12 +10,14 @@ import {
     TextInput,
     ScrollView,
 } from "react-native";
+
 import React, { useState, useEffect } from "react";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { BackHandler } from "react-native";
 import axios from "axios";
 import { BASE_URL, IMG_URL } from "./Links";   // ✅ include IMG_URL
 
+import GifImage from 'react-native-gif';
 const AdminReports = ({ navigation }) => {
     const [activeSection, setActiveSection] = useState(null);
     const [showArtisanModal, setShowArtisanModal] = useState(false);
@@ -525,17 +527,12 @@ const AdminReports = ({ navigation }) => {
                             <Text style={{ width: 50, fontWeight: "700" }}>View</Text>
                         </View>
 
-                        {/* ✅ FlatList for vertical scroll + pagination */}
+                        {/* ✅ FlatList with pagination + empty state */}
                         <FlatList
                             data={filteredData}
                             keyExtractor={(item) => item.id.toString()}
                             renderItem={({ item, index }) => (
-                                <View
-                                    style={{
-                                        borderBottomWidth: 1,
-                                        borderColor: "#ccc",
-                                    }}
-                                >
+                                <View style={{ borderBottomWidth: 1, borderColor: "#ccc" }}>
                                     <View
                                         style={{
                                             flexDirection: "row",
@@ -564,7 +561,9 @@ const AdminReports = ({ navigation }) => {
                                         <TouchableOpacity
                                             style={{ width: 50 }}
                                             onPress={() =>
-                                                setExpandedRow(expandedRow === item.id ? null : item.id)
+                                                setExpandedRow(
+                                                    expandedRow === item.id ? null : item.id
+                                                )
                                             }
                                         >
                                             <Ionicons
@@ -598,47 +597,69 @@ const AdminReports = ({ navigation }) => {
                                                     }}
                                                 >
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Order No: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Order No:{" "}
+                                                        </Text>
                                                         {item.orderNo}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Order Type: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Order Type:{" "}
+                                                        </Text>
                                                         {item.orderType}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Order Date: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Order Date:{" "}
+                                                        </Text>
                                                         {item.orderDate}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Product: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Product:{" "}
+                                                        </Text>
                                                         {item.product}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Design: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Design:{" "}
+                                                        </Text>
                                                         {item.design}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Weight: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Weight:{" "}
+                                                        </Text>
                                                         {item.weight}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Size: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Size:{" "}
+                                                        </Text>
                                                         {item.size}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Qty: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Qty:{" "}
+                                                        </Text>
                                                         {item.qty}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Purity: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Purity:{" "}
+                                                        </Text>
                                                         {item.purity}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Theme: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Theme:{" "}
+                                                        </Text>
                                                         {item.theme}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Status: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Status:{" "}
+                                                        </Text>
                                                         {item.status}
                                                     </Text>
                                                 </View>
@@ -668,11 +689,57 @@ const AdminReports = ({ navigation }) => {
                                 </View>
                             )}
                             showsVerticalScrollIndicator
-                            style={{ maxHeight: 500 }} // ✅ Limit height for vertical scroll
+                            style={{ maxHeight: 500 }}
+                            onEndReached={() => {
+                                if (!loading && hasMore) {
+                                    const nextPage = pageNumber + 1;
+                                    setPageNumber(nextPage);
+                                    const codes = artisans
+                                        .filter((a) => selectedArtisans.includes(a.id))
+                                        .map((a) => a.code);
+                                    fetchPendingOrders(codes, nextPage, searchSNo);
+                                }
+                            }}
+                            onEndReachedThreshold={0.5}
+                            ListFooterComponent={
+                                loading ? (
+                                    <Text style={{ textAlign: "center", padding: 10 }}>
+                                        Loading...
+                                    </Text>
+                                ) : null
+                            }
+                            ListEmptyComponent={
+                                !loading ? (
+                                    <View
+                                        style={{
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            padding: 20,
+                                        }}
+                                    >
+                                        {/* GIF above text */}
+                                        {/* <GifImage
+                                            source={require("../asserts/undelivered.gif")}
+                                            style={{ width: 120, height: 120 }}
+                                        /> */}
+
+                                        <Text
+                                            style={{
+                                                textAlign: "center",
+                                                color: "#666",
+                                                fontSize: 16,
+                                            }}
+                                        >
+                                            No data available. Select an artisan and/or search S.No or Design to view.
+                                        </Text>
+                                    </View>
+                                ) : null
+                            }
                         />
                     </View>
                 </ScrollView>
             ) : (
+                // optional: you can completely remove this else block
                 <View
                     style={{
                         flex: 1,
@@ -681,6 +748,12 @@ const AdminReports = ({ navigation }) => {
                         padding: 20,
                     }}
                 >
+                    <View style={{ width: 120, height: 120 }}>
+                        {/* <WebView
+    source={{ uri: "file:///android_asset/undelivered.gif" }}
+    style={{ flex: 1, backgroundColor: "transparent" }}
+  /> */}
+                    </View>
                     <Text
                         style={{
                             fontSize: 16,
@@ -688,11 +761,11 @@ const AdminReports = ({ navigation }) => {
                             textAlign: "center",
                         }}
                     >
-                        No data available. Select an artisan and/or search S.No or Design to view
-                        the table.
+                        No data available. Select an artisan and/or search S.No or Design to view the table.
                     </Text>
                 </View>
             )}
+
 
 
             {/* Footer */}
