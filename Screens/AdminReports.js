@@ -17,7 +17,7 @@ import { BackHandler } from "react-native";
 import axios from "axios";
 import { BASE_URL, IMG_URL } from "./Links";   // ✅ include IMG_URL
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
-
+import ImageViewer from "react-native-image-zoom-viewer";
 import { Dimensions } from "react-native";
 
 const { width, height } = Dimensions.get("window");
@@ -31,6 +31,8 @@ const AdminReports = ({ navigation }) => {
     const [showArtisanModal, setShowArtisanModal] = useState(false);
     const [selectedArtisans, setSelectedArtisans] = useState([]);
     const [searchSNo, setSearchSNo] = useState("");
+    const [validUrl, setValidUrl] = useState(null);
+
     const [expandedRow, setExpandedRow] = useState(null);
     const [tableData, setTableData] = useState([]);  // ✅ start empty
     const [selectedRows, setSelectedRows] = useState([]);
@@ -61,10 +63,12 @@ const AdminReports = ({ navigation }) => {
     const [deliveredSelectAll, setDeliveredSelectAll] = useState(false);
     const [deliveredPageNumber, setDeliveredPageNumber] = useState(1);
     const [deliveredLoading, setDeliveredLoading] = useState(false);
+    const [fullscreenImage, setFullscreenImage] = useState(null); // holds the fileName (design)
+
     const [deliveredHasMore, setDeliveredHasMore] = useState(true);
     const [deliveredArtisanSearch, setDeliveredArtisanSearch] = useState("");
     // ✅ Fallback image component
-    const FallbackImage = ({ fileName, style }) => {
+    const FallbackImage = ({ fileName, style, onSuccess }) => {
         const [uriIndex, setUriIndex] = useState(0);
         const extensions = [".jpg", ".jpeg", ".png"];
         const sources = extensions.map((ext) => `${IMG_URL}${fileName}${ext}`);
@@ -81,9 +85,13 @@ const AdminReports = ({ navigation }) => {
                         console.log("No valid image found for", fileName);
                     }
                 }}
+                onLoad={() => {
+                    if (onSuccess) onSuccess(sources[uriIndex]); // ✅ report back valid URL
+                }}
             />
         );
     };
+
 
     // ✅ Fetch artisan list
     useEffect(() => {
@@ -365,7 +373,15 @@ const AdminReports = ({ navigation }) => {
                 <Text style={styles.headerTitle}>Delivered</Text>
                 <View style={{ width: 30 }} />
             </View>
-
+            <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
+                <ImageViewer
+                    imageUrls={[{ url: fullscreenImage }]}   // ✅ now always 1 valid image
+                    enableSwipeDown={true}
+                    onSwipeDown={() => setFullscreenImage(null)}
+                    onCancel={() => setFullscreenImage(null)}
+                    saveToLocalByLongPress={false}
+                />
+            </Modal>
             {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
                 <TouchableOpacity onPress={() => setDeliveredShowArtisanModal(true)}>
@@ -785,7 +801,8 @@ const AdminReports = ({ navigation }) => {
                                                 </View>
 
                                                 {/* Right image */}
-                                                <View
+                                                <TouchableOpacity
+                                                    onPress={() => setFullscreenImage(validUrl)}  // 👈 set the working URL
                                                     style={{
                                                         width: wp("45%"),
                                                         height: hp("25%"),
@@ -797,12 +814,11 @@ const AdminReports = ({ navigation }) => {
                                                 >
                                                     <FallbackImage
                                                         fileName={item.design}
-                                                        style={{
-                                                            width: "100%",
-                                                            height: "100%",
-                                                        }}
+                                                        style={{ width: "100%", height: "100%" }}
+                                                        onSuccess={(url) => setValidUrl(url)}  // 👈 store the actual valid URL
                                                     />
-                                                </View>
+                                                </TouchableOpacity>
+
                                             </View>
                                         </View>
                                     )}
@@ -935,6 +951,16 @@ const AdminReports = ({ navigation }) => {
                 <Text style={styles.headerTitle}>Undelivered</Text>
                 <View style={{ width: 30 }} />
             </View>
+            <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
+                <ImageViewer
+                    imageUrls={[{ url: fullscreenImage }]}   // ✅ now always 1 valid image
+                    enableSwipeDown={true}
+                    onSwipeDown={() => setFullscreenImage(null)}
+                    onCancel={() => setFullscreenImage(null)}
+                    saveToLocalByLongPress={false}
+                />
+            </Modal>
+
 
             {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
@@ -1378,7 +1404,8 @@ const AdminReports = ({ navigation }) => {
                                                 </View>
 
                                                 {/* Right image */}
-                                                <View
+                                                <TouchableOpacity
+                                                    onPress={() => setFullscreenImage(validUrl)}  // 👈 set the working URL
                                                     style={{
                                                         width: wp("45%"),
                                                         height: hp("25%"),
@@ -1390,12 +1417,12 @@ const AdminReports = ({ navigation }) => {
                                                 >
                                                     <FallbackImage
                                                         fileName={item.design}
-                                                        style={{
-                                                            width: "100%",
-                                                            height: "100%",
-                                                        }}
+                                                        style={{ width: "100%", height: "100%" }}
+                                                        onSuccess={(url) => setValidUrl(url)}  // 👈 store the actual valid URL
                                                     />
-                                                </View>
+                                                </TouchableOpacity>
+
+
                                             </View>
                                         </View>
                                     )}
@@ -1514,7 +1541,15 @@ const AdminReports = ({ navigation }) => {
                 <Text style={styles.headerTitle}>Return</Text>
                 <View style={{ width: 30 }} />
             </View>
-
+            <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
+                <ImageViewer
+                    imageUrls={[{ url: fullscreenImage }]}   // ✅ now always 1 valid image
+                    enableSwipeDown={true}
+                    onSwipeDown={() => setFullscreenImage(null)}
+                    onCancel={() => setFullscreenImage(null)}
+                    saveToLocalByLongPress={false}
+                />
+            </Modal>
             {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
                 <TouchableOpacity onPress={() => setReturnShowArtisanModal(true)}>
@@ -1962,7 +1997,8 @@ const AdminReports = ({ navigation }) => {
                                                 </View>
 
                                                 {/* Right image */}
-                                                <View
+                                                <TouchableOpacity
+                                                    onPress={() => setFullscreenImage(validUrl)}  // 👈 set the working URL
                                                     style={{
                                                         width: wp("45%"),
                                                         height: hp("25%"),
@@ -1974,12 +2010,11 @@ const AdminReports = ({ navigation }) => {
                                                 >
                                                     <FallbackImage
                                                         fileName={item.design}
-                                                        style={{
-                                                            width: "100%",
-                                                            height: "100%",
-                                                        }}
+                                                        style={{ width: "100%", height: "100%" }}
+                                                        onSuccess={(url) => setValidUrl(url)}  // 👈 store the actual valid URL
                                                     />
-                                                </View>
+                                                </TouchableOpacity>
+
                                             </View>
                                         </View>
                                     )}
