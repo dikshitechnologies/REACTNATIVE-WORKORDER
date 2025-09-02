@@ -17,6 +17,7 @@ import * as Animatable from "react-native-animatable";
 import Ionicons from "react-native-vector-icons/Ionicons"; // 👈 for eye icon
 import AsyncStorage from "@react-native-async-storage/async-storage"; // 👈 for remember me
 import { BASE_URL } from './Links';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 const { height } = Dimensions.get("window");
 const LoginScreen = ({ navigation }) => {
   const [mode, setMode] = useState(null); // "admin" | "achari" | null
@@ -310,7 +311,10 @@ const LoginScreen = ({ navigation }) => {
                 </TouchableOpacity>
 
 
-                <Text style={styles.footerText}>
+                <Text style={[
+                  styles.footerText,
+                  mode === "admin" ? styles.footerAdmin : styles.footerAchari
+                ]}>
                   @Dikshi Technologies - 7448880375
                 </Text>
               </ScrollView>
@@ -397,9 +401,15 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#2d531a",
   },
+  footerAdmin: {
+    marginTop: hp("14%"), // Admin-specific spacing
+  },
 
+  footerAchari: {
+    marginTop: hp("20%"),  // Achari-specific spacing
+  },
   footerText: {
-    marginTop: 30,
+
     textAlign: "center",
     fontSize: 12,
     color: "#888",
