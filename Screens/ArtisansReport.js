@@ -7,13 +7,24 @@ import {
   SafeAreaView,
   Image,
 } from "react-native";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const ArtisansReport = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Solid Background */}
+      {/* Header with Back Button */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-undo" size={28} color="#fff" />
+        </TouchableOpacity>
+
         <Text style={styles.headerText}>Achari Reports</Text>
+
+        {/* Placeholder for spacing (to keep title centered) */}
+        <View style={{ width: 28 }} />
       </View>
 
       {/* Image Below Header */}
@@ -61,10 +72,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#f4f6f9",
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: "#2d531a",
     paddingVertical: 18,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: 16,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     elevation: 6,
@@ -73,14 +86,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
+  backButton: {
+    padding: 4,
+  },
   headerText: {
     color: "#fff",
     fontSize: 22,
     fontWeight: "bold",
     letterSpacing: 1,
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    textAlign: "center",
+    flex: 1,
   },
   banner: {
     width: "90%",
