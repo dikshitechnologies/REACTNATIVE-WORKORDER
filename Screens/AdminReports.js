@@ -17,7 +17,7 @@ import { BackHandler } from "react-native";
 import axios from "axios";
 import { BASE_URL, IMG_URL } from "./Links";   // ✅ include IMG_URL
 
-import GifImage from 'react-native-gif';
+
 const AdminReports = ({ navigation }) => {
     const [activeSection, setActiveSection] = useState(null);
     const [showArtisanModal, setShowArtisanModal] = useState(false);
@@ -295,6 +295,7 @@ const AdminReports = ({ navigation }) => {
                             borderRadius: 10,
                             color: "#000",
                         }}
+                        placeholderTextColor={"#7c7c7cff"}
                         placeholder="Select Artisan"
                         value={
                             selectedArtisans.length === artisans.length
@@ -323,6 +324,7 @@ const AdminReports = ({ navigation }) => {
                         padding: 10,
                         borderRadius: 10,
                     }}
+                    placeholderTextColor={"#7c7c7cff"}
                     placeholder="Search S.No / Design"
                     value={searchSNo}
                     onChangeText={setSearchSNo}
@@ -376,6 +378,7 @@ const AdminReports = ({ navigation }) => {
                                 marginBottom: 10,
                             }}
                             placeholder="Search Artisan"
+                            placeholderTextColor={"#7c7c7cff"}
                             value={artisanSearch || ""}
                             onChangeText={(text) => setArtisanSearch(text)}
                         />
@@ -956,7 +959,7 @@ const styles = StyleSheet.create({
         shadowRadius: 5,
         elevation: 4,
     },
-    cardImage: { width: 60, height: 60, marginBottom: 8 },
+    cardImage: { width: 80, height: 80, marginBottom: 8 },
     cardText: {
         fontSize: 15,
         fontWeight: "600",
