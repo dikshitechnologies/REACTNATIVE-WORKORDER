@@ -304,9 +304,11 @@ const LoginScreen = ({ navigation }) => {
                   <Text style={styles.loginButtonText}>Login</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => setMode(null)}>
-                  <Text style={styles.backLink}>← Back</Text>
+                <TouchableOpacity style={styles.backButton} onPress={() => setMode(null)}>
+                  <Ionicons name="arrow-undo" size={22} color="#2d531a" style={{ marginRight: 6 }} />
+                  <Text style={styles.backLink}>Back</Text>
                 </TouchableOpacity>
+
 
                 <Text style={styles.footerText}>
                   @Dikshi Technologies - 7448880375
@@ -383,12 +385,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   loginButtonText: { color: "#fff", fontSize: 18, fontWeight: "600" },
-  backLink: {
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center", // centers horizontally
     marginTop: 20,
-    textAlign: "center",
-    color: "#2d531a",
-    fontWeight: "500",
   },
+
+  backLink: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#2d531a",
+  },
+
   footerText: {
     marginTop: 30,
     textAlign: "center",
