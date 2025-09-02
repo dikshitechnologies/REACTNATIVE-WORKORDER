@@ -352,8 +352,8 @@ const styles = StyleSheet.create({
   header: {
     height: height * 0.45,
     overflow: "hidden",
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   headerBackground: { flex: 1, justifyContent: "center", alignItems: "center" },
   headerImage: {
