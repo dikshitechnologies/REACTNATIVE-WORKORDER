@@ -61,15 +61,19 @@ const AdminReports = ({ navigation }) => {
     }, []);
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
-            setPageNumber(1);
-            const codes = artisans
-                .filter((a) => selectedArtisans.includes(a.id))
-                .map((a) => a.code);
-            fetchPendingOrders(codes, 1, searchSNo);
+            if (selectedArtisans.length > 0) {   // ✅ only fetch when artisan(s) selected
+                setPageNumber(1);
+                const codes = artisans
+                    .filter((a) => selectedArtisans.includes(a.id))
+                    .map((a) => a.code);
+                fetchPendingOrders(codes, 1, searchSNo);
+            } else {
+                setTableData([]); // ✅ keep it empty
+            }
         }, 500);
 
         return () => clearTimeout(delayDebounce);
-    }, [searchSNo]);
+    }, [searchSNo, selectedArtisans]);
 
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
@@ -202,26 +206,67 @@ const AdminReports = ({ navigation }) => {
     );
 
     // ✅ Update payload will use hidden fields
-    const updateData = () => {
+    // ✅ Update payload will use hidden fields
+    const updateData = async () => {
+        if (selectedRows.length === 0) {
+            alert("Please select at least one row.");
+            return;
+        }
+
         const payload = selectedRows.map((id) => {
             const row = tableData.find((r) => r.id === id);
             return {
-                fIssueNo: row.issueNo,
-                fTransaId: row.transaId,
+                issueNo: row.issueNo,   // from API
+                sno: row.sNo,           // from API
+                transId: row.transaId   // from API
             };
         });
+
         console.log("Update payload:", payload);
-        alert("Data ready for update. Check console for payload.");
+
+        try {
+            const res = await axios.put(
+                `${BASE_URL}ItemTransaction/UpdateConfirmStatus`,
+                payload,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if (res.status === 200) {
+                alert("Update successful!");
+                clearSelection();
+                // Optionally refresh table
+                const codes = artisans
+                    .filter((a) => selectedArtisans.includes(a.id))
+                    .map((a) => a.code);
+                fetchPendingOrders(codes, 1, searchSNo);
+
+
+            } else {
+                alert("Update failed. Please try again.");
+            }
+        } catch (err) {
+            console.error("Error updating data:", err);
+            alert("Error while updating data.");
+        }
     };
 
-    const clearSelection = () => {
-        setSelectedRows([]);
-        setSelectedArtisans([]);
-        setSearchSNo("");
-        setArtisanSearch("");
-        setSelectAll(false);
-        setTableData([]);
-    };
+
+   const clearSelection = () => {
+    setSelectedRows([]);
+    setSelectedArtisans([]);
+    setSearchSNo("");
+    setArtisanSearch("");
+    setSelectAll(false);
+    setTableData([]);
+    setPageNumber(1);
+    setHasMore(true);
+    setExpandedRow(null);
+};
+
 
     const sections = [
         { id: "1", title: "Undelivered", icon: require("../asserts/undelivered.jpg") },
@@ -717,12 +762,7 @@ const AdminReports = ({ navigation }) => {
                                             padding: 20,
                                         }}
                                     >
-                                        {/* GIF above text */}
-                                        {/* <GifImage
-                                            source={require("../asserts/undelivered.gif")}
-                                            style={{ width: 120, height: 120 }}
-                                        /> */}
-
+                                       
                                         <Text
                                             style={{
                                                 textAlign: "center",
@@ -748,12 +788,7 @@ const AdminReports = ({ navigation }) => {
                         padding: 20,
                     }}
                 >
-                    <View style={{ width: 120, height: 120 }}>
-                        {/* <WebView
-    source={{ uri: "file:///android_asset/undelivered.gif" }}
-    style={{ flex: 1, backgroundColor: "transparent" }}
-  /> */}
-                    </View>
+                    
                     <Text
                         style={{
                             fontSize: 16,
