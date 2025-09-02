@@ -757,6 +757,7 @@ const AdminReports = ({ navigation }) => {
                                 !loading ? (
                                     <View
                                         style={{
+                                            flex: 1,
                                             alignItems: "center",
                                             justifyContent: "center",
                                             padding: 20,
@@ -773,12 +774,12 @@ const AdminReports = ({ navigation }) => {
                                         />
                                         <Text
                                             style={{
-                                                textAlign: "center",
-                                                color: "#666",
                                                 fontSize: 16,
+                                                color: "#666",
+                                                textAlign: "center",
                                             }}
                                         >
-                                            No data available. Select an artisan and/or search S.No or Design to view.
+                                           Select an artisan and/or search S.No or Design to view the table.
                                         </Text>
                                     </View>
                                 ) : null
@@ -812,7 +813,7 @@ const AdminReports = ({ navigation }) => {
                             textAlign: "center",
                         }}
                     >
-                        No data available. Select an artisan and/or search S.No or Design to view the table.
+                        Select an artisan and/or search S.No or Design to view the table.
                     </Text>
                 </View>
             )}
