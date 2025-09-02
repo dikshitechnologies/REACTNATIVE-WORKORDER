@@ -209,7 +209,7 @@ const LoginScreen = ({ navigation }) => {
                 source={
                   mode === "admin"
                     ? require("../asserts/adminslogin.png") // 👈 Admin background image
-                    : require("../asserts/gold.png") // 👈 Achari background image
+                    : require("../asserts/acharilogin.png") // 👈 Achari background image
                 }
                 style={styles.headerBackground}
                 resizeMode="cover"
@@ -218,7 +218,7 @@ const LoginScreen = ({ navigation }) => {
                   source={
                     mode === "admin"
                       ? require("../asserts/adminslogin.png") // 👈 Admin logo/image
-                      : require("../asserts/gold.png") // 👈 Achari logo/image
+                      : require("../asserts/acharilogin.png") // 👈 Achari logo/image
                   }
                   style={[styles.headerImage, { opacity: imageOpacity }]}
                   resizeMode="contain"
