@@ -55,7 +55,7 @@ const dummyData = [
     },
 ];
 
-const AdminReports = () => {
+const AdminReports = ({navigation}) => {
     const [activeSection, setActiveSection] = useState(null);
     const [showArtisanModal, setShowArtisanModal] = useState(false);
     const [selectedArtisans, setSelectedArtisans] = useState([]);
@@ -332,7 +332,7 @@ const AdminReports = () => {
             {/* Table or Placeholder */}
             {selectedArtisans.length > 0 && filteredData.length > 0 ? (
                 <ScrollView horizontal style={{ marginBottom: 80 }}>
-                    <View style={{ minWidth: 650 }}>
+                    <View style={{ flex: 1 }}>
                         {/* Select All */}
                         <View style={{ flexDirection: "row", alignItems: "center", padding: 8 }}>
                             <TouchableOpacity style={{ width: 50 }} onPress={toggleSelectAll}>
@@ -461,7 +461,8 @@ const AdminReports = () => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton}>
+                <TouchableOpacity style={styles.backButton}  onPress={() => navigation.navigate("Login")}
+>
                     <Ionicons name="arrow-undo" size={30} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Admin Reports</Text>
