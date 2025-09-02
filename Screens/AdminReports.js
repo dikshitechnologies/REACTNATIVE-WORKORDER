@@ -377,7 +377,7 @@ const AdminReports = ({ navigation }) => {
                                 padding: 10,
                                 borderRadius: 10,
                                 color: "#000",
-                                width: wp("90%"),
+                                width: isTablet ? wp("90%") : wp("85%"),
                                 marginRight: 8,
                             }}
                             placeholderTextColor={"#7c7c7cff"}
@@ -955,7 +955,7 @@ const AdminReports = ({ navigation }) => {
                                 padding: 10,
                                 borderRadius: 10,
                                 color: "#000",
-                                width: wp("90%"),
+                                width: isTablet ? wp("90%") : wp("85%"),
                                 marginRight: 8,
                             }}
                             placeholderTextColor={"#7c7c7cff"}
@@ -1268,11 +1268,11 @@ const AdminReports = ({ navigation }) => {
                                             />
                                         </TouchableOpacity>
                                         <Text style={{ width: wp("7%") }}>{index + 1}</Text>
-                                        <Text style={{  width: wp("24%") }}>{item.product}</Text>
+                                        <Text style={{ width: wp("24%") }}>{item.product}</Text>
                                         <Text style={{ width: wp("24%") }}>{item.design}</Text>
-                                        <Text style={{  width: wp("18%") }}>{item.sNo}</Text>
+                                        <Text style={{ width: wp("18%") }}>{item.sNo}</Text>
                                         <TouchableOpacity
-                                            style={{ width: wp("12%")}}
+                                            style={{ width: wp("12%") }}
                                             onPress={() =>
                                                 setExpandedRow(
                                                     expandedRow === item.id ? null : item.id
@@ -1305,7 +1305,7 @@ const AdminReports = ({ navigation }) => {
                                                 <View
                                                     style={{
                                                         flexShrink: 1,
-                                                       maxWidth: wp("65%"),
+                                                        maxWidth: wp("65%"),
                                                         paddingRight: wp("3%"),
                                                     }}
                                                 >
@@ -1380,7 +1380,7 @@ const AdminReports = ({ navigation }) => {
                                                 {/* Right image */}
                                                 <View
                                                     style={{
-                                                      width: wp("45%"),
+                                                        width: wp("45%"),
                                                         height: hp("25%"),
                                                         borderWidth: 1,
                                                         borderColor: "#ccc",
@@ -1526,7 +1526,7 @@ const AdminReports = ({ navigation }) => {
                                 padding: 10,
                                 borderRadius: 10,
                                 color: "#000",
-                                width: wp("90%"),
+                                width: isTablet ? wp("90%") : wp("85%"),
                                 marginRight: 8,
                             }}
                             placeholderTextColor={"#7c7c7cff"}
@@ -1821,7 +1821,7 @@ const AdminReports = ({ navigation }) => {
                                         }}
                                     >
                                         <TouchableOpacity
-                                            style={{  width: wp("12%") }}
+                                            style={{ width: wp("12%") }}
                                             onPress={() => {
                                                 if (returnSelectedRows.includes(item.id)) {
                                                     setReturnSelectedRows(
@@ -1852,7 +1852,7 @@ const AdminReports = ({ navigation }) => {
                                         <Text style={{ width: wp("24%") }}>{item.design}</Text>
                                         <Text style={{ width: wp("18%") }}>{item.sNo}</Text>
                                         <TouchableOpacity
-                                            style={{width: wp("12%")}}
+                                            style={{ width: wp("12%") }}
                                             onPress={() =>
                                                 setReturnExpandedRow(
                                                     returnExpandedRow === item.id ? null : item.id
@@ -1875,7 +1875,7 @@ const AdminReports = ({ navigation }) => {
                                     {returnExpandedRow === item.id && (
                                         <View
                                             style={{
-                                                 padding: wp("3%"),
+                                                padding: wp("3%"),
                                                 backgroundColor: "#eaf5ea",
                                             }}
                                         >
@@ -1889,7 +1889,7 @@ const AdminReports = ({ navigation }) => {
                                                 <View
                                                     style={{
                                                         flexShrink: 1,
-                                                         maxWidth: wp("65%"),
+                                                        maxWidth: wp("65%"),
                                                         paddingRight: wp("3%"),
                                                     }}
                                                 >
@@ -1964,11 +1964,11 @@ const AdminReports = ({ navigation }) => {
                                                 {/* Right image */}
                                                 <View
                                                     style={{
-                                                         width: wp("45%"),
+                                                        width: wp("45%"),
                                                         height: hp("25%"),
                                                         borderWidth: 1,
                                                         borderColor: "#ccc",
-                                                         borderRadius: wp("3%"),
+                                                        borderRadius: wp("3%"),
                                                         overflow: "hidden",
                                                     }}
                                                 >
