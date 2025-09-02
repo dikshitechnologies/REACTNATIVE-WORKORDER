@@ -16,7 +16,15 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { BackHandler } from "react-native";
 import axios from "axios";
 import { BASE_URL, IMG_URL } from "./Links";   // ✅ include IMG_URL
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 
+import { Dimensions } from "react-native";
+
+const { width, height } = Dimensions.get("window");
+import DeviceInfo from "react-native-device-info";
+
+const isTablet = DeviceInfo.isTablet();
+// A common threshold for tablets
 
 const AdminReports = ({ navigation }) => {
     const [activeSection, setActiveSection] = useState(null);
@@ -161,7 +169,7 @@ const AdminReports = ({ navigation }) => {
                     purity: item.fPurity,
                     theme: item.fTheme,
                     sNo: item.fSNo,
-                     status: item.fconfirmStatus==="N"?"Undelivered":"Delivered", 
+                    status: item.fconfirmStatus === "N" ? "Undelivered" : "Delivered",
                 }));
 
                 if (page === 1) {
@@ -369,7 +377,7 @@ const AdminReports = ({ navigation }) => {
                                 padding: 10,
                                 borderRadius: 10,
                                 color: "#000",
-                                width: "90%",
+                                width: wp("90%"),
                                 marginRight: 8,
                             }}
                             placeholderTextColor={"#7c7c7cff"}
@@ -639,12 +647,13 @@ const AdminReports = ({ navigation }) => {
                                 padding: 8,
                             }}
                         >
-                            <Text style={{ width: 50, fontWeight: "700" }}>Select</Text>
-                            <Text style={{ width: 30, fontWeight: "700" }}>#</Text>
-                            <Text style={{ width: 100, fontWeight: "700" }}>Product</Text>
-                            <Text style={{ width: 100, fontWeight: "700" }}>Design</Text>
-                            <Text style={{ width: 80, fontWeight: "700" }}>S.No</Text>
-                            <Text style={{ width: 50, fontWeight: "700" }}>View</Text>
+                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>Select</Text>
+                            <Text style={{ width: wp("7%"), fontWeight: "700" }}>#</Text>
+                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Product</Text>
+                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Design</Text>
+                            <Text style={{ width: wp("18%"), fontWeight: "700" }}>S.No</Text>
+                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>View</Text>
+
                         </View>
 
                         {/* Table Rows */}
@@ -661,7 +670,7 @@ const AdminReports = ({ navigation }) => {
                                         }}
                                     >
                                         <TouchableOpacity
-                                            style={{ width: 50 }}
+                                            style={{ width: wp("12%") }}
                                             onPress={() => {
                                                 if (deliveredSelectedRows.includes(item.id)) {
                                                     setDeliveredSelectedRows(
@@ -685,12 +694,12 @@ const AdminReports = ({ navigation }) => {
                                                 color="#2d531a"
                                             />
                                         </TouchableOpacity>
-                                        <Text style={{ width: 30 }}>{index + 1}</Text>
-                                        <Text style={{ width: 100 }}>{item.product}</Text>
-                                        <Text style={{ width: 100 }}>{item.design}</Text>
-                                        <Text style={{ width: 80 }}>{item.sNo}</Text>
+                                        <Text style={{ width: wp("7%") }}>{index + 1}</Text>
+                                        <Text style={{ width: wp("24%") }}>{item.product}</Text>
+                                        <Text style={{ width: wp("24%") }}>{item.design}</Text>
+                                        <Text style={{ width: wp("18%") }}>{item.sNo}</Text>
                                         <TouchableOpacity
-                                            style={{ width: 50 }}
+                                            style={{ width: wp("12%") }}
                                             onPress={() =>
                                                 setDeliveredExpandedRow(
                                                     deliveredExpandedRow === item.id ? null : item.id
@@ -711,7 +720,7 @@ const AdminReports = ({ navigation }) => {
                                     {deliveredExpandedRow === item.id && (
                                         <View
                                             style={{
-                                                padding: 12,
+                                                padding: wp("3%"),
                                                 backgroundColor: "#eaf5ea",
                                             }}
                                         >
@@ -725,74 +734,52 @@ const AdminReports = ({ navigation }) => {
                                                 <View
                                                     style={{
                                                         flexShrink: 1,
-                                                        maxWidth: "65%",
-                                                        paddingRight: 12,
+                                                        maxWidth: wp("65%"),
+                                                        paddingRight: wp("3%"),
                                                     }}
                                                 >
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order No:{" "}
-                                                        </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>Order No: </Text>
                                                         {item.orderNo}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order Type:{" "}
-                                                        </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>Order Type: </Text>
                                                         {item.orderType}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order Date:{" "}
-                                                        </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>Order Date: </Text>
                                                         {item.orderDate}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Product:{" "}
-                                                        </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>Product: </Text>
                                                         {item.product}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Design:{" "}
-                                                        </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>Design: </Text>
                                                         {item.design}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Weight:{" "}
-                                                        </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>Weight: </Text>
                                                         {item.weight}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Size:{" "}
-                                                        </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>Size: </Text>
                                                         {item.size}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Qty:{" "}
-                                                        </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>Qty: </Text>
                                                         {item.qty}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Purity:{" "}
-                                                        </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>Purity: </Text>
                                                         {item.purity}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Theme:{" "}
-                                                        </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>Theme: </Text>
                                                         {item.theme}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Status:{" "}
-                                                        </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>Status: </Text>
                                                         {item.status}
                                                     </Text>
                                                 </View>
@@ -800,11 +787,11 @@ const AdminReports = ({ navigation }) => {
                                                 {/* Right image */}
                                                 <View
                                                     style={{
-                                                        width: 200,
-                                                        height: 200,
+                                                        width: wp("45%"),
+                                                        height: hp("25%"),
                                                         borderWidth: 1,
                                                         borderColor: "#ccc",
-                                                        borderRadius: 12,
+                                                        borderRadius: wp("3%"),
                                                         overflow: "hidden",
                                                     }}
                                                 >
@@ -819,6 +806,7 @@ const AdminReports = ({ navigation }) => {
                                             </View>
                                         </View>
                                     )}
+
                                 </View>
                             )}
                             showsVerticalScrollIndicator
@@ -967,7 +955,7 @@ const AdminReports = ({ navigation }) => {
                                 padding: 10,
                                 borderRadius: 10,
                                 color: "#000",
-                                width: "90%",
+                                width: wp("90%"),
                                 marginRight: 8,
                             }}
                             placeholderTextColor={"#7c7c7cff"}
@@ -1244,12 +1232,12 @@ const AdminReports = ({ navigation }) => {
                                 padding: 8,
                             }}
                         >
-                            <Text style={{ width: 50, fontWeight: "700" }}>Select</Text>
-                            <Text style={{ width: 30, fontWeight: "700" }}>#</Text>
-                            <Text style={{ width: 100, fontWeight: "700" }}>Product</Text>
-                            <Text style={{ width: 100, fontWeight: "700" }}>Design</Text>
-                            <Text style={{ width: 80, fontWeight: "700" }}>S.No</Text>
-                            <Text style={{ width: 50, fontWeight: "700" }}>View</Text>
+                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>Select</Text>
+                            <Text style={{ width: wp("7%"), fontWeight: "700" }}>#</Text>
+                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Product</Text>
+                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Design</Text>
+                            <Text style={{ width: wp("18%"), fontWeight: "700" }}>S.No</Text>
+                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>View</Text>
                         </View>
 
                         {/* ✅ FlatList with pagination + empty state */}
@@ -1266,7 +1254,7 @@ const AdminReports = ({ navigation }) => {
                                         }}
                                     >
                                         <TouchableOpacity
-                                            style={{ width: 50 }}
+                                            style={{ width: wp("12%") }}
                                             onPress={() => toggleRow(item.id)}
                                         >
                                             <Ionicons
@@ -1279,12 +1267,12 @@ const AdminReports = ({ navigation }) => {
                                                 color="#2d531a"
                                             />
                                         </TouchableOpacity>
-                                        <Text style={{ width: 30 }}>{index + 1}</Text>
-                                        <Text style={{ width: 100 }}>{item.product}</Text>
-                                        <Text style={{ width: 100 }}>{item.design}</Text>
-                                        <Text style={{ width: 80 }}>{item.sNo}</Text>
+                                        <Text style={{ width: wp("7%") }}>{index + 1}</Text>
+                                        <Text style={{  width: wp("24%") }}>{item.product}</Text>
+                                        <Text style={{ width: wp("24%") }}>{item.design}</Text>
+                                        <Text style={{  width: wp("18%") }}>{item.sNo}</Text>
                                         <TouchableOpacity
-                                            style={{ width: 50 }}
+                                            style={{ width: wp("12%")}}
                                             onPress={() =>
                                                 setExpandedRow(
                                                     expandedRow === item.id ? null : item.id
@@ -1303,7 +1291,7 @@ const AdminReports = ({ navigation }) => {
                                     {expandedRow === item.id && (
                                         <View
                                             style={{
-                                                padding: 12,
+                                                padding: wp("3%"),
                                                 backgroundColor: "#eaf5ea",
                                             }}
                                         >
@@ -1317,8 +1305,8 @@ const AdminReports = ({ navigation }) => {
                                                 <View
                                                     style={{
                                                         flexShrink: 1,
-                                                        maxWidth: "65%",
-                                                        paddingRight: 12,
+                                                       maxWidth: wp("65%"),
+                                                        paddingRight: wp("3%"),
                                                     }}
                                                 >
                                                     <Text>
@@ -1392,11 +1380,11 @@ const AdminReports = ({ navigation }) => {
                                                 {/* Right image */}
                                                 <View
                                                     style={{
-                                                        width: 200,
-                                                        height: 200,
+                                                      width: wp("45%"),
+                                                        height: hp("25%"),
                                                         borderWidth: 1,
                                                         borderColor: "#ccc",
-                                                        borderRadius: 12,
+                                                        borderRadius: wp("3%"),
                                                         overflow: "hidden",
                                                     }}
                                                 >
@@ -1538,7 +1526,7 @@ const AdminReports = ({ navigation }) => {
                                 padding: 10,
                                 borderRadius: 10,
                                 color: "#000",
-                                width: "90%",
+                                width: wp("90%"),
                                 marginRight: 8,
                             }}
                             placeholderTextColor={"#7c7c7cff"}
@@ -1806,12 +1794,12 @@ const AdminReports = ({ navigation }) => {
                                 padding: 8,
                             }}
                         >
-                            <Text style={{ width: 50, fontWeight: "700" }}>Select</Text>
-                            <Text style={{ width: 30, fontWeight: "700" }}>#</Text>
-                            <Text style={{ width: 100, fontWeight: "700" }}>Product</Text>
-                            <Text style={{ width: 100, fontWeight: "700" }}>Design</Text>
-                            <Text style={{ width: 80, fontWeight: "700" }}>S.No</Text>
-                            <Text style={{ width: 50, fontWeight: "700" }}>View</Text>
+                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>Select</Text>
+                            <Text style={{ width: wp("7%"), fontWeight: "700" }}>#</Text>
+                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Product</Text>
+                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Design</Text>
+                            <Text style={{ width: wp("18%"), fontWeight: "700" }}>S.No</Text>
+                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>View</Text>
                         </View>
 
                         {/* Rows */}
@@ -1833,7 +1821,7 @@ const AdminReports = ({ navigation }) => {
                                         }}
                                     >
                                         <TouchableOpacity
-                                            style={{ width: 50 }}
+                                            style={{  width: wp("12%") }}
                                             onPress={() => {
                                                 if (returnSelectedRows.includes(item.id)) {
                                                     setReturnSelectedRows(
@@ -1859,12 +1847,12 @@ const AdminReports = ({ navigation }) => {
                                                 color="#2d531a"
                                             />
                                         </TouchableOpacity>
-                                        <Text style={{ width: 30 }}>{index + 1}</Text>
-                                        <Text style={{ width: 100 }}>{item.product}</Text>
-                                        <Text style={{ width: 100 }}>{item.design}</Text>
-                                        <Text style={{ width: 80 }}>{item.sNo}</Text>
+                                        <Text style={{ width: wp("7%") }}>{index + 1}</Text>
+                                        <Text style={{ width: wp("24%") }}>{item.product}</Text>
+                                        <Text style={{ width: wp("24%") }}>{item.design}</Text>
+                                        <Text style={{ width: wp("18%") }}>{item.sNo}</Text>
                                         <TouchableOpacity
-                                            style={{ width: 50 }}
+                                            style={{width: wp("12%")}}
                                             onPress={() =>
                                                 setReturnExpandedRow(
                                                     returnExpandedRow === item.id ? null : item.id
@@ -1887,7 +1875,7 @@ const AdminReports = ({ navigation }) => {
                                     {returnExpandedRow === item.id && (
                                         <View
                                             style={{
-                                                padding: 12,
+                                                 padding: wp("3%"),
                                                 backgroundColor: "#eaf5ea",
                                             }}
                                         >
@@ -1901,8 +1889,8 @@ const AdminReports = ({ navigation }) => {
                                                 <View
                                                     style={{
                                                         flexShrink: 1,
-                                                        maxWidth: "65%",
-                                                        paddingRight: 12,
+                                                         maxWidth: wp("65%"),
+                                                        paddingRight: wp("3%"),
                                                     }}
                                                 >
                                                     <Text>
@@ -1976,11 +1964,11 @@ const AdminReports = ({ navigation }) => {
                                                 {/* Right image */}
                                                 <View
                                                     style={{
-                                                        width: 200,
-                                                        height: 200,
+                                                         width: wp("45%"),
+                                                        height: hp("25%"),
                                                         borderWidth: 1,
                                                         borderColor: "#ccc",
-                                                        borderRadius: 12,
+                                                         borderRadius: wp("3%"),
                                                         overflow: "hidden",
                                                     }}
                                                 >
