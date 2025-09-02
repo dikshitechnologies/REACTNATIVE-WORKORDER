@@ -255,17 +255,17 @@ const AdminReports = ({ navigation }) => {
     };
 
 
-   const clearSelection = () => {
-    setSelectedRows([]);
-    setSelectedArtisans([]);
-    setSearchSNo("");
-    setArtisanSearch("");
-    setSelectAll(false);
-    setTableData([]);
-    setPageNumber(1);
-    setHasMore(true);
-    setExpandedRow(null);
-};
+    const clearSelection = () => {
+        setSelectedRows([]);
+        setSelectedArtisans([]);
+        setSearchSNo("");
+        setArtisanSearch("");
+        setSelectAll(false);
+        setTableData([]);
+        setPageNumber(1);
+        setHasMore(true);
+        setExpandedRow(null);
+    };
 
 
     const sections = [
@@ -762,7 +762,15 @@ const AdminReports = ({ navigation }) => {
                                             padding: 20,
                                         }}
                                     >
-                                       
+                                        <Image
+                                            source={require("../asserts/Search.png")} // 👈 replace with your image path
+                                            style={{
+                                                width: 180,
+                                                height: 180,
+                                                marginBottom: 16, // space between image and text
+                                                resizeMode: "contain",
+                                            }}
+                                        />
                                         <Text
                                             style={{
                                                 textAlign: "center",
@@ -788,7 +796,15 @@ const AdminReports = ({ navigation }) => {
                         padding: 20,
                     }}
                 >
-                    
+                    <Image
+                        source={require("../asserts/Search.png")} // 👈 replace with your image path
+                        style={{
+                            width: 180,
+                            height: 180,
+                            marginBottom: 16, // space between image and text
+                            resizeMode: "contain",
+                        }}
+                    />
                     <Text
                         style={{
                             fontSize: 16,
