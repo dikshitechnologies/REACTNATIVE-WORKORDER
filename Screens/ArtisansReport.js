@@ -5,24 +5,23 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
-  ImageBackground,
   Image,
 } from "react-native";
 
 const ArtisansReport = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Background Image */}
-      <ImageBackground
-        source={require("../asserts/1.jpg")}
-        style={styles.header}
-        imageStyle={{
-          borderBottomLeftRadius: 20,
-          borderBottomRightRadius: 20,
-        }}
-      >
-        <Text style={styles.headerText}>Artisans Report</Text>
-      </ImageBackground>
+      {/* Header with Solid Background */}
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Achari Reports</Text>
+      </View>
+
+      {/* Image Below Header */}
+      <Image
+        source={require("../asserts/Achari.jpg")} // change to your desired image
+        style={styles.banner}
+        resizeMode="cover"
+      />
 
       {/* Cards Section */}
       <View style={styles.cardsContainer}>
@@ -32,7 +31,7 @@ const ArtisansReport = ({ navigation }) => {
           onPress={() => navigation.navigate("PendingReports")}
         >
           <Image
-            source={require("../asserts/pending.png")}
+            source={require("../asserts/undelivered.jpg")}
             style={styles.cardImage}
           />
           <Text style={styles.cardTitle}>Pending   Reports</Text>
@@ -44,7 +43,7 @@ const ArtisansReport = ({ navigation }) => {
           onPress={() => navigation.navigate("DeliveredReports")}
         >
           <Image
-            source={require("../asserts/delivered.png")}
+            source={require("../asserts/delivered.jpg")}
             style={styles.cardImage}
           />
           <Text style={styles.cardTitle}>Delivered Reports</Text>
@@ -62,9 +61,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#f4f6f9",
   },
   header: {
-    height: 100, // reduced from 120 → less space below header
-    justifyContent: "center",
+    backgroundColor: "#2d531a",
+    paddingVertical: 18,
     alignItems: "center",
+    justifyContent: "center",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     elevation: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
@@ -80,11 +82,18 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
+  banner: {
+    width: "90%",
+    height: 180,
+    borderRadius: 20,
+    alignSelf: "center",
+    marginVertical: 16,
+  },
   cardsContainer: {
     flexDirection: "row",
     justifyContent: "space-evenly",
     alignItems: "center",
-    marginTop: 20, // reduced gap below header
+    marginTop: 10,
   },
   card: {
     backgroundColor: "#fff",
@@ -93,7 +102,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 15,
     width: "40%",
-    elevation: 10, // increased elevation
+    elevation: 10,
     shadowColor: "#2d531a",
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.4,
