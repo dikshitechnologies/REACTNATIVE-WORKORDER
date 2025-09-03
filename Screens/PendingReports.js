@@ -17,27 +17,39 @@ import axios from "axios";
 import { BASE_URL, IMG_URL } from "./Links";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import ImageViewer from "react-native-image-zoom-viewer";
+import { BackHandler } from "react-native";
+const PendingReports = ({ navigation, route }) => {
+  useEffect(() => {
+    const backAction = () => {
 
-const PendingReports = ({ navigation }) => {
+      navigation.replace("ArtisansReport", { user }); // or navigation.navigate("Login")
+      return true; // prevent default exit
+
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [navigation]);
+
+  const user = route?.params?.user;
+  const clearAll = () => {
+    setSearch("");
+    setExpandedId(null);
+    fetchReports(""); // reload everything
+  };
+
   const [reports, setReports] = useState([]);
-  const [allReports, setAllReports] = useState([]);
-  const [expandedId, setExpandedId] = useState(null);
-  const [selectedRows, setSelectedRows] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [validUrl, setValidUrl] = useState(null);
-  const [issueSearch, setIssueSearch] = useState("");
-  const [artisanSearch, setArtisanSearch] = useState("");
-  // Artisan + issue popup states
-  const [showArtisanModal, setShowArtisanModal] = useState(false);
-  const [showIssueModal, setShowIssueModal] = useState(false);
-  const [artisans, setArtisans] = useState([]);
-  const [issues, setIssues] = useState([]);
-  const [selectedArtisan, setSelectedArtisan] = useState("");
-  const [selectedIssue, setSelectedIssue] = useState("");
+  const [search, setSearch] = useState(""); // 🔎 single search
 
-  // Fallback image component
+  // fallback image
   const FallbackImage = ({ fileName, style, onSuccess }) => {
     const [uriIndex, setUriIndex] = useState(0);
     const extensions = [".jpg", ".jpeg", ".png"];
@@ -55,21 +67,23 @@ const PendingReports = ({ navigation }) => {
             console.log("No valid image found for", fileName);
           }
         }}
-        onLoad={() => {
-          if (onSuccess) onSuccess(sources[uriIndex]);
-        }}
+        onLoad={() => onSuccess && onSuccess(sources[uriIndex])}
       />
     );
   };
 
-  // Fetch reports
-  const fetchReports = async () => {
+  // fetch reports with search
+  const fetchReports = async (query = "") => {
     try {
       setLoading(true);
-      const res = await axios.get(
-        `${BASE_URL}ItemTransaction/GetPendingByCustomer?cusCode=00103&pageNumber=1&pageSize=30`
-      );
-      if (res.data && res.data.data) {
+
+      const url = `${BASE_URL}ItemTransaction/GetPendingByCustomer?cusCode=${user?.fCode}&search=${query}&pageNumber=1&pageSize=30`;
+      console.log("📡 Fetching reports from:", url);
+
+      const res = await axios.get(url);
+      console.log("✅ API Response:", res.data);
+
+      if (res.data?.data && Array.isArray(res.data.data)) {
         const mapped = res.data.data.map((item, index) => ({
           id: index.toString(),
           issueNo: item.fIssueNo,
@@ -89,115 +103,46 @@ const PendingReports = ({ navigation }) => {
           artisan: item.fAcname || "",
         }));
         setReports(mapped);
-        setAllReports(mapped);
-        setIssues([...new Set(mapped.map((x) => x.issueNo))]);
+      } else if (res.data?.message) {
+        console.log("⚠️ API Message:", res.data.message);
+        setReports([]); // clear reports list
+      } else {
+        console.log("⚠️ Unexpected API format:", res.data);
+        setReports([]);
       }
     } catch (err) {
-      console.error("Error fetching reports:", err);
+      // 404 or any API error → just clear reports silently
+      setReports([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch artisans list
-  const fetchArtisans = async () => {
-    try {
-      const res = await fetch(
-        `${BASE_URL}Party/GetPartyList?search=&pageNumber=1&pageSize=30`
-      );
-      const data = await res.json();
-      if (data && data.data) {
-        const mapped = data.data.map((item, index) => ({
-          id: index.toString(),
-          code: item.fCode,
-          name: item.fAcname,
-        }));
-        setArtisans(mapped);
-      }
-    } catch (err) {
-      console.error("Error fetching artisans:", err);
-    }
-  };
+
 
   useEffect(() => {
-    fetchReports();
-    fetchArtisans();
+    fetchReports(); // first load
   }, []);
 
-  // Apply filters
-  const applyFilters = () => {
-    let filtered = allReports;
-
-    if (selectedIssue) {
-      filtered = filtered.filter((r) => r.issueNo === selectedIssue);
-    }
-    if (selectedArtisan) {
-      filtered = filtered.filter((r) =>
-        r.artisan.toLowerCase().includes(selectedArtisan.toLowerCase())
-      );
-    }
-
-    setReports(filtered);
-  };
+  // debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchReports(search);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const toggleRow = (id) => {
-    const newRows = selectedRows.includes(id)
-      ? selectedRows.filter((i) => i !== id)
-      : [...selectedRows, id];
-
-    setSelectedRows(newRows);
-    setSelectAll(newRows.length === reports.length);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectAll) {
-      setSelectedRows([]);
-      setSelectAll(false);
-    } else {
-      setSelectedRows(reports.map((item) => item.id));
-      setSelectAll(true);
-    }
-  };
-
-  const clearSelection = () => {
-    setSelectedRows([]);
-    setSelectedArtisan("");
-    setSelectedIssue("");
-    setReports(allReports);
-    setSelectAll(false);
-    setExpandedId(null);
-     setArtisanSearch("");
-    setIssueSearch("");
-
-  };
-
-  const updateData = () => {
-    if (selectedRows.length === 0) {
-      alert("Please select at least one row to update.");
-      return;
-    }
-    alert("Update triggered for rows: " + JSON.stringify(selectedRows));
-  };
-
   const renderItem = ({ item, index }) => (
     <View style={{ borderBottomWidth: 1, borderColor: "#ccc" }}>
       <View style={styles.row}>
-        <TouchableOpacity style={{ width: wp("12%") }} onPress={() => toggleRow(item.id)}>
-          <Ionicons
-            name={selectedRows.includes(item.id) ? "checkbox" : "square-outline"}
-            size={24}
-            color="#2d531a"
-          />
-        </TouchableOpacity>
-
         <Text style={{ width: wp("7%") }}>{index + 1}</Text>
-        <Text style={{ width: wp("24%") }}>{item.product}</Text>
-        <Text style={{ width: wp("24%") }}>{item.design}</Text>
-        <Text style={{ width: wp("18%") }}>{item.orderNo}</Text>
+        <Text style={{ width: wp("28%") }}>{item.product}</Text>
+        <Text style={{ width: wp("28%") }}>{item.design}</Text>
+        <Text style={{ width: wp("20%") }}>{item.orderNo}</Text>
 
         <TouchableOpacity style={{ width: wp("12%") }} onPress={() => toggleExpand(item.id)}>
           <Ionicons
@@ -211,20 +156,19 @@ const PendingReports = ({ navigation }) => {
       {expandedId === item.id && (
         <View style={styles.details}>
           <View style={styles.detailsLeft}>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Issue No: </Text>{item.issueNo}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Order No: </Text>{item.orderNo}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Order Date: </Text>{item.orderDate}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Order Type: </Text>{item.orderType}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Product: </Text>{item.product}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Design: </Text>{item.design}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Weight: </Text>{item.weight}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Size: </Text>{item.size}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Qty: </Text>{item.qty}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Purity: </Text>{item.purity}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Theme: </Text>{item.theme}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Status: </Text>{item.status}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Issue No: </Text>{item.issueNo}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Order No: </Text>{item.orderNo}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Order Date: </Text>{item.orderDate}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Order Type: </Text>{item.orderType}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Product: </Text>{item.product}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Design: </Text>{item.design}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Weight: </Text>{item.weight}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Size: </Text>{item.size}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Qty: </Text>{item.qty}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Purity: </Text>{item.purity}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Theme: </Text>{item.theme}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Status: </Text>{item.status}</Text>
           </View>
-
           <TouchableOpacity
             onPress={() => setFullscreenImage(validUrl)}
             style={styles.detailsRightImage}
@@ -242,75 +186,53 @@ const PendingReports = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-undo" size={30} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerText}>Pending Reports</Text>
+        <Text style={styles.headerText}>Pending</Text>
         <View style={{ width: 30 }} />
       </View>
 
-      <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
+      {/* fullscreen image */}
+      <Modal visible={!!fullscreenImage} transparent onRequestClose={() => setFullscreenImage(null)}>
         <ImageViewer
           imageUrls={[{ url: fullscreenImage }]}
-          enableSwipeDown={true}
+          enableSwipeDown
           onSwipeDown={() => setFullscreenImage(null)}
           onCancel={() => setFullscreenImage(null)}
           saveToLocalByLongPress={false}
         />
       </Modal>
 
+      {/* 🔎 Search bar with clear */}
       <View style={{ padding: 12 }}>
-        <TouchableOpacity onPress={() => setShowIssueModal(true)}>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Select Issue No"
-              placeholderTextColor={"#7c7c7cff"}
-              value={selectedIssue}
-              editable={false}
-              pointerEvents="none"
-            />
-            <Ionicons name="search" size={26} color="#7c7c7c" />
-          </View>
-        </TouchableOpacity>
+        <View style={[styles.inputContainer, { flexDirection: "row", alignItems: "center" }]}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="Search Product / Design / Issue / Artisan..."
+            placeholderTextColor="#7c7c7c"
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => { setSearch(""); fetchReports(""); }}>
+              <Ionicons name="close-circle" size={24} color="#7c7c7c" style={{ marginHorizontal: 6 }} />
+            </TouchableOpacity>
+          )}
+
+        </View>
       </View>
 
-      <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
-        <TouchableOpacity onPress={() => setShowArtisanModal(true)}>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Select Artisan Name"
-              placeholderTextColor={"#7c7c7cff"}
-              value={selectedArtisan}
-              editable={false}
-              pointerEvents="none"
-            />
-            <Ionicons name="search" size={26} color="#7c7c7c" />
-          </View>
-        </TouchableOpacity>
-      </View>
-
+      {/* table */}
       <ScrollView horizontal style={{ marginBottom: 80 }}>
         <View style={{ flex: 1 }}>
-          <View style={styles.selectAllContainer}>
-            <TouchableOpacity onPress={toggleSelectAll}>
-              <Ionicons
-                name={selectAll ? "checkbox" : "square-outline"}
-                size={24}
-                color="#2d531a"
-              />
-            </TouchableOpacity>
-            <Text style={{ marginLeft: 8 }}>Select All</Text>
-          </View>
-
           <View style={styles.tableHeader}>
-            <Text style={{ width: wp("12%"), fontWeight: "700" }}>Select</Text>
             <Text style={{ width: wp("7%"), fontWeight: "700" }}>#</Text>
-            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Product</Text>
-            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Design</Text>
-            <Text style={{ width: wp("18%"), fontWeight: "700" }}>Order No</Text>
+            <Text style={{ width: wp("28%"), fontWeight: "700" }}>Product</Text>
+            <Text style={{ width: wp("28%"), fontWeight: "700" }}>Design</Text>
+            <Text style={{ width: wp("20%"), fontWeight: "700" }}>Order No</Text>
             <Text style={{ width: wp("12%"), fontWeight: "700" }}>View</Text>
           </View>
 
@@ -321,170 +243,35 @@ const PendingReports = ({ navigation }) => {
               data={reports}
               renderItem={renderItem}
               keyExtractor={(item) => item.id}
-              style={{ maxHeight: hp('55%') }}
+              style={{ maxHeight: hp("70%") }}
               ListEmptyComponent={
-                !loading ? (
-                  <View style={styles.emptyContainer}>
-                    <Image
-                      source={require("../asserts/Search.png")}
-                      style={styles.emptyImage}
-                    />
-                    <Text style={styles.emptyText}>
-                      No pending reports found. Try changing your filters or check back later.
-                    </Text>
-                  </View>
-                ) : null
+                <View style={styles.emptyContainer}>
+                  <Image source={require("../asserts/Search.png")} style={styles.emptyImage} />
+                  <Text style={styles.emptyText}>
+                    No pending reports found.
+                  </Text>
+                </View>
               }
             />
           )}
         </View>
       </ScrollView>
-
-      <Modal visible={showIssueModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Issue No</Text>
-              <TouchableOpacity onPress={() => setShowIssueModal(false)}>
-                <Ionicons name="close" size={28} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Search Bar */}
-            <TextInput
-              style={styles.searchBar}
-              placeholder="Search Issue No..."
-              placeholderTextColor="#7c7c7cff"
-              value={issueSearch}
-              onChangeText={setIssueSearch}
-            />
-
-            {/* Scrollable List of Issues */}
-            <FlatList
-              data={
-                issues.filter(issue =>
-                  issue.toLowerCase().includes(issueSearch.toLowerCase())
-                )
-              }
-              keyExtractor={(item, index) => index.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.modalItem}
-                  onPress={() => setSelectedIssue(item)}
-                >
-                  <Ionicons
-                    name={selectedIssue === item ? "radio-button-on" : "radio-button-off"}
-                    size={22}
-                    color="#2d531a"
-                  />
-                  <Text style={styles.modalItemText}>{item}</Text>
-                </TouchableOpacity>
-              )}
-              // Optional: Add a message for when no search results are found
-              ListEmptyComponent={
-                <Text style={styles.emptyListText}>No issues found.</Text>
-              }
-            />
-
-            {/* Modal Footer */}
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.modalClearButton}
-                onPress={() => {
-                  setSelectedIssue("");
-                  setIssueSearch(""); // Also clear the search bar
-                }}
-              >
-                <Text style={styles.buttonText}>Clear</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalApplyButton}
-                onPress={() => {
-                  setShowIssueModal(false);
-                  applyFilters();
-                }}
-              >
-                <Text style={styles.buttonText}>Apply</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={showArtisanModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Artisan</Text>
-              <TouchableOpacity onPress={() => setShowArtisanModal(false)}>
-                <Ionicons name="close" size={28} />
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              style={styles.searchBar}
-              placeholder="Search Artisan..."
-              placeholderTextColor="#7c7c7cff"
-              value={artisanSearch}
-              onChangeText={setArtisanSearch}
-            />
-            <FlatList
-              data={
-                artisans.filter(artisan =>
-                  artisan.name.toLowerCase().includes(artisanSearch.toLowerCase()) ||
-                  artisan.code.toLowerCase().includes(artisanSearch.toLowerCase())
-                )
-              }
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.modalItem}
-                  onPress={() => setSelectedArtisan(item.name)}
-                >
-                  <Ionicons name={selectedArtisan === item.name ? "radio-button-on" : "radio-button-off"} size={22} color="#2d531a" />
-                  <Text style={styles.modalItemText}>{item.name} ({item.code})</Text>
-                </TouchableOpacity>
-              )}
-            />
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.modalClearButton}
-                onPress={() =>{setSelectedArtisan(""), setArtisanSearch("")} }
-              >
-                <Text style={styles.buttonText}>Clear</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalApplyButton}
-                onPress={() => {
-                  setShowArtisanModal(false);
-                  applyFilters();
-                }}
-              >
-                <Text style={styles.buttonText}>Apply</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.clearButton} onPress={clearSelection}>
+        <TouchableOpacity style={styles.clearButton} onPress={clearAll} >
           <Text style={styles.buttonText}>Clear</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.updateButton} onPress={updateData}>
-          <Text style={styles.buttonText}>Update</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
+
 export default PendingReports;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8f9f5" },
   header: {
-      paddingTop: 40,
+    paddingTop: 40,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#2d531a",

@@ -8,6 +8,7 @@ import {
     FlatList,
     Modal,
     TextInput,
+    Alert,
     ScrollView,
 } from "react-native";
 
@@ -68,6 +69,88 @@ const AdminReports = ({ navigation }) => {
     const [deliveredHasMore, setDeliveredHasMore] = useState(true);
     const [deliveredArtisanSearch, setDeliveredArtisanSearch] = useState("");
     // ✅ Fallback image component
+    const returnUpdateData = async () => {
+        if (returnSelectedRows.length === 0) {
+            Alert.alert("Validation", "Please select at least one row to update");
+            return;
+        }
+
+        try {
+            const payload = returnTableData
+                .filter(item => returnSelectedRows.includes(item.id))
+                .map(item => ({
+                    IssueNo: item.issueNo,   // 👈 PascalCase
+                    SNo: item.sNo,
+                    TransId: item.transId,
+                }));
+
+            console.log("Sending payload:", payload);
+
+            const res = await fetch(`${BASE_URL}ItemTransaction/UpdateReturnStatus`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (res.ok) {
+                Alert.alert("Success", "Return status updated successfully!");
+                const codes = artisans
+                    .filter((a) => returnSelectedArtisans.includes(a.id))
+                    .map((a) => a.code);
+                fetchReturnOrders(codes, 1, returnSearchSNo);
+                setReturnSelectedRows([]);
+            } else {
+                const errText = await res.text();
+                console.error("Update failed:", errText);
+                Alert.alert("Error", errText || "Failed to update return status");
+            }
+        } catch (err) {
+            console.error("Update error:", err);
+            Alert.alert("Error", "Something went wrong");
+        }
+    };
+
+    const fetchReturnOrders = async (codes = [], page = 1, search = "") => {
+        try {
+            setReturnLoading(true);
+
+            const cusCodesQuery = codes.map(code => `cusCodes=${code}`).join("&");
+            const url = `${BASE_URL}ItemTransaction/GetDeliveryAdmin?${cusCodesQuery}&pageNumber=${page}&pageSize=30`;
+
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (Array.isArray(data)) {
+                const mappedData = data.map((item, index) => ({
+                    id: `${page}-${index}`,
+                    issueNo: item.fIssueNo,
+                    orderNo: item.fOrderNo,
+                    orderType: item.fOrderType,
+                    orderDate: item.fOrderDate,
+                    product: item.fProduct,
+                    design: item.fDesign,
+                    weight: item.fWeight,
+                    size: item.fSize,
+                    qty: item.fQty,
+                    purity: item.fPurity,
+                    theme: item.fTheme,
+                    status: item.fconfirmStatus === "Y" ? "Delivered" : "Undelivered",
+                    sNo: item.fSNo,
+                    transId: item.fTransaId,
+                }));
+
+                setReturnTableData(prev => page === 1 ? mappedData : [...prev, ...mappedData]);
+                setReturnHasMore(data.length === 30);
+            }
+        } catch (error) {
+            console.error("Error fetching return orders:", error);
+        } finally {
+            setReturnLoading(false);
+        }
+    };
+
     const FallbackImage = ({ fileName, style, onSuccess }) => {
         const [uriIndex, setUriIndex] = useState(0);
         const extensions = [".jpg", ".jpeg", ".png"];
@@ -352,7 +435,7 @@ const AdminReports = ({ navigation }) => {
 
 
     const sections = [
-        { id: "1", title: "Undelivered", icon: require("../asserts/undelivered.jpg") },
+        { id: "1", title: "Pending", icon: require("../asserts/undelivered.jpg") },
         { id: "2", title: "Delivered", icon: require("../asserts/delivered.jpg") },
         { id: "3", title: "Return", icon: require("../asserts/return.jpg") },
     ];
@@ -366,6 +449,7 @@ const AdminReports = ({ navigation }) => {
     );
     const renderDelivered = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
+            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => setActiveSection(null)}>
                     <Ionicons name="arrow-undo" size={30} color="#fff" />
@@ -373,15 +457,22 @@ const AdminReports = ({ navigation }) => {
                 <Text style={styles.headerTitle}>Delivered</Text>
                 <View style={{ width: 30 }} />
             </View>
-            <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
+
+            {/* Fullscreen Image Viewer */}
+            <Modal
+                visible={!!fullscreenImage}
+                transparent={true}
+                onRequestClose={() => setFullscreenImage(null)}
+            >
                 <ImageViewer
-                    imageUrls={[{ url: fullscreenImage }]}   // ✅ now always 1 valid image
+                    imageUrls={[{ url: fullscreenImage }]}
                     enableSwipeDown={true}
                     onSwipeDown={() => setFullscreenImage(null)}
                     onCancel={() => setFullscreenImage(null)}
                     saveToLocalByLongPress={false}
                 />
             </Modal>
+
             {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
                 <TouchableOpacity onPress={() => setDeliveredShowArtisanModal(true)}>
@@ -404,9 +495,7 @@ const AdminReports = ({ navigation }) => {
                                     : deliveredSelectedArtisans
                                         .map((id) => {
                                             const artisan = artisans.find((a) => a.id === id);
-                                            return artisan
-                                                ? `${artisan.name} (${artisan.code})`
-                                                : "";
+                                            return artisan ? `${artisan.name} (${artisan.code})` : "";
                                         })
                                         .join(", ")
                             }
@@ -590,7 +679,7 @@ const AdminReports = ({ navigation }) => {
                         <View
                             style={{
                                 flexDirection: "row",
-                                justifyContent: "space-between",
+                                justifyContent: "flex-end",
                             }}
                         >
                             <TouchableOpacity
@@ -625,36 +714,6 @@ const AdminReports = ({ navigation }) => {
             {deliveredTableData.length > 0 ? (
                 <ScrollView horizontal style={{ marginBottom: 80 }}>
                     <View style={{ flex: 1 }}>
-                        {/* Select All */}
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                padding: 8,
-                            }}
-                        >
-                            <TouchableOpacity
-                                style={{ width: 50 }}
-                                onPress={() => {
-                                    if (deliveredSelectAll) {
-                                        setDeliveredSelectedRows([]);
-                                    } else {
-                                        setDeliveredSelectedRows(
-                                            deliveredTableData.map((item) => item.id)
-                                        );
-                                    }
-                                    setDeliveredSelectAll(!deliveredSelectAll);
-                                }}
-                            >
-                                <Ionicons
-                                    name={deliveredSelectAll ? "checkbox" : "square-outline"}
-                                    size={24}
-                                    color="#2d531a"
-                                />
-                            </TouchableOpacity>
-                            <Text>Select All</Text>
-                        </View>
-
                         {/* Table Header */}
                         <View
                             style={{
@@ -663,13 +722,11 @@ const AdminReports = ({ navigation }) => {
                                 padding: 8,
                             }}
                         >
-                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>Select</Text>
-                            <Text style={{ width: wp("7%"), fontWeight: "700" }}>#</Text>
+                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>#</Text>
                             <Text style={{ width: wp("24%"), fontWeight: "700" }}>Product</Text>
                             <Text style={{ width: wp("24%"), fontWeight: "700" }}>Design</Text>
-                            <Text style={{ width: wp("18%"), fontWeight: "700" }}>S.No</Text>
+                            <Text style={{ width: wp("25%"), fontWeight: "700" }}>S.No</Text>
                             <Text style={{ width: wp("12%"), fontWeight: "700" }}>View</Text>
-
                         </View>
 
                         {/* Table Rows */}
@@ -685,35 +742,10 @@ const AdminReports = ({ navigation }) => {
                                             alignItems: "center",
                                         }}
                                     >
-                                        <TouchableOpacity
-                                            style={{ width: wp("12%") }}
-                                            onPress={() => {
-                                                if (deliveredSelectedRows.includes(item.id)) {
-                                                    setDeliveredSelectedRows(
-                                                        deliveredSelectedRows.filter((id) => id !== item.id)
-                                                    );
-                                                } else {
-                                                    setDeliveredSelectedRows([
-                                                        ...deliveredSelectedRows,
-                                                        item.id,
-                                                    ]);
-                                                }
-                                            }}
-                                        >
-                                            <Ionicons
-                                                name={
-                                                    deliveredSelectedRows.includes(item.id)
-                                                        ? "checkbox"
-                                                        : "square-outline"
-                                                }
-                                                size={24}
-                                                color="#2d531a"
-                                            />
-                                        </TouchableOpacity>
-                                        <Text style={{ width: wp("7%") }}>{index + 1}</Text>
+                                        <Text style={{ width: wp("12%") }}>{index + 1}</Text>
                                         <Text style={{ width: wp("24%") }}>{item.product}</Text>
                                         <Text style={{ width: wp("24%") }}>{item.design}</Text>
-                                        <Text style={{ width: wp("18%") }}>{item.sNo}</Text>
+                                        <Text style={{ width: wp("25%") }}>{item.sNo}</Text>
                                         <TouchableOpacity
                                             style={{ width: wp("12%") }}
                                             onPress={() =>
@@ -724,7 +756,9 @@ const AdminReports = ({ navigation }) => {
                                         >
                                             <Ionicons
                                                 name={
-                                                    deliveredExpandedRow === item.id ? "eye-off" : "eye"
+                                                    deliveredExpandedRow === item.id
+                                                        ? "eye-off"
+                                                        : "eye"
                                                 }
                                                 size={24}
                                                 color="#2d531a"
@@ -755,54 +789,76 @@ const AdminReports = ({ navigation }) => {
                                                     }}
                                                 >
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Order No: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Order No:{" "}
+                                                        </Text>
                                                         {item.orderNo}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Order Type: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Order Type:{" "}
+                                                        </Text>
                                                         {item.orderType}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Order Date: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Order Date:{" "}
+                                                        </Text>
                                                         {item.orderDate}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Product: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Product:{" "}
+                                                        </Text>
                                                         {item.product}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Design: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Design:{" "}
+                                                        </Text>
                                                         {item.design}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Weight: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Weight:{" "}
+                                                        </Text>
                                                         {item.weight}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Size: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Size:{" "}
+                                                        </Text>
                                                         {item.size}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Qty: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Qty:{" "}
+                                                        </Text>
                                                         {item.qty}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Purity: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Purity:{" "}
+                                                        </Text>
                                                         {item.purity}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Theme: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Theme:{" "}
+                                                        </Text>
                                                         {item.theme}
                                                     </Text>
                                                     <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>Status: </Text>
+                                                        <Text style={{ fontWeight: "bold" }}>
+                                                            Status:{" "}
+                                                        </Text>
                                                         {item.status}
                                                     </Text>
                                                 </View>
 
                                                 {/* Right image */}
                                                 <TouchableOpacity
-                                                    onPress={() => setFullscreenImage(validUrl)}  // 👈 set the working URL
+                                                    onPress={() => setFullscreenImage(validUrl)}
                                                     style={{
                                                         width: wp("45%"),
                                                         height: hp("25%"),
@@ -815,14 +871,12 @@ const AdminReports = ({ navigation }) => {
                                                     <FallbackImage
                                                         fileName={item.design}
                                                         style={{ width: "100%", height: "100%" }}
-                                                        onSuccess={(url) => setValidUrl(url)}  // 👈 store the actual valid URL
+                                                        onSuccess={(url) => setValidUrl(url)}
                                                     />
                                                 </TouchableOpacity>
-
                                             </View>
                                         </View>
                                     )}
-
                                 </View>
                             )}
                             showsVerticalScrollIndicator
@@ -832,7 +886,9 @@ const AdminReports = ({ navigation }) => {
                                     const nextPage = deliveredPageNumber + 1;
                                     setDeliveredPageNumber(nextPage);
                                     const codes = artisans
-                                        .filter((a) => deliveredSelectedArtisans.includes(a.id))
+                                        .filter((a) =>
+                                            deliveredSelectedArtisans.includes(a.id)
+                                        )
                                         .map((a) => a.code);
                                     fetchDeliveredOrders(codes, nextPage, deliveredSearchSNo);
                                 }
@@ -871,8 +927,8 @@ const AdminReports = ({ navigation }) => {
                                                 textAlign: "center",
                                             }}
                                         >
-                                            Select an artisan and/or search S.No or Design or Product or
-                                            Order No to view the table.
+                                            Select an artisan and/or search S.No or Design or
+                                            Product or Order No to view the table.
                                         </Text>
                                     </View>
                                 ) : null
@@ -905,8 +961,8 @@ const AdminReports = ({ navigation }) => {
                             textAlign: "center",
                         }}
                     >
-                        Select an artisan and/or search S.No or Design or Product or Order No
-                        to view the table.
+                        Select an artisan and/or search S.No or Design or Product or Order
+                        No to view the table.
                     </Text>
                 </View>
             )}
@@ -916,11 +972,9 @@ const AdminReports = ({ navigation }) => {
                 <TouchableOpacity
                     style={styles.clearButton}
                     onPress={() => {
-                        setDeliveredSelectedRows([]);
                         setDeliveredSelectedArtisans([]);
                         setDeliveredSearchSNo("");
                         setDeliveredArtisanSearch("");
-                        setDeliveredSelectAll(false);
                         setDeliveredTableData([]);
                         setDeliveredPageNumber(1);
                         setDeliveredHasMore(true);
@@ -929,17 +983,10 @@ const AdminReports = ({ navigation }) => {
                 >
                     <Text style={styles.buttonText}>Clear</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.updateButton}
-                    onPress={() => {
-                        // TODO: implement deliveredUpdateData like updateData
-                    }}
-                >
-                    <Text style={styles.buttonText}>Update</Text>
-                </TouchableOpacity>
             </View>
         </SafeAreaView>
     );
+
 
     // ✅ Render Undelivered Section
     const renderUndelivered = () => (
@@ -948,7 +995,7 @@ const AdminReports = ({ navigation }) => {
                 <TouchableOpacity onPress={() => setActiveSection(null)}>
                     <Ionicons name="arrow-undo" size={30} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Undelivered</Text>
+                <Text style={styles.headerTitle}>Pending</Text>
                 <View style={{ width: 30 }} />
             </View>
             <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
@@ -2125,9 +2172,7 @@ const AdminReports = ({ navigation }) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.updateButton}
-                    onPress={() => {
-                        // write returnUpdateData similar to updateData
-                    }}
+                    onPress={returnUpdateData}
                 >
                     <Text style={styles.buttonText}>Update</Text>
                 </TouchableOpacity>
@@ -2136,7 +2181,7 @@ const AdminReports = ({ navigation }) => {
     );
 
     const renderSectionScreen = () => {
-        if (activeSection === "Undelivered") return renderUndelivered();
+        if (activeSection === "Pending") return renderUndelivered();
         if (activeSection === "Delivered") return renderDelivered();
         if (activeSection === "Return") return renderReturn();
         return (
@@ -2220,7 +2265,7 @@ export default AdminReports;
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#f8f9f5" },
     header: {
-     
+
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#2d531a",

@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,9 +8,25 @@ import {
   SafeAreaView,
   Image,
 } from "react-native";
+import { BackHandler } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 const ArtisansReport = ({ navigation, route }) => {
+  useEffect(() => {
+    const backAction = () => {
+
+      navigation.replace("Login"); // or navigation.navigate("Login")
+      return true; // prevent default exit
+
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [ navigation]);
   const user = route?.params?.user;
   return (
     <SafeAreaView style={styles.container}>
@@ -44,7 +61,7 @@ const ArtisansReport = ({ navigation, route }) => {
         {/* Pending Reports Card */}
         <TouchableOpacity
           style={styles.card}
-          onPress={() => navigation.navigate("PendingReports")}
+          onPress={() => navigation.navigate("PendingReports", { user })}
         >
           <Image
             source={require("../asserts/undelivered.jpg")}
@@ -56,7 +73,7 @@ const ArtisansReport = ({ navigation, route }) => {
         {/* Delivered Reports Card */}
         <TouchableOpacity
           style={styles.card}
-          onPress={() => navigation.navigate("DeliveredReports")}
+          onPress={() => navigation.navigate("DeliveredReports", { user })}
         >
           <Image
             source={require("../asserts/delivered.jpg")}
@@ -77,7 +94,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f4f6f9",
   },
   header: {
-      paddingTop: 40,
+    paddingTop: 40,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -109,7 +126,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: "center",
     marginVertical: 16,
-     opacity: 0.7,
+    opacity: 0.7,
   },
   cardsContainer: {
     flexDirection: "row",
@@ -142,22 +159,22 @@ const styles = StyleSheet.create({
     color: "#2d531a",
     textAlign: "center",
   },
-bannerWrapper: {
-  position: "relative",
-  alignItems: "center",
-  justifyContent: "center", // 👈 centers vertically
-  marginVertical: 10,
-},
-welcomeText: {
-  position: "absolute",
-  fontSize: 24,
-  fontWeight: "700",
- color: "#f9feffff", // 👈 gold color
-  textAlign: "center",
-  textShadowColor: "rgba(0,0,0,0.6)",
-  textShadowOffset: { width: 1, height: 1 },
-  textShadowRadius: 4,
-},
+  bannerWrapper: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center", // 👈 centers vertically
+    marginVertical: 10,
+  },
+  welcomeText: {
+    position: "absolute",
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#f9feffff", // 👈 gold color
+    textAlign: "center",
+    textShadowColor: "rgba(0,0,0,0.6)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
+  },
 
 
 });
