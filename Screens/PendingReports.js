@@ -15,16 +15,21 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from "axios";
 import { BASE_URL, IMG_URL } from "./Links";
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
+import ImageViewer from "react-native-image-zoom-viewer";
 
 const PendingReports = ({ navigation }) => {
   const [reports, setReports] = useState([]);
-  const [allReports, setAllReports] = useState([]); // ✅ keep original
+  const [allReports, setAllReports] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [selectedRows, setSelectedRows] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // artisan + issue popup states
+  const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [validUrl, setValidUrl] = useState(null);
+  const [issueSearch, setIssueSearch] = useState("");
+  const [artisanSearch, setArtisanSearch] = useState("");
+  // Artisan + issue popup states
   const [showArtisanModal, setShowArtisanModal] = useState(false);
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [artisans, setArtisans] = useState([]);
@@ -32,8 +37,8 @@ const PendingReports = ({ navigation }) => {
   const [selectedArtisan, setSelectedArtisan] = useState("");
   const [selectedIssue, setSelectedIssue] = useState("");
 
-  // ✅ Fallback image component
-  const FallbackImage = ({ fileName, style }) => {
+  // Fallback image component
+  const FallbackImage = ({ fileName, style, onSuccess }) => {
     const [uriIndex, setUriIndex] = useState(0);
     const extensions = [".jpg", ".jpeg", ".png"];
     const sources = extensions.map((ext) => `${IMG_URL}${fileName}${ext}`);
@@ -50,11 +55,14 @@ const PendingReports = ({ navigation }) => {
             console.log("No valid image found for", fileName);
           }
         }}
+        onLoad={() => {
+          if (onSuccess) onSuccess(sources[uriIndex]);
+        }}
       />
     );
   };
 
-  // ✅ Fetch reports
+  // Fetch reports
   const fetchReports = async () => {
     try {
       setLoading(true);
@@ -78,11 +86,11 @@ const PendingReports = ({ navigation }) => {
           sNo: item.fSNo,
           status: item.fStatus === "N" ? "Pending" : "Confirmed",
           transaId: item.fTransaId,
-          artisan: item.fAcname || "", // 👈 if API returns artisan name
+          artisan: item.fAcname || "",
         }));
         setReports(mapped);
         setAllReports(mapped);
-        setIssues([...new Set(mapped.map((x) => x.issueNo))]); // unique issue numbers
+        setIssues([...new Set(mapped.map((x) => x.issueNo))]);
       }
     } catch (err) {
       console.error("Error fetching reports:", err);
@@ -91,7 +99,7 @@ const PendingReports = ({ navigation }) => {
     }
   };
 
-  // ✅ Fetch artisans list
+  // Fetch artisans list
   const fetchArtisans = async () => {
     try {
       const res = await fetch(
@@ -116,7 +124,7 @@ const PendingReports = ({ navigation }) => {
     fetchArtisans();
   }, []);
 
-  // ✅ Apply filters
+  // Apply filters
   const applyFilters = () => {
     let filtered = allReports;
 
@@ -125,32 +133,26 @@ const PendingReports = ({ navigation }) => {
     }
     if (selectedArtisan) {
       filtered = filtered.filter((r) =>
-        selectedArtisan.includes(r.artisan)
+        r.artisan.toLowerCase().includes(selectedArtisan.toLowerCase())
       );
     }
 
     setReports(filtered);
   };
 
-  // ✅ Expand row
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  // ✅ Select row
   const toggleRow = (id) => {
-    if (selectedRows.includes(id)) {
-      const newRows = selectedRows.filter((i) => i !== id);
-      setSelectedRows(newRows);
-      setSelectAll(newRows.length === reports.length);
-    } else {
-      const newRows = [...selectedRows, id];
-      setSelectedRows(newRows);
-      setSelectAll(newRows.length === reports.length);
-    }
+    const newRows = selectedRows.includes(id)
+      ? selectedRows.filter((i) => i !== id)
+      : [...selectedRows, id];
+
+    setSelectedRows(newRows);
+    setSelectAll(newRows.length === reports.length);
   };
 
-  // ✅ Select all
   const toggleSelectAll = () => {
     if (selectAll) {
       setSelectedRows([]);
@@ -161,14 +163,16 @@ const PendingReports = ({ navigation }) => {
     }
   };
 
-  // ✅ Clear + Update actions
   const clearSelection = () => {
     setSelectedRows([]);
     setSelectedArtisan("");
     setSelectedIssue("");
-    setReports(allReports); // reset list
+    setReports(allReports);
     setSelectAll(false);
     setExpandedId(null);
+     setArtisanSearch("");
+    setIssueSearch("");
+
   };
 
   const updateData = () => {
@@ -176,63 +180,61 @@ const PendingReports = ({ navigation }) => {
       alert("Please select at least one row to update.");
       return;
     }
-    // Replace with your API call
     alert("Update triggered for rows: " + JSON.stringify(selectedRows));
   };
 
-  // ✅ Row rendering
   const renderItem = ({ item, index }) => (
     <View style={{ borderBottomWidth: 1, borderColor: "#ccc" }}>
       <View style={styles.row}>
-        {/* Checkbox */}
-        <TouchableOpacity
-          style={{ width: 50 }}
-          onPress={() => toggleRow(item.id)}
-        >
+        <TouchableOpacity style={{ width: wp("12%") }} onPress={() => toggleRow(item.id)}>
           <Ionicons
             name={selectedRows.includes(item.id) ? "checkbox" : "square-outline"}
-            size={22}
+            size={24}
             color="#2d531a"
           />
         </TouchableOpacity>
 
-        <Text style={{ width: 30, textAlign: "center" }}>{index + 1}</Text>
-        <Text style={{ width: 100 }}>{item.product}</Text>
-        <Text style={{ width: 100 }}>{item.design}</Text>
-        <Text style={{ width: 100 }}>{item.orderNo}</Text>
+        <Text style={{ width: wp("7%") }}>{index + 1}</Text>
+        <Text style={{ width: wp("24%") }}>{item.product}</Text>
+        <Text style={{ width: wp("24%") }}>{item.design}</Text>
+        <Text style={{ width: wp("18%") }}>{item.orderNo}</Text>
 
-        {/* Eye Icon */}
-        <TouchableOpacity style={{ width: 50 }} onPress={() => toggleExpand(item.id)}>
+        <TouchableOpacity style={{ width: wp("12%") }} onPress={() => toggleExpand(item.id)}>
           <Ionicons
             name={expandedId === item.id ? "eye-off" : "eye"}
-            size={22}
+            size={24}
             color="#2d531a"
           />
         </TouchableOpacity>
       </View>
 
-      {/* Expanded details */}
       {expandedId === item.id && (
         <View style={styles.details}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.detailText}>Issue No: {item.issueNo}</Text>
-            <Text style={styles.detailText}>Order No: {item.orderNo}</Text>
-            <Text style={styles.detailText}>Order Date: {item.orderDate}</Text>
-            <Text style={styles.detailText}>Order Type: {item.orderType}</Text>
-            <Text style={styles.detailText}>Product: {item.product}</Text>
-            <Text style={styles.detailText}>Design: {item.design}</Text>
-            <Text style={styles.detailText}>Weight: {item.weight}</Text>
-            <Text style={styles.detailText}>Size: {item.size}</Text>
-            <Text style={styles.detailText}>Qty: {item.qty}</Text>
-            <Text style={styles.detailText}>Purity: {item.purity}</Text>
-            <Text style={styles.detailText}>Theme: {item.theme}</Text>
-            <Text style={styles.detailText}>Status: {item.status}</Text>
+          <View style={styles.detailsLeft}>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Issue No: </Text>{item.issueNo}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Order No: </Text>{item.orderNo}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Order Date: </Text>{item.orderDate}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Order Type: </Text>{item.orderType}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Product: </Text>{item.product}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Design: </Text>{item.design}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Weight: </Text>{item.weight}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Size: </Text>{item.size}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Qty: </Text>{item.qty}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Purity: </Text>{item.purity}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Theme: </Text>{item.theme}</Text>
+            <Text style={styles.detailText}><Text style={{ fontWeight: 'bold' }}>Status: </Text>{item.status}</Text>
           </View>
 
-          <FallbackImage
-            fileName={item.design}
-            style={{ width: 120, height: 150, marginLeft: 10 }}
-          />
+          <TouchableOpacity
+            onPress={() => setFullscreenImage(validUrl)}
+            style={styles.detailsRightImage}
+          >
+            <FallbackImage
+              fileName={item.design}
+              style={{ width: "100%", height: "100%" }}
+              onSuccess={(url) => setValidUrl(url)}
+            />
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -240,61 +242,76 @@ const PendingReports = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-undo" size={26} color="#fff" />
+          <Ionicons name="arrow-undo" size={30} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Pending Reports</Text>
-        <View style={{ width: 26 }} />
+        <View style={{ width: 30 }} />
       </View>
 
-      {/* Filters */}
-      <View style={styles.filterContainer}>
-        <TouchableOpacity style={{ flexBasis: "48%" }} onPress={() => setShowIssueModal(true)}>
-          <TextInput
-            style={styles.input}
-            placeholder="Issue No"
-            value={selectedIssue}
-            editable={false}
-          />
-        </TouchableOpacity>
+      <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
+        <ImageViewer
+          imageUrls={[{ url: fullscreenImage }]}
+          enableSwipeDown={true}
+          onSwipeDown={() => setFullscreenImage(null)}
+          onCancel={() => setFullscreenImage(null)}
+          saveToLocalByLongPress={false}
+        />
+      </Modal>
 
-        <TouchableOpacity style={{ flexBasis: "48%" }} onPress={() => setShowArtisanModal(true)}>
-          <TextInput
-            style={styles.input}
-            placeholder="Artisan Name"
-            value={selectedArtisan}
-            editable={false}
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Select All */}
-      <View style={styles.selectAllContainer}>
-        <TouchableOpacity style={{ flexDirection: "row", alignItems: "center" }} onPress={toggleSelectAll}>
-          <Ionicons
-            name={selectAll ? "checkbox" : "square-outline"}
-            size={22}
-            color="#2d531a"
-          />
-          <Text style={{ marginLeft: 8, fontWeight: "600", color: "#2d531a" }}>
-            Select All
-          </Text>
+      <View style={{ padding: 12 }}>
+        <TouchableOpacity onPress={() => setShowIssueModal(true)}>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Select Issue No"
+              placeholderTextColor={"#7c7c7cff"}
+              value={selectedIssue}
+              editable={false}
+              pointerEvents="none"
+            />
+            <Ionicons name="search" size={26} color="#7c7c7c" />
+          </View>
         </TouchableOpacity>
       </View>
 
-      {/* Table */}
-      <ScrollView horizontal>
+      <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
+        <TouchableOpacity onPress={() => setShowArtisanModal(true)}>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Select Artisan Name"
+              placeholderTextColor={"#7c7c7cff"}
+              value={selectedArtisan}
+              editable={false}
+              pointerEvents="none"
+            />
+            <Ionicons name="search" size={26} color="#7c7c7c" />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView horizontal style={{ marginBottom: 80 }}>
         <View style={{ flex: 1 }}>
-          {/* Table Header */}
+          <View style={styles.selectAllContainer}>
+            <TouchableOpacity onPress={toggleSelectAll}>
+              <Ionicons
+                name={selectAll ? "checkbox" : "square-outline"}
+                size={24}
+                color="#2d531a"
+              />
+            </TouchableOpacity>
+            <Text style={{ marginLeft: 8 }}>Select All</Text>
+          </View>
+
           <View style={styles.tableHeader}>
-            <Text style={{ width: 50, fontWeight: "bold" }}>Select</Text>
-            <Text style={{ width: 30, fontWeight: "bold" }}>#</Text>
-            <Text style={{ width: 100, fontWeight: "bold" }}>Product</Text>
-            <Text style={{ width: 100, fontWeight: "bold" }}>Design</Text>
-            <Text style={{ width: 100, fontWeight: "bold" }}>Order No</Text>
-            <Text style={{ width: 50, fontWeight: "bold" }}>View</Text>
+            <Text style={{ width: wp("12%"), fontWeight: "700" }}>Select</Text>
+            <Text style={{ width: wp("7%"), fontWeight: "700" }}>#</Text>
+            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Product</Text>
+            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Design</Text>
+            <Text style={{ width: wp("18%"), fontWeight: "700" }}>Order No</Text>
+            <Text style={{ width: wp("12%"), fontWeight: "700" }}>View</Text>
           </View>
 
           {loading ? (
@@ -304,38 +321,85 @@ const PendingReports = ({ navigation }) => {
               data={reports}
               renderItem={renderItem}
               keyExtractor={(item) => item.id}
-              style={{ maxHeight: 450 }}
+              style={{ maxHeight: hp('55%') }}
+              ListEmptyComponent={
+                !loading ? (
+                  <View style={styles.emptyContainer}>
+                    <Image
+                      source={require("../asserts/Search.png")}
+                      style={styles.emptyImage}
+                    />
+                    <Text style={styles.emptyText}>
+                      No pending reports found. Try changing your filters or check back later.
+                    </Text>
+                  </View>
+                ) : null
+              }
             />
           )}
         </View>
       </ScrollView>
 
-      {/* Issue Modal */}
       <Modal visible={showIssueModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Select Issue No</Text>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Issue No</Text>
+              <TouchableOpacity onPress={() => setShowIssueModal(false)}>
+                <Ionicons name="close" size={28} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Bar */}
+            <TextInput
+              style={styles.searchBar}
+              placeholder="Search Issue No..."
+              placeholderTextColor="#7c7c7cff"
+              value={issueSearch}
+              onChangeText={setIssueSearch}
+            />
+
+            {/* Scrollable List of Issues */}
             <FlatList
-              data={issues}
+              data={
+                issues.filter(issue =>
+                  issue.toLowerCase().includes(issueSearch.toLowerCase())
+                )
+              }
               keyExtractor={(item, index) => index.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.modalItem}
                   onPress={() => setSelectedIssue(item)}
                 >
-                  <Text>{item}</Text>
+                  <Ionicons
+                    name={selectedIssue === item ? "radio-button-on" : "radio-button-off"}
+                    size={22}
+                    color="#2d531a"
+                  />
+                  <Text style={styles.modalItemText}>{item}</Text>
                 </TouchableOpacity>
               )}
+              // Optional: Add a message for when no search results are found
+              ListEmptyComponent={
+                <Text style={styles.emptyListText}>No issues found.</Text>
+              }
             />
+
+            {/* Modal Footer */}
             <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.clearButton}
-                onPress={() => setSelectedIssue("")}
+                style={styles.modalClearButton}
+                onPress={() => {
+                  setSelectedIssue("");
+                  setIssueSearch(""); // Also clear the search bar
+                }}
               >
                 <Text style={styles.buttonText}>Clear</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.updateButton}
+                style={styles.modalApplyButton}
                 onPress={() => {
                   setShowIssueModal(false);
                   applyFilters();
@@ -348,32 +412,49 @@ const PendingReports = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Artisan Modal */}
       <Modal visible={showArtisanModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Select Artisan</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Artisan</Text>
+              <TouchableOpacity onPress={() => setShowArtisanModal(false)}>
+                <Ionicons name="close" size={28} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.searchBar}
+              placeholder="Search Artisan..."
+              placeholderTextColor="#7c7c7cff"
+              value={artisanSearch}
+              onChangeText={setArtisanSearch}
+            />
             <FlatList
-              data={artisans}
+              data={
+                artisans.filter(artisan =>
+                  artisan.name.toLowerCase().includes(artisanSearch.toLowerCase()) ||
+                  artisan.code.toLowerCase().includes(artisanSearch.toLowerCase())
+                )
+              }
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.modalItem}
-                  onPress={() => setSelectedArtisan(`${item.name} (${item.code})`)}
+                  onPress={() => setSelectedArtisan(item.name)}
                 >
-                  <Text>{item.name} ({item.code})</Text>
+                  <Ionicons name={selectedArtisan === item.name ? "radio-button-on" : "radio-button-off"} size={22} color="#2d531a" />
+                  <Text style={styles.modalItemText}>{item.name} ({item.code})</Text>
                 </TouchableOpacity>
               )}
             />
             <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.clearButton}
-                onPress={() => setSelectedArtisan("")}
+                style={styles.modalClearButton}
+                onPress={() =>{setSelectedArtisan(""), setArtisanSearch("")} }
               >
                 <Text style={styles.buttonText}>Clear</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.updateButton}
+                style={styles.modalApplyButton}
                 onPress={() => {
                   setShowArtisanModal(false);
                   applyFilters();
@@ -386,7 +467,6 @@ const PendingReports = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.clearButton} onPress={clearSelection}>
           <Text style={styles.buttonText}>Clear</Text>
@@ -402,73 +482,79 @@ const PendingReports = ({ navigation }) => {
 export default PendingReports;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#f8f9f5" },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     backgroundColor: "#2d531a",
-    paddingVertical: 12,
+    paddingVertical: 18,
     paddingHorizontal: 16,
+    justifyContent: "space-between",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
   },
-  backButton: { padding: 4 },
+  backButton: { padding: 6 },
   headerText: {
     color: "#fff",
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "700",
     textAlign: "center",
     flex: 1,
   },
-
-  // Filters
-  filterContainer: {
+  inputContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 10,
-    backgroundColor: "#f5f5f5",
+    alignItems: "center",
   },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 6,
-    padding: 8,
-    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 10,
     color: "#000",
+    width: wp("85%"),
+    marginRight: 8,
+    backgroundColor: '#fff',
   },
-
-  // Select All
   selectAllContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
-    backgroundColor: "#eef9f1",
+    padding: 8,
+    paddingLeft: wp('3%')
   },
-
-  // Table
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#e6e6e6",
+    backgroundColor: "#ccc",
     padding: 8,
-    borderBottomWidth: 1,
-    borderColor: "#ccc",
   },
   row: {
     flexDirection: "row",
     padding: 8,
     alignItems: "center",
   },
-
-  // Expanded
   details: {
     flexDirection: "row",
-    backgroundColor: "#eef9f1",
-    padding: 12,
+    alignItems: "flex-start",
+    padding: wp("3%"),
+    backgroundColor: "#eaf5ea",
   },
-  detailText: { fontSize: 14, marginVertical: 2, color: "#2d531a" },
-
-  // Modal
+  detailsLeft: {
+    flexShrink: 1,
+    maxWidth: wp("65%"),
+    paddingRight: wp("3%"),
+  },
+  detailText: {
+    fontSize: 14,
+    marginVertical: 1,
+    color: "#000",
+  },
+  detailsRightImage: {
+    width: wp("45%"),
+    height: hp("25%"),
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: wp("3%"),
+    overflow: "hidden",
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -481,29 +567,31 @@ const styles = StyleSheet.create({
     padding: 20,
     maxHeight: "80%",
   },
-  modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 10 },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "700" },
   modalItem: {
-    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderColor: "#eee",
+    borderColor: '#eee',
+  },
+  modalItemText: {
+    fontSize: 16,
+    marginLeft: 10,
+    color: '#2d531a'
   },
   modalFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 12,
   },
-
-  // Footer
-  footer: {
-    flexDirection: "row",
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    backgroundColor: "#fff",
-  },
-  clearButton: {
+  modalClearButton: {
     backgroundColor: "rgba(120, 3, 3, 1)",
     padding: 14,
     borderRadius: 10,
@@ -511,7 +599,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     alignItems: "center",
   },
-  updateButton: {
+  modalApplyButton: {
     backgroundColor: "#2d531a",
     padding: 14,
     borderRadius: 10,
@@ -519,5 +607,62 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     alignItems: "center",
   },
+  footer: {
+    flexDirection: "row",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: "#f8f9f5",
+  },
+  clearButton: {
+    backgroundColor: "rgba(120, 3, 3, 1)",
+    padding: 16,
+    borderRadius: 10,
+    flex: 1,
+    marginRight: 8,
+    alignItems: "center",
+  },
+  updateButton: {
+    backgroundColor: "#2d531a",
+    padding: 16,
+    borderRadius: 10,
+    flex: 1,
+    marginLeft: 8,
+    alignItems: "center",
+  },
   buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    marginTop: hp('10%')
+  },
+  emptyImage: {
+    width: 180,
+    height: 180,
+    marginBottom: 16,
+    resizeMode: "contain",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+  },
+  searchBar: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 10,
+    color: '#000',
+  },
+  emptyListText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 20,
+    fontSize: 16,
+  },
 });
