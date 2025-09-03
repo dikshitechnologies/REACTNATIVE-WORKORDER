@@ -2302,7 +2302,7 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: "#000",
+        shadowColor: "#2d531a",
         shadowOpacity: 0.1,
         shadowOffset: { width: 0, height: 3 },
         shadowRadius: 5,

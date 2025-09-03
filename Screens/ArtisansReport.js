@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -7,17 +6,18 @@ import {
   StyleSheet,
   SafeAreaView,
   Image,
+  FlatList,
 } from "react-native";
 import { BackHandler } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 const ArtisansReport = ({ navigation, route }) => {
+  const user = route?.params?.user;
+
   useEffect(() => {
     const backAction = () => {
-
       navigation.replace("Login"); // or navigation.navigate("Login")
       return true; // prevent default exit
-
     };
 
     const backHandler = BackHandler.addEventListener(
@@ -26,8 +26,23 @@ const ArtisansReport = ({ navigation, route }) => {
     );
 
     return () => backHandler.remove();
-  }, [ navigation]);
-  const user = route?.params?.user;
+  }, [navigation]);
+
+  const sections = [
+    {
+      id: "1",
+      title: "Pending",
+      icon: require("../asserts/undelivered.jpg"),
+      screen: "PendingReports",
+    },
+    {
+      id: "2",
+      title: "Delivered",
+      icon: require("../asserts/delivered.jpg"),
+      screen: "DeliveredReports",
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with Back Button */}
@@ -41,11 +56,10 @@ const ArtisansReport = ({ navigation, route }) => {
 
         <Text style={styles.headerText}>Achari Reports</Text>
 
-        {/* Placeholder for spacing (to keep title centered) */}
         <View style={{ width: 28 }} />
       </View>
 
-      {/* Image Below Header */}
+      {/* Banner */}
       <View style={styles.bannerWrapper}>
         <Image
           source={require("../asserts/achariss.jpg")}
@@ -56,32 +70,30 @@ const ArtisansReport = ({ navigation, route }) => {
           <Text style={styles.welcomeText}>Hello, {user.fAcname}</Text>
         )}
       </View>
-      {/* Cards Section */}
-      <View style={styles.cardsContainer}>
-        {/* Pending Reports Card */}
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate("PendingReports", { user })}
-        >
-          <Image
-            source={require("../asserts/undelivered.jpg")}
-            style={styles.cardImage}
-          />
-          <Text style={styles.cardTitle}>Pending</Text>
-        </TouchableOpacity>
 
-        {/* Delivered Reports Card */}
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate("DeliveredReports", { user })}
-        >
-          <Image
-            source={require("../asserts/delivered.jpg")}
-            style={styles.cardImage}
-          />
-          <Text style={styles.cardTitle}>Delivered</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Cards Section */}
+      <FlatList
+        data={sections}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.gridContainer}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => navigation.navigate(item.screen, { user })}
+          >
+            {item.icon && (
+              <Image
+                source={item.icon}
+                style={styles.cardImage}
+                resizeMode="contain"
+              />
+            )}
+            <Text style={styles.cardTitle}>{item.title}</Text>
+          </TouchableOpacity>
+        )}
+      />
     </SafeAreaView>
   );
 };
@@ -120,6 +132,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     flex: 1,
   },
+  bannerWrapper: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 10,
+  },
   banner: {
     width: "90%",
     height: 190,
@@ -128,11 +146,22 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     opacity: 0.7,
   },
-  cardsContainer: {
-    flexDirection: "row",
+  welcomeText: {
+    position: "absolute",
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#f9feffff",
+    textAlign: "center",
+    textShadowColor: "rgba(0,0,0,0.6)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
+  },
+  gridContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+  },
+  row: {
     justifyContent: "space-evenly",
-    alignItems: "center",
-    marginTop: 10,
   },
   card: {
     backgroundColor: "#fff",
@@ -140,12 +169,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 15,
-    width: "40%",
+    width: "44%",
     elevation: 10,
     shadowColor: "#2d531a",
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.4,
     shadowRadius: 6,
+    marginBottom: 20,
   },
   cardImage: {
     width: 80,
@@ -159,22 +189,4 @@ const styles = StyleSheet.create({
     color: "#2d531a",
     textAlign: "center",
   },
-  bannerWrapper: {
-    position: "relative",
-    alignItems: "center",
-    justifyContent: "center", // 👈 centers vertically
-    marginVertical: 10,
-  },
-  welcomeText: {
-    position: "absolute",
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#f9feffff", // 👈 gold color
-    textAlign: "center",
-    textShadowColor: "rgba(0,0,0,0.6)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
-  },
-
-
 });
