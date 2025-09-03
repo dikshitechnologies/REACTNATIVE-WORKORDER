@@ -9,9 +9,10 @@ import {
     Modal,
     TextInput,
     Alert,
+    KeyboardAvoidingView,
     ScrollView,
 } from "react-native";
-
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import React, { useState, useEffect } from "react";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { BackHandler } from "react-native";
@@ -28,6 +29,38 @@ const isTablet = DeviceInfo.isTablet();
 // A common threshold for tablets
 
 const AdminReports = ({ navigation }) => {
+    const [partyName, setPartyName] = useState("");
+    const [groupName, setGroupName] = useState("");
+    const [gstType, setGstType] = useState("");
+    const [phone, setPhone] = useState("");
+    const [street, setStreet] = useState("");
+    const [area, setArea] = useState("");
+    const [city, setCity] = useState("");
+    const [pincode, setPincode] = useState("");
+    const [cellNo, setCellNo] = useState("");
+    const [stateName, setStateName] = useState("");
+
+    // Modal states
+    const [showPartyModal, setShowPartyModal] = useState(false);
+    const [partySearch, setPartySearch] = useState("");
+
+    const clearForm = () => {
+        setPartyName("");
+        setGroupName("");
+        setGstType("");
+        setPhone("");
+        setStreet("");
+        setArea("");
+        setCity("");
+        setPincode("");
+        setCellNo("");
+        setStateName("");
+    };
+
+    const updateForm = () => {
+        Alert.alert("User Updated", "User creation details updated successfully!");
+        // 👉 Replace with API POST/PUT logic
+    };
     const [activeSection, setActiveSection] = useState(null);
     const [showArtisanModal, setShowArtisanModal] = useState(false);
     const [selectedArtisans, setSelectedArtisans] = useState([]);
@@ -69,6 +102,180 @@ const AdminReports = ({ navigation }) => {
     const [deliveredHasMore, setDeliveredHasMore] = useState(true);
     const [deliveredArtisanSearch, setDeliveredArtisanSearch] = useState("");
     // ✅ Fallback image component
+    const renderUserCreation = () => {
+        return (
+            <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => setActiveSection(null)}>
+                        <Ionicons name="arrow-undo" size={30} color="#fff" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>User Creation</Text>
+                    <View style={{ width: 30 }} />
+                </View>
+
+                <KeyboardAwareScrollView
+                    contentContainerStyle={{ padding: 16 }}
+                    extraScrollHeight={60}   // scrolls a bit above keyboard
+                    enableOnAndroid={true}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Card Container */}
+                    <View
+                        style={{
+                            backgroundColor: "#fff",
+                            borderRadius: 16,
+                            padding: 15,
+                            shadowColor: "#000",
+                            shadowOpacity: 0.1,
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowRadius: 6,
+                            elevation: 4,
+                            marginBottom: 100, // leave space for footer buttons
+                        }}
+                    >
+                        {/* Party Name with search icon */}
+                        <Text>Party Name</Text>
+                        <TouchableOpacity onPress={() => setShowPartyModal(true)}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <TextInput
+                                    style={[styles.input, { flex: 1, marginRight: 8 }]}
+                                    placeholder="Select Party"
+                                    placeholderTextColor="#7c7c7c"
+                                    value={partyName}
+                                    editable={false}
+                                    pointerEvents="none"
+                                />
+                                <Ionicons name="search" size={26} color="#7c7c7c" />
+                            </View>
+                        </TouchableOpacity>
+
+                        <Text>Group Name</Text>
+                        <TextInput style={styles.input} value={groupName} onChangeText={setGroupName} />
+
+                        <Text>GST Type</Text>
+                        <TextInput style={styles.input} value={gstType} onChangeText={setGstType} />
+
+                        <Text>Phone No</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={phone}
+                            onChangeText={setPhone}
+                            keyboardType="phone-pad"
+                        />
+
+                        <Text>Street</Text>
+                        <TextInput style={styles.input} value={street} onChangeText={setStreet} />
+
+                        <Text>Area</Text>
+                        <TextInput style={styles.input} value={area} onChangeText={setArea} />
+
+                        <Text>City</Text>
+                        <TextInput style={styles.input} value={city} onChangeText={setCity} />
+
+                        <Text>Pincode</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={pincode}
+                            onChangeText={setPincode}
+                            keyboardType="numeric"
+                        />
+
+                        <Text>Cell No</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={cellNo}
+                            onChangeText={setCellNo}
+                            keyboardType="phone-pad"
+                        />
+
+                        <Text>State</Text>
+                        <TextInput style={styles.input} value={stateName} onChangeText={setStateName} />
+                    </View>
+
+                </KeyboardAwareScrollView>
+
+                {/* Party Modal */}
+                <Modal visible={showPartyModal} transparent animationType="slide">
+                    <View
+                        style={{
+                            flex: 1,
+                            backgroundColor: "rgba(0,0,0,0.5)",
+                            justifyContent: "center",
+                            padding: 20,
+                        }}
+                    >
+                        <View
+                            style={{
+                                backgroundColor: "#fff",
+                                borderRadius: 16,
+                                padding: 20,
+                                maxHeight: "80%",
+                            }}
+                        >
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: 12,
+                                }}
+                            >
+                                <Text style={{ fontSize: 18, fontWeight: "700" }}>Select Party</Text>
+                                <TouchableOpacity onPress={() => setShowPartyModal(false)}>
+                                    <Ionicons name="close" size={28} />
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Search input */}
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Search Party"
+                                placeholderTextColor="#7c7c7c"
+                                value={partySearch}
+                                onChangeText={setPartySearch}
+                            />
+
+                            {/* Party List */}
+                            <FlatList
+                                data={artisans.filter((a) =>
+                                    a.name.toLowerCase().includes(partySearch.toLowerCase())
+                                )}
+                                keyExtractor={(item) => item.id}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        style={{
+                                            paddingVertical: 10,
+                                            borderBottomWidth: 1,
+                                            borderColor: "#eee",
+                                        }}
+                                        onPress={() => {
+                                            setPartyName(item.name);
+                                            setShowPartyModal(false);
+                                        }}
+                                    >
+                                        <Text style={{ fontSize: 16, color: "#2d531a" }}>
+                                            {item.name} ({item.code})
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
+                            />
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* Footer Buttons */}
+                <View style={styles.footer}>
+                    <TouchableOpacity style={styles.clearButton} onPress={clearForm}>
+                        <Text style={styles.buttonText}>Clear</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.updateButton} onPress={updateForm}>
+                        <Text style={styles.buttonText}>Update</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    };
+
     const returnUpdateData = async () => {
         if (returnSelectedRows.length === 0) {
             Alert.alert("Validation", "Please select at least one row to update");
@@ -2219,6 +2426,7 @@ const AdminReports = ({ navigation }) => {
     );
 
     const renderSectionScreen = () => {
+        if (activeSection === "User Creation") return renderUserCreation();
         if (activeSection === "Pending") return renderUndelivered();
         if (activeSection === "Delivered") return renderDelivered();
         if (activeSection === "Return") return renderReturn();
@@ -2419,4 +2627,14 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 1, height: 1 },
         textShadowRadius: 4,
     },
+    input: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 10,
+        padding: 10,
+        marginBottom: 12,
+        color: "#000",
+        backgroundColor: "#fff",
+    },
+
 });
