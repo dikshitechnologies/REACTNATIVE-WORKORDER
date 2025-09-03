@@ -16,36 +16,36 @@ const ArtisansReport = ({ navigation, route }) => {
   const user = route?.params?.user;
 
 
-useEffect(() => {
-  const backAction = () => {
-    Alert.alert(
-      "Exit App",
-      "Are you sure you want to exit the app?",
-      [
-        {
-          text: "Cancel",
-          onPress: () => null,
-          style: "cancel",
-        },
-        {
-          text: "Yes",
-          onPress: () => {
-            navigation.replace("Login"); // Navigate to Login
-            BackHandler.exitApp(); // Exit the app
+  useEffect(() => {
+    const backAction = () => {
+      Alert.alert(
+        "Exit App",
+        "Are you sure you want to exit the app?",
+        [
+          {
+            text: "Cancel",
+            onPress: () => null,
+            style: "cancel",
           },
-        },
-      ]
+          {
+            text: "Yes",
+            onPress: () => {
+              navigation.replace("Login"); // Navigate to Login
+              BackHandler.exitApp(); // Exit the app
+            },
+          },
+        ]
+      );
+      return true; // prevent default behavior
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
     );
-    return true; // prevent default behavior
-  };
 
-  const backHandler = BackHandler.addEventListener(
-    "hardwareBackPress",
-    backAction
-  );
-
-  return () => backHandler.remove();
-}, [navigation]);
+    return () => backHandler.remove();
+  }, [navigation]);
 
   const sections = [
     {
@@ -68,9 +68,31 @@ useEffect(() => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() =>
+            Alert.alert(
+              "Logout",
+              "Are you sure you want to logout?",
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                },
+                {
+                  text: "Yes",
+                  onPress: () => navigation.navigate("Login"),
+                },
+              ],
+              { cancelable: true }
+            )
+          }
         >
-          <Ionicons name="arrow-undo" size={28} color="#fff" />
+          <Ionicons
+            name="log-out-outline"
+            size={30}
+            color="#fff"
+            style={{ transform: [{ scaleX: -1 }] }}
+          />
+
         </TouchableOpacity>
 
         <Text style={styles.headerText}>Achari Reports</Text>

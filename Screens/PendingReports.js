@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Image,
   Modal,
-  ScrollView,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from "axios";
@@ -18,13 +17,14 @@ import { BASE_URL, IMG_URL } from "./Links";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import ImageViewer from "react-native-image-zoom-viewer";
 import { BackHandler } from "react-native";
+
 const PendingReports = ({ navigation, route }) => {
+  const user = route?.params?.user;
+
   useEffect(() => {
     const backAction = () => {
-
-      navigation.replace("ArtisansReport", { user }); // or navigation.navigate("Login")
-      return true; // prevent default exit
-
+      navigation.replace("ArtisansReport", { user });
+      return true;
     };
 
     const backHandler = BackHandler.addEventListener(
@@ -35,19 +35,19 @@ const PendingReports = ({ navigation, route }) => {
     return () => backHandler.remove();
   }, [navigation]);
 
-  const user = route?.params?.user;
   const clearAll = () => {
     setSearch("");
-    setExpandedId(null);
-    fetchReports(""); // reload everything
+    setPage(1);
+    fetchReports("", 1, false);
   };
 
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [expandedId, setExpandedId] = useState(null);
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [validUrl, setValidUrl] = useState(null);
-  const [search, setSearch] = useState(""); // 🔎 single search
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   // fallback image
   const FallbackImage = ({ fileName, style, onSuccess }) => {
@@ -72,20 +72,21 @@ const PendingReports = ({ navigation, route }) => {
     );
   };
 
-  // fetch reports with search
-  const fetchReports = async (query = "") => {
+  // fetch reports with search + paging
+  const fetchReports = async (query = "", pageNum = 1, append = false) => {
     try {
       setLoading(true);
 
-      const url = `${BASE_URL}ItemTransaction/GetPendingByCustomer?cusCode=${user?.fCode}&search=${query}&pageNumber=1&pageSize=30`;
-      console.log("📡 Fetching reports from:", url);
+      const url = `${BASE_URL}ItemTransaction/GetPendingByCustomer?cusCode=${user?.fCode
+        }&search=${query}&pageNumber=${pageNum}&pageSize=30`;
+      console.log("📡 Fetching reports:", url);
 
       const res = await axios.get(url);
-      console.log("✅ API Response:", res.data);
 
       if (res.data?.data && Array.isArray(res.data.data)) {
         const mapped = res.data.data.map((item, index) => ({
-          id: index.toString(),
+          id: `${pageNum}-${index}`,
+          globalIndex: (pageNum - 1) * 30 + (index + 1), // continuous numbering
           issueNo: item.fIssueNo,
           orderNo: item.fOrderNo,
           orderDate: item.fOrderDate,
@@ -100,155 +101,235 @@ const PendingReports = ({ navigation, route }) => {
           sNo: item.fSNo,
           status: item.fStatus === "N" ? "Pending" : "Confirmed",
           transaId: item.fTransaId,
-          artisan: item.fAcname || "",
+          artisan: user?.fAcname || "",
         }));
-        setReports(mapped);
-      } else if (res.data?.message) {
-        console.log("⚠️ API Message:", res.data.message);
-        setReports([]); // clear reports list
+
+        setReports((prev) => (append ? [...prev, ...mapped] : mapped));
+        setHasMore(res.data.data.length === 30);
       } else {
-        console.log("⚠️ Unexpected API format:", res.data);
-        setReports([]);
+        setHasMore(false);
       }
     } catch (err) {
-      // 404 or any API error → just clear reports silently
-      setReports([]);
+      console.log("❌ Error fetching reports:", err);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
   };
 
-
-
   useEffect(() => {
-    fetchReports(); // first load
+    fetchReports();
   }, []);
 
-  // debounce search
+  // ✅ Debounced search effect (only one)
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchReports(search);
+      setPage(1);
+      fetchReports(search, 1, false);
     }, 400);
     return () => clearTimeout(timer);
   }, [search]);
 
-  const toggleExpand = (id) => {
-    setExpandedId(expandedId === id ? null : id);
-  };
+  const renderItem = ({ item }) => (
+    <View style={styles.card}>
+      {/* Card number */}
+      <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
 
-const renderItem = ({ item, index }) => (
-  <View style={styles.card}>
-    {/* Row (mini table header inside card) */}
-    <View style={styles.row}>
-      <Text style={{ width: wp("7%"), fontWeight: "600" }}>{index + 1}</Text>
-      <Text style={{ width: wp("28%"), fontWeight: "600" }}>{item.product}</Text>
-      <Text style={{ width: wp("28%"), fontWeight: "600" }}>{item.design}</Text>
-      <Text style={{ width: wp("20%"), fontWeight: "600" }}>{item.orderNo}</Text>
+      {/* Product Image */}
+      <TouchableOpacity
+        onPress={() => setFullscreenImage(validUrl)}
+        style={styles.imageWrapper}
+      >
+        <FallbackImage
+          fileName={item.design}
+          style={{ width: "100%", height: "100%" }}
+          onSuccess={(url) => setValidUrl(url)}
+        />
+      </TouchableOpacity>
+
+      {/* Details */}
+      <View style={styles.detailsBox}>
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>SNo:</Text>
+          <Text style={styles.value}>{item.sNo}</Text>
+          <Text style={styles.label}>Weight:</Text>
+          <Text style={styles.value}>{item.weight}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Design:</Text>
+          <Text style={styles.value}>{item.design}</Text>
+          <Text style={styles.label}>Size:</Text>
+          <Text style={styles.value}>{item.size}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Order No:</Text>
+          <Text style={styles.value}>{item.orderNo}</Text>
+          <Text style={styles.label}>Qty:</Text>
+          <Text style={styles.value}>{item.qty}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Order Date:</Text>
+          <Text style={styles.value}>{item.orderDate}</Text>
+          <Text style={styles.label}>Order Type:</Text>
+          <Text style={styles.value}>{item.orderType}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Purity:</Text>
+          <Text style={styles.value}>{item.purity}</Text>
+          <Text style={styles.label}>Theme:</Text>
+          <Text style={styles.value}>{item.theme}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Status:</Text>
+          <Text style={styles.value}>{item.status}</Text>
+          <Text style={styles.label}>Transa Id:</Text>
+          <Text style={styles.value}>{item.transaId}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Product:</Text>
+          <Text style={styles.value}>{item.product}</Text>
+          <Text style={styles.label}>Artisan:</Text>
+          <Text style={styles.value}>{item.artisan}</Text>
+        </View>
+      </View>
     </View>
-
-    {/* Product Image */}
-    <TouchableOpacity
-      onPress={() => setFullscreenImage(validUrl)}
-      style={styles.imageWrapper}
-    >
-      <FallbackImage
-        fileName={item.design}
-        style={{ width: "100%", height: "100%" }}
-        onSuccess={(url) => setValidUrl(url)}
-      />
-    </TouchableOpacity>
-
-    {/* Product Details */}
-    <View style={styles.detailsBox}>
-      <Text style={styles.detailText}><Text style={styles.bold}>Issue No:</Text> {item.issueNo}</Text>
-      <Text style={styles.detailText}><Text style={styles.bold}>Order Date:</Text> {item.orderDate}</Text>
-      <Text style={styles.detailText}><Text style={styles.bold}>Order Type:</Text> {item.orderType}</Text>
-      <Text style={styles.detailText}><Text style={styles.bold}>Weight:</Text> {item.weight}</Text>
-      <Text style={styles.detailText}><Text style={styles.bold}>Size:</Text> {item.size}</Text>
-      <Text style={styles.detailText}><Text style={styles.bold}>Qty:</Text> {item.qty}</Text>
-      <Text style={styles.detailText}><Text style={styles.bold}>Purity:</Text> {item.purity}</Text>
-      <Text style={styles.detailText}><Text style={styles.bold}>Theme:</Text> {item.theme}</Text>
-      <Text style={styles.detailText}><Text style={styles.bold}>Status:</Text> {item.status}</Text>
-    </View>
-  </View>
-);
-
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       {/* header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="arrow-undo" size={30} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Pending</Text>
         <View style={{ width: 30 }} />
       </View>
 
+     
       {/* fullscreen image */}
-      <Modal visible={!!fullscreenImage} transparent onRequestClose={() => setFullscreenImage(null)}>
-        <ImageViewer
-          imageUrls={[{ url: fullscreenImage }]}
-          enableSwipeDown
-          onSwipeDown={() => setFullscreenImage(null)}
-          onCancel={() => setFullscreenImage(null)}
-          saveToLocalByLongPress={false}
-        />
+      <Modal
+        visible={!!fullscreenImage}
+        transparent
+        onRequestClose={() => setFullscreenImage(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+          {/* Close Button */}
+          <TouchableOpacity
+            style={{
+              position: "absolute",
+              top: 40, // adjust depending on status bar
+              right: 20,
+              zIndex: 10,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              borderRadius: 20,
+              padding: 6,
+            }}
+            onPress={() => setFullscreenImage(null)}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+
+          {/* Image Viewer */}
+          <ImageViewer
+            imageUrls={[{ url: fullscreenImage }]}
+            enableSwipeDown
+            onSwipeDown={() => setFullscreenImage(null)}
+            onCancel={() => setFullscreenImage(null)}
+            saveToLocalByLongPress={false}
+          />
+        </View>
       </Modal>
 
-      {/* 🔎 Search bar with clear */}
+
+      {/* Search bar */}
       <View style={{ padding: 12 }}>
-        <View style={[styles.inputContainer, { flexDirection: "row", alignItems: "center" }]}>
+        <View
+          style={[
+            styles.inputContainer,
+            { flexDirection: "row", alignItems: "center" },
+          ]}
+        >
           <TextInput
             style={[styles.input, { flex: 1 }]}
-            placeholder="Search Product / Design / Issue / Artisan..."
+            placeholder="Search Product / Design..."
             placeholderTextColor="#7c7c7c"
             value={search}
             onChangeText={setSearch}
           />
           {search.length > 0 && (
-            <TouchableOpacity onPress={() => { setSearch(""); fetchReports(""); }}>
-              <Ionicons name="close-circle" size={24} color="#7c7c7c" style={{ marginHorizontal: 6 }} />
+            <TouchableOpacity
+              onPress={() => {
+                setSearch("");
+                fetchReports("");
+              }}
+            >
+              <Ionicons
+                name="close-circle"
+                size={24}
+                color="#7c7c7c"
+                style={{ marginHorizontal: 6 }}
+              />
             </TouchableOpacity>
           )}
-
         </View>
       </View>
 
-      {/* table */}
-      <ScrollView horizontal style={{ marginBottom: 80 }}>
-        <View style={{ flex: 1 }}>
-          <View style={styles.tableHeader}>
-            <Text style={{ width: wp("9%"), fontWeight: "700" }}>#</Text>
-            <Text style={{ width: wp("28%"), fontWeight: "700" }}>Product</Text>
-            <Text style={{ width: wp("28%"), fontWeight: "700" }}>Design</Text>
-            <Text style={{ width: wp("20%"), fontWeight: "700" }}>Order No</Text>
-          
-          </View>
+      {/* Cards list */}
+      {loading && page === 1 ? (
+        <ActivityIndicator
+          size="large"
+          color="#2d531a"
+          style={{ marginTop: 20 }}
+        />
+      ) : (
+        <FlatList
+          data={reports}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Image
+                source={require("../asserts/Search.png")}
+                style={styles.emptyImage}
+              />
+              <Text style={styles.emptyText}>No pending reports found.</Text>
+            </View>
+          }
+          onEndReached={() => {
+            if (!loading && hasMore) {
+              const nextPage = page + 1;
+              setPage(nextPage);
+              fetchReports(search, nextPage, true);
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loading &&
+            page > 1 && (
+              <ActivityIndicator
+                size="small"
+                color="#2d531a"
+                style={{ margin: 10 }}
+              />
+            )
+          }
+        />
+      )}
 
-          {loading ? (
-            <ActivityIndicator size="large" color="#2d531a" style={{ marginTop: 20 }} />
-          ) : (
-            <FlatList
-              data={reports}
-              renderItem={renderItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={{ paddingBottom: 100 }}
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Image source={require("../asserts/Search.png")} style={styles.emptyImage} />
-                  <Text style={styles.emptyText}>
-                    No pending reports found.
-                  </Text>
-                </View>
-              }
-            />
-          )}
-
-        </View>
-      </ScrollView>
+      {/* footer */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.clearButton} onPress={clearAll} >
+        <TouchableOpacity style={styles.clearButton} onPress={clearAll}>
           <Text style={styles.buttonText}>Clear</Text>
         </TouchableOpacity>
       </View>
@@ -326,6 +407,26 @@ const styles = StyleSheet.create({
     marginVertical: 1,
     color: "#000",
   },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 4,
+    //marginRight: wp("%")
+  },
+
+  label: {
+    fontWeight: "bold",
+    color: "#000",
+    width: wp("20%"),   // fixed width for alignment
+  },
+
+  value: {
+    color: "#000",
+    width: wp("25%"),
+    marginRight: wp("5%"),
+  },
+
+
   detailsRightImage: {
     width: wp("45%"),
     height: hp("25%"),

@@ -22,29 +22,28 @@ const DeliveredReports = ({ navigation, route }) => {
   const user = route?.params?.user;
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [expandedId, setExpandedId] = useState(null);
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [validUrl, setValidUrl] = useState(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
   useEffect(() => {
     const backAction = () => {
-
-      navigation.replace("ArtisansReport", { user }); // or navigation.navigate("Login")
-      return true; // prevent default exit
-
+      navigation.replace("ArtisansReport", { user });
+      return true;
     };
-
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       backAction
     );
-
     return () => backHandler.remove();
   }, [navigation]);
+
   const clearAll = () => {
     setSearch("");
-    setExpandedId(null);
-    fetchReports("");
+    setPage(1);
+    fetchReports("", 1, false);
   };
 
   // fallback image
@@ -70,22 +69,20 @@ const DeliveredReports = ({ navigation, route }) => {
     );
   };
 
-  // fetch delivered reports
-  const fetchReports = async (query = "") => {
+  // fetch delivered reports with search + paging
+  const fetchReports = async (query = "", pageNum = 1, append = false) => {
     try {
       setLoading(true);
-
-      const url = `${BASE_URL}ItemTransaction/GetDeliveryAdmin?cusCodes=${user?.fCode}&search=${query}&pageNumber=1&pageSize=30`;
+      const url = `${BASE_URL}ItemTransaction/GetDeliveryAdmin?cusCodes=${user?.fCode}&search=${query}&pageNumber=${pageNum}&pageSize=30`;
       console.log("📡 Fetching delivered reports:", url);
 
       const res = await axios.get(url);
-      console.log("✅ API Response:", res.data);
 
-      // API returns array directly
       if (Array.isArray(res.data)) {
         const mapped = res.data.map((item, index) => ({
-          id: index.toString(),
-          Issue: item.fIssueNo,
+          id: `${pageNum}-${index}`,
+          globalIndex: (pageNum - 1) * 30 + (index + 1),
+          issueNo: item.fIssueNo,
           orderNo: item.fOrderNo,
           orderDate: item.fOrderDate,
           orderType: item.fOrderType,
@@ -99,86 +96,107 @@ const DeliveredReports = ({ navigation, route }) => {
           sNo: item.fSNo,
           status: item.fConfirmStatus === "Y" ? "Delivered" : "Pending",
         }));
-        setReports(mapped);
+        setReports((prev) => (append ? [...prev, ...mapped] : mapped));
+        setHasMore(res.data.length === 30);
       } else {
-        setReports([]);
+        setHasMore(false);
       }
     } catch (err) {
       console.log("❌ Error fetching delivered reports:", err);
-      setReports([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
   };
 
-
   useEffect(() => {
     fetchReports();
   }, []);
 
+  // ✅ Debounced search effect
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchReports(search);
+      setPage(1);
+      fetchReports(search, 1, false);
     }, 400);
     return () => clearTimeout(timer);
   }, [search]);
 
-  const toggleExpand = (id) => {
-    setExpandedId(expandedId === id ? null : id);
-  };
+  const renderItem = ({ item }) => (
+    <View style={styles.card}>
+      {/* Card number */}
+      <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
 
-  const renderItem = ({ item, index }) => (
-    <View style={{ borderBottomWidth: 1, borderColor: "#ccc" }}>
-      <View style={styles.row}>
-        <Text style={{ width: wp("7%") }}>{index + 1}</Text>
-        <Text style={{ width: wp("28%") }}>{item.product}</Text>
-        <Text style={{ width: wp("28%") }}>{item.design}</Text>
-        <Text style={{ width: wp("20%") }}>{item.orderNo}</Text>
+      {/* Product Image */}
+      <TouchableOpacity
+        onPress={() => setFullscreenImage(validUrl)}
+        style={styles.imageWrapper}
+      >
+        <FallbackImage
+          fileName={item.design}
+          style={{ width: "100%", height: "100%" }}
+          onSuccess={(url) => setValidUrl(url)}
+        />
+      </TouchableOpacity>
 
-        <TouchableOpacity style={{ width: wp("12%") }} onPress={() => toggleExpand(item.id)}>
-          <Ionicons
-            name={expandedId === item.id ? "eye-off" : "eye"}
-            size={24}
-            color="#2d531a"
-          />
-        </TouchableOpacity>
-      </View>
-
-      {expandedId === item.id && (
-        <View style={styles.details}>
-          <View style={styles.detailsLeft}>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Issue No: </Text>{item.Issue}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Order No: </Text>{item.orderNo}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Order Date: </Text>{item.orderDate}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Order Type: </Text>{item.orderType}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Product: </Text>{item.product}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Design: </Text>{item.design}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Weight: </Text>{item.weight}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Size: </Text>{item.size}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Qty: </Text>{item.qty}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Purity: </Text>{item.purity}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Theme: </Text>{item.theme}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Status: </Text>{item.status}</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => setFullscreenImage(validUrl)}
-            style={styles.detailsRightImage}
-          >
-            <FallbackImage
-              fileName={item.design}
-              style={{ width: "100%", height: "100%" }}
-              onSuccess={(url) => setValidUrl(url)}
-            />
-          </TouchableOpacity>
+      {/* Details */}
+      <View style={styles.detailsBox}>
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>SNo:</Text>
+          <Text style={styles.value}>{item.sNo}</Text>
+          <Text style={styles.label}>Weight:</Text>
+          <Text style={styles.value}>{item.weight}</Text>
         </View>
-      )}
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Design:</Text>
+          <Text style={styles.value}>{item.design}</Text>
+          <Text style={styles.label}>Size:</Text>
+          <Text style={styles.value}>{item.size}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Order No:</Text>
+          <Text style={styles.value}>{item.orderNo}</Text>
+          <Text style={styles.label}>Qty:</Text>
+          <Text style={styles.value}>{item.qty}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Order Date:</Text>
+          <Text style={styles.value}>{item.orderDate}</Text>
+          <Text style={styles.label}>Order Type:</Text>
+          <Text style={styles.value}>{item.orderType}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Purity:</Text>
+          <Text style={styles.value}>{item.purity}</Text>
+          <Text style={styles.label}>Theme:</Text>
+          <Text style={styles.value}>{item.theme}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Status:</Text>
+          <Text style={styles.value}>{item.status}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Product:</Text>
+          <Text style={styles.value}>{item.product}</Text>
+        </View>
+      </View>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="arrow-undo" size={30} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Delivered</Text>
@@ -186,73 +204,124 @@ const DeliveredReports = ({ navigation, route }) => {
       </View>
 
       {/* fullscreen image */}
-      <Modal visible={!!fullscreenImage} transparent onRequestClose={() => setFullscreenImage(null)}>
-        <ImageViewer
-          imageUrls={[{ url: fullscreenImage }]}
-          enableSwipeDown
-          onSwipeDown={() => setFullscreenImage(null)}
-          onCancel={() => setFullscreenImage(null)}
-          saveToLocalByLongPress={false}
-        />
+      <Modal
+        visible={!!fullscreenImage}
+        transparent
+        onRequestClose={() => setFullscreenImage(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+          {/* Close Button */}
+          <TouchableOpacity
+            style={{
+              position: "absolute",
+              top: 40,
+              right: 20,
+              zIndex: 10,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              borderRadius: 20,
+              padding: 6,
+            }}
+            onPress={() => setFullscreenImage(null)}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+
+          <ImageViewer
+            imageUrls={[{ url: fullscreenImage }]}
+            enableSwipeDown
+            onSwipeDown={() => setFullscreenImage(null)}
+            onCancel={() => setFullscreenImage(null)}
+            saveToLocalByLongPress={false}
+          />
+        </View>
       </Modal>
 
-      {/* search bar */}
+      {/* Search bar */}
       <View style={{ padding: 12 }}>
-        <View style={[styles.inputContainer, { flexDirection: "row", alignItems: "center" }]}>
+        <View
+          style={[
+            styles.inputContainer,
+            { flexDirection: "row", alignItems: "center" },
+          ]}
+        >
           <TextInput
             style={[styles.input, { flex: 1 }]}
-            placeholder="Search Product / Design / Order..."
+            placeholder="Search Product / Design / Order / SNo..."
             placeholderTextColor="#7c7c7c"
             value={search}
             onChangeText={setSearch}
           />
           {search.length > 0 && (
-            <TouchableOpacity onPress={() => { setSearch(""); fetchReports(""); }}>
-              <Ionicons name="close-circle" size={24} color="#7c7c7c" style={{ marginHorizontal: 6 }} />
+            <TouchableOpacity
+              onPress={() => {
+                setSearch("");
+                fetchReports("");
+              }}
+            >
+              <Ionicons
+                name="close-circle"
+                size={24}
+                color="#7c7c7c"
+                style={{ marginHorizontal: 6 }}
+              />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* table */}
-      <ScrollView horizontal style={{ marginBottom: 80 }}>
-        <View style={{ flex: 1 }}>
-          <View style={styles.tableHeader}>
-            <Text style={{ width: wp("7%"), fontWeight: "700" }}>#</Text>
-            <Text style={{ width: wp("28%"), fontWeight: "700" }}>Product</Text>
-            <Text style={{ width: wp("28%"), fontWeight: "700" }}>Design</Text>
-            <Text style={{ width: wp("20%"), fontWeight: "700" }}>Order No</Text>
-            <Text style={{ width: wp("12%"), fontWeight: "700" }}>View</Text>
-          </View>
+      {/* Cards list */}
+      {loading && page === 1 ? (
+        <ActivityIndicator
+          size="large"
+          color="#2d531a"
+          style={{ marginTop: 20 }}
+        />
+      ) : (
+        <FlatList
+          data={reports}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Image
+                source={require("../asserts/Search.png")}
+                style={styles.emptyImage}
+              />
+              <Text style={styles.emptyText}>No delivered reports found.</Text>
+            </View>
+          }
+          onEndReached={() => {
+            if (!loading && hasMore) {
+              const nextPage = page + 1;
+              setPage(nextPage);
+              fetchReports(search, nextPage, true);
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loading &&
+            page > 1 && (
+              <ActivityIndicator
+                size="small"
+                color="#2d531a"
+                style={{ margin: 10 }}
+              />
+            )
+          }
+        />
+      )}
 
-          {loading ? (
-            <ActivityIndicator size="large" color="#2d531a" style={{ marginTop: 20 }} />
-          ) : (
-            <FlatList
-              data={reports}
-              renderItem={renderItem}
-              keyExtractor={(item) => item.id}
-              style={{ maxHeight: hp("70%") }}
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Image source={require("../asserts/Search.png")} style={styles.emptyImage} />
-                  <Text style={styles.emptyText}>
-                    No delivered reports found.
-                  </Text>
-                </View>
-              }
-            />
-          )}
-        </View>
-      </ScrollView>
+      {/* footer */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.clearButton} onPress={clearAll} >
+        <TouchableOpacity style={styles.clearButton} onPress={clearAll}>
           <Text style={styles.buttonText}>Clear</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
+
 
 export default DeliveredReports;
 
@@ -323,6 +392,26 @@ const styles = StyleSheet.create({
     marginVertical: 1,
     color: "#000",
   },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 4,
+    //marginRight: wp("%")
+  },
+
+  label: {
+    fontWeight: "bold",
+    color: "#000",
+    width: wp("20%"),   // fixed width for alignment
+  },
+
+  value: {
+    color: "#000",
+    width: wp("25%"),
+    marginRight: wp("5%"),
+  },
+
+
   detailsRightImage: {
     width: wp("45%"),
     height: hp("25%"),
@@ -441,4 +530,29 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
   },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    margin: 10,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  imageWrapper: {
+    width: "100%",
+    height: hp("30%"),
+    borderRadius: 10,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  detailsBox: {
+    marginTop: 8,
+  },
+  bold: {
+    fontWeight: "bold",
+    color: "#000",
+  },
+
 });

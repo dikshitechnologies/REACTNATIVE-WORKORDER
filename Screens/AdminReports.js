@@ -341,11 +341,30 @@ const AdminReports = ({ navigation }) => {
     useEffect(() => {
         const backAction = () => {
             if (activeSection) {
+                // If inside a section, go back to main instead of exit
                 setActiveSection(null);
-                return true; // handled
+                return true;
             } else {
-                navigation.replace("Login"); // or navigation.navigate("Login")
-                return true; // prevent default exit
+                // Show confirmation alert
+                Alert.alert(
+                    "Exit App",
+                    "Are you sure you want to exit the app?",
+                    [
+                        {
+                            text: "Cancel",
+                            onPress: () => null,
+                            style: "cancel",
+                        },
+                        {
+                            text: "Yes",
+                            onPress: () => {
+                                navigation.replace("Login"); // Navigate to Login
+                                BackHandler.exitApp();       // Exit app
+                            },
+                        },
+                    ]
+                );
+                return true; // prevent default behavior
             }
         };
 
@@ -453,9 +472,10 @@ const AdminReports = ({ navigation }) => {
 
 
     const sections = [
-        { id: "1", title: "Pending", icon: require("../asserts/undelivered.jpg") },
-        { id: "2", title: "Delivered", icon: require("../asserts/delivered.jpg") },
-        { id: "3", title: "Return", icon: require("../asserts/return.jpg") },
+        { id: "1", title: "User Creation", icon: require("../asserts/user.jpg") },
+        { id: "2", title: "Pending", icon: require("../asserts/undelivered.jpg") },
+        { id: "3", title: "Delivered", icon: require("../asserts/delivered.jpg") },
+        { id: "4", title: "Return", icon: require("../asserts/return.jpg") },
     ];
     const deliveredFilteredData = deliveredTableData.filter(
         (item) =>
@@ -2233,9 +2253,31 @@ const AdminReports = ({ navigation }) => {
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
-                    onPress={() => navigation.navigate("Login")}
+                    onPress={() =>
+                        Alert.alert(
+                            "Logout",
+                            "Are you sure you want to logout?",
+                            [
+                                {
+                                    text: "Cancel",
+                                    style: "cancel",
+                                },
+                                {
+                                    text: "Yes",
+                                    onPress: () => navigation.navigate("Login"),
+                                },
+                            ],
+                            { cancelable: true }
+                        )
+                    }
                 >
-                    <Ionicons name="arrow-undo" size={30} color="#fff" />
+                    <Ionicons
+                        name="log-out-outline"
+                        size={30}
+                        color="#fff"
+                        style={{ transform: [{ scaleX: -1 }] }}
+                    />
+
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Admin Reports</Text>
                 <View style={{ width: 30 }} />
