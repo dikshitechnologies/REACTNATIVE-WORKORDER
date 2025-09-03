@@ -136,53 +136,43 @@ const PendingReports = ({ navigation, route }) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const renderItem = ({ item, index }) => (
-    <View style={{ borderBottomWidth: 1, borderColor: "#ccc" }}>
-      <View style={styles.row}>
-        <Text style={{ width: wp("7%") }}>{index + 1}</Text>
-        <Text style={{ width: wp("28%") }}>{item.product}</Text>
-        <Text style={{ width: wp("28%") }}>{item.design}</Text>
-        <Text style={{ width: wp("20%") }}>{item.orderNo}</Text>
-
-        <TouchableOpacity style={{ width: wp("12%") }} onPress={() => toggleExpand(item.id)}>
-          <Ionicons
-            name={expandedId === item.id ? "eye-off" : "eye"}
-            size={24}
-            color="#2d531a"
-          />
-        </TouchableOpacity>
-      </View>
-
-      {expandedId === item.id && (
-        <View style={styles.details}>
-          <View style={styles.detailsLeft}>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Issue No: </Text>{item.issueNo}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Order No: </Text>{item.orderNo}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Order Date: </Text>{item.orderDate}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Order Type: </Text>{item.orderType}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Product: </Text>{item.product}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Design: </Text>{item.design}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Weight: </Text>{item.weight}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Size: </Text>{item.size}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Qty: </Text>{item.qty}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Purity: </Text>{item.purity}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Theme: </Text>{item.theme}</Text>
-            <Text style={styles.detailText}><Text style={{ fontWeight: "bold" }}>Status: </Text>{item.status}</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => setFullscreenImage(validUrl)}
-            style={styles.detailsRightImage}
-          >
-            <FallbackImage
-              fileName={item.design}
-              style={{ width: "100%", height: "100%" }}
-              onSuccess={(url) => setValidUrl(url)}
-            />
-          </TouchableOpacity>
-        </View>
-      )}
+const renderItem = ({ item, index }) => (
+  <View style={styles.card}>
+    {/* Row (mini table header inside card) */}
+    <View style={styles.row}>
+      <Text style={{ width: wp("7%"), fontWeight: "600" }}>{index + 1}</Text>
+      <Text style={{ width: wp("28%"), fontWeight: "600" }}>{item.product}</Text>
+      <Text style={{ width: wp("28%"), fontWeight: "600" }}>{item.design}</Text>
+      <Text style={{ width: wp("20%"), fontWeight: "600" }}>{item.orderNo}</Text>
     </View>
-  );
+
+    {/* Product Image */}
+    <TouchableOpacity
+      onPress={() => setFullscreenImage(validUrl)}
+      style={styles.imageWrapper}
+    >
+      <FallbackImage
+        fileName={item.design}
+        style={{ width: "100%", height: "100%" }}
+        onSuccess={(url) => setValidUrl(url)}
+      />
+    </TouchableOpacity>
+
+    {/* Product Details */}
+    <View style={styles.detailsBox}>
+      <Text style={styles.detailText}><Text style={styles.bold}>Issue No:</Text> {item.issueNo}</Text>
+      <Text style={styles.detailText}><Text style={styles.bold}>Order Date:</Text> {item.orderDate}</Text>
+      <Text style={styles.detailText}><Text style={styles.bold}>Order Type:</Text> {item.orderType}</Text>
+      <Text style={styles.detailText}><Text style={styles.bold}>Weight:</Text> {item.weight}</Text>
+      <Text style={styles.detailText}><Text style={styles.bold}>Size:</Text> {item.size}</Text>
+      <Text style={styles.detailText}><Text style={styles.bold}>Qty:</Text> {item.qty}</Text>
+      <Text style={styles.detailText}><Text style={styles.bold}>Purity:</Text> {item.purity}</Text>
+      <Text style={styles.detailText}><Text style={styles.bold}>Theme:</Text> {item.theme}</Text>
+      <Text style={styles.detailText}><Text style={styles.bold}>Status:</Text> {item.status}</Text>
+    </View>
+  </View>
+);
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -229,11 +219,11 @@ const PendingReports = ({ navigation, route }) => {
       <ScrollView horizontal style={{ marginBottom: 80 }}>
         <View style={{ flex: 1 }}>
           <View style={styles.tableHeader}>
-            <Text style={{ width: wp("7%"), fontWeight: "700" }}>#</Text>
+            <Text style={{ width: wp("9%"), fontWeight: "700" }}>#</Text>
             <Text style={{ width: wp("28%"), fontWeight: "700" }}>Product</Text>
             <Text style={{ width: wp("28%"), fontWeight: "700" }}>Design</Text>
             <Text style={{ width: wp("20%"), fontWeight: "700" }}>Order No</Text>
-            <Text style={{ width: wp("12%"), fontWeight: "700" }}>View</Text>
+          
           </View>
 
           {loading ? (
@@ -243,7 +233,7 @@ const PendingReports = ({ navigation, route }) => {
               data={reports}
               renderItem={renderItem}
               keyExtractor={(item) => item.id}
-              style={{ maxHeight: hp("70%") }}
+              contentContainerStyle={{ paddingBottom: 100 }}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <Image source={require("../asserts/Search.png")} style={styles.emptyImage} />
@@ -254,6 +244,7 @@ const PendingReports = ({ navigation, route }) => {
               }
             />
           )}
+
         </View>
       </ScrollView>
       <View style={styles.footer}>
@@ -453,4 +444,29 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
   },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    margin: 10,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  imageWrapper: {
+    width: "100%",
+    height: hp("30%"),
+    borderRadius: 10,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  detailsBox: {
+    marginTop: 8,
+  },
+  bold: {
+    fontWeight: "bold",
+    color: "#000",
+  },
+
 });

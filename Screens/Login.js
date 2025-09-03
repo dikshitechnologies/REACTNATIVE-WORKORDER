@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, {useEffect , useState, useRef } from "react";
 import {
   View,
   Text,
@@ -13,10 +13,12 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
+import { BackHandler } from "react-native";
 import * as Animatable from "react-native-animatable";
 import Ionicons from "react-native-vector-icons/Ionicons"; // 👈 for eye icon
 import AsyncStorage from "@react-native-async-storage/async-storage"; // 👈 for remember me
 import { BASE_URL } from './Links';
+
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 const { height } = Dimensions.get("window");
 const LoginScreen = ({ navigation }) => {
@@ -26,7 +28,19 @@ const LoginScreen = ({ navigation }) => {
   const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+useEffect(() => {
+  const backAction = () => {
+    BackHandler.exitApp();   // 👈 Close the app
+    return true;             // Prevent default behavior
+  };
 
+  const backHandler = BackHandler.addEventListener(
+    "hardwareBackPress",
+    backAction
+  );
+
+  return () => backHandler.remove();
+}, []);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 

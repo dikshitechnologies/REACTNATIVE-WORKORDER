@@ -117,7 +117,7 @@ const AdminReports = ({ navigation }) => {
             setReturnLoading(true);
 
             const cusCodesQuery = codes.map(code => `cusCodes=${code}`).join("&");
-            const url = `${BASE_URL}ItemTransaction/GetDeliveryAdmin?${cusCodesQuery}&pageNumber=${page}&pageSize=30`;
+            const url = `${BASE_URL}ItemTransaction/GetDeliveryAdmin?${cusCodesQuery}&search=${search}&pageNumber=${page}&pageSize=30`;
 
             const res = await fetch(url);
             const data = await res.json();
@@ -141,8 +141,10 @@ const AdminReports = ({ navigation }) => {
                     transId: item.fTransaId,
                 }));
 
-                setReturnTableData(prev => page === 1 ? mappedData : [...prev, ...mappedData]);
-                setReturnHasMore(data.length === 30);
+                setReturnTableData(prev =>
+                    page === 1 ? mappedData : [...prev, ...mappedData]
+                );
+                setReturnHasMore(mappedData.length === 30);
             }
         } catch (error) {
             console.error("Error fetching return orders:", error);
@@ -150,6 +152,22 @@ const AdminReports = ({ navigation }) => {
             setReturnLoading(false);
         }
     };
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+            if (returnSelectedArtisans.length > 0) {
+                setReturnPageNumber(1);
+                const codes = artisans
+                    .filter((a) => returnSelectedArtisans.includes(a.id))
+                    .map((a) => a.code);
+                fetchReturnOrders(codes, 1, returnSearchSNo);
+            } else {
+                setReturnTableData([]);
+            }
+        }, 500);
+
+        return () => clearTimeout(delayDebounce);
+    }, [returnSearchSNo, returnSelectedArtisans]);
+
 
     const FallbackImage = ({ fileName, style, onSuccess }) => {
         const [uriIndex, setUriIndex] = useState(0);
@@ -2074,7 +2092,7 @@ const AdminReports = ({ navigation }) => {
                                     const codes = artisans
                                         .filter((a) => returnSelectedArtisans.includes(a.id))
                                         .map((a) => a.code);
-                                    fetchPendingOrders(codes, nextPage, returnSearchSNo);
+                                    fetchReturnOrders(codes, nextPage, returnSearchSNo);
                                     // 👆 replace with Return API if different
                                 }
                             }}

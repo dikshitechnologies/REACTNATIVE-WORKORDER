@@ -6,6 +6,7 @@ import {
   StyleSheet,
   SafeAreaView,
   Image,
+  Alert,
   FlatList,
 } from "react-native";
 import { BackHandler } from "react-native";
@@ -14,19 +15,37 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 const ArtisansReport = ({ navigation, route }) => {
   const user = route?.params?.user;
 
-  useEffect(() => {
-    const backAction = () => {
-      navigation.replace("Login"); // or navigation.navigate("Login")
-      return true; // prevent default exit
-    };
 
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
+useEffect(() => {
+  const backAction = () => {
+    Alert.alert(
+      "Exit App",
+      "Are you sure you want to exit the app?",
+      [
+        {
+          text: "Cancel",
+          onPress: () => null,
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          onPress: () => {
+            navigation.replace("Login"); // Navigate to Login
+            BackHandler.exitApp(); // Exit the app
+          },
+        },
+      ]
     );
+    return true; // prevent default behavior
+  };
 
-    return () => backHandler.remove();
-  }, [navigation]);
+  const backHandler = BackHandler.addEventListener(
+    "hardwareBackPress",
+    backAction
+  );
+
+  return () => backHandler.remove();
+}, [navigation]);
 
   const sections = [
     {
