@@ -1,4 +1,4 @@
-import React, {useEffect , useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -28,19 +28,19 @@ const LoginScreen = ({ navigation }) => {
   const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-useEffect(() => {
-  const backAction = () => {
-    BackHandler.exitApp();   // 👈 Close the app
-    return true;             // Prevent default behavior
-  };
+  useEffect(() => {
+    const backAction = () => {
+      BackHandler.exitApp();   // 👈 Close the app
+      return true;             // Prevent default behavior
+    };
 
-  const backHandler = BackHandler.addEventListener(
-    "hardwareBackPress",
-    backAction
-  );
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
 
-  return () => backHandler.remove();
-}, []);
+    return () => backHandler.remove();
+  }, []);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -60,12 +60,12 @@ useEffect(() => {
         const savedPhone = await AsyncStorage.getItem("achariPhone");
 
         if (savedMode === "admin" && savedUser && savedPass) {
-          setMode("admin");
+          // ❌ don't setMode here
           setUsername(savedUser);
           setPassword(savedPass);
           setRememberMe(true);
         } else if (savedMode === "achari" && savedPhone) {
-          setMode("achari");
+          // ❌ don't setMode here
           setPhone(savedPhone);
           setRememberMe(true);
         }
@@ -74,6 +74,7 @@ useEffect(() => {
       }
     })();
   }, []);
+
 
 
   // handle login
@@ -99,7 +100,7 @@ useEffect(() => {
         console.log("📩 Admin Login Response:", text);
 
         if (response.ok && text.trim().toLowerCase().includes("login success")) {
-        
+
 
           // ✅ Remember me save
           // inside handleLogin
