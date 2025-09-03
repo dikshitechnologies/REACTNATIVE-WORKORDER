@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
-const ArtisansReport = ({ navigation }) => {
+const ArtisansReport = ({ navigation, route }) => {
+  const user = route?.params?.user;
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with Back Button */}
@@ -28,12 +29,16 @@ const ArtisansReport = ({ navigation }) => {
       </View>
 
       {/* Image Below Header */}
-      <Image
-        source={require("../asserts/Achari.jpg")} // change to your desired image
-        style={styles.banner}
-        resizeMode="cover"
-      />
-
+      <View style={styles.bannerWrapper}>
+        <Image
+          source={require("../asserts/achariss.jpg")}
+          style={styles.banner}
+          resizeMode="cover"
+        />
+        {user?.fAcname && (
+          <Text style={styles.welcomeText}>Hello, {user.fAcname}</Text>
+        )}
+      </View>
       {/* Cards Section */}
       <View style={styles.cardsContainer}>
         {/* Pending Reports Card */}
@@ -99,10 +104,11 @@ const styles = StyleSheet.create({
   },
   banner: {
     width: "90%",
-    height: 180,
+    height: 190,
     borderRadius: 20,
     alignSelf: "center",
     marginVertical: 16,
+     opacity: 0.7,
   },
   cardsContainer: {
     flexDirection: "row",
@@ -135,4 +141,22 @@ const styles = StyleSheet.create({
     color: "#2d531a",
     textAlign: "center",
   },
+bannerWrapper: {
+  position: "relative",
+  alignItems: "center",
+  justifyContent: "center", // 👈 centers vertically
+  marginVertical: 10,
+},
+welcomeText: {
+  position: "absolute",
+  fontSize: 24,
+  fontWeight: "700",
+ color: "#f9feffff", // 👈 gold color
+  textAlign: "center",
+  textShadowColor: "rgba(0,0,0,0.6)",
+  textShadowOffset: { width: 1, height: 1 },
+  textShadowRadius: 4,
+},
+
+
 });

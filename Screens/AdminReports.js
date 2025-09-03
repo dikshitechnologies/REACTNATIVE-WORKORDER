@@ -2178,11 +2178,16 @@ const AdminReports = ({ navigation }) => {
                 <View style={{ width: 30 }} />
             </View>
 
-            <Image
-                source={require("../asserts/Admin.png")}
-                style={styles.banner}
-                resizeMode="cover"
-            />
+            <View style={styles.bannerWrapper}>
+                <Image
+                    source={require("../asserts/achariss.jpg")}
+                    style={styles.banner}
+                    resizeMode="cover"
+                />
+
+                <Text style={styles.welcomeText}>Hello, Admin</Text>
+
+            </View>
 
             <FlatList
                 data={sections}
@@ -2234,10 +2239,11 @@ const styles = StyleSheet.create({
     },
     banner: {
         width: "90%",
-        height: "25%",
+        height: 190,
         borderRadius: 20,
         alignSelf: "center",
         marginVertical: 16,
+        opacity: 0.7,
     },
     gridContainer: { paddingHorizontal: 12 },
     row: { justifyContent: "space-between", marginBottom: 14 },
@@ -2290,4 +2296,20 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+    bannerWrapper: {
+        position: "relative",
+        alignItems: "center",
+        justifyContent: "center", // 👈 centers vertically
+        marginVertical: 10,
+    },
+    welcomeText: {
+        position: "absolute",
+        fontSize: 24,
+        fontWeight: "700",
+        color: "#f9feffff", // 👈 gold color
+        textAlign: "center",
+        textShadowColor: "rgba(0,0,0,0.6)",
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 4,
+    },
 });
