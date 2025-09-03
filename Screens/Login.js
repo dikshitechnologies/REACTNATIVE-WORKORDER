@@ -175,7 +175,7 @@ const LoginScreen = ({ navigation }) => {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ImageBackground
-        source={require("../asserts/goldart.png")}
+        source={require("../asserts/goldartlogin.png")}
         style={styles.background}
       >
         {/* If no mode selected → show 2 buttons */}
