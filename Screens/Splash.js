@@ -15,7 +15,7 @@ const SplashScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={require("../asserts/Splash.png")}
+        source={require("../asserts/Splashz.png")}
         style={styles.background}
         resizeMode="cover"
       >
@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 260,
     height: 260,
+    marginBottom: 145,
     borderRadius: 130,
     borderWidth: 10, // thicker ring
     borderColor: "rgba(255,255,255,0.8)", // soft white glow
