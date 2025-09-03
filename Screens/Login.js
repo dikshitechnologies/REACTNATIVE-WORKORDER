@@ -85,7 +85,7 @@ const LoginScreen = ({ navigation }) => {
         console.log("📩 Admin Login Response:", text);
 
         if (response.ok && text.trim().toLowerCase().includes("login success")) {
-          Alert.alert("Success", "Admin login successful");
+        
 
           // ✅ Remember me save
           // inside handleLogin
@@ -132,7 +132,7 @@ const LoginScreen = ({ navigation }) => {
         console.log("📩 Achari Login Response:", data);
 
         if (response.ok && data?.fAcname) {
-          Alert.alert("Welcome", `Hello ${data.fAcname}`);
+
 
           // ✅ Remember me save
           // inside handleLogin

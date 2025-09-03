@@ -484,6 +484,7 @@ export default PendingReports;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8f9f5" },
   header: {
+      paddingTop: 40,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#2d531a",

@@ -2220,9 +2220,11 @@ export default AdminReports;
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#f8f9f5" },
     header: {
+     
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#2d531a",
+        paddingTop: 40,
         paddingVertical: 18,
         paddingHorizontal: 16,
         justifyContent: "space-between",

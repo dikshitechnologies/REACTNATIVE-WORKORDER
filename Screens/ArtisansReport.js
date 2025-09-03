@@ -50,7 +50,7 @@ const ArtisansReport = ({ navigation, route }) => {
             source={require("../asserts/undelivered.jpg")}
             style={styles.cardImage}
           />
-          <Text style={styles.cardTitle}>Pending   Reports</Text>
+          <Text style={styles.cardTitle}>Pending</Text>
         </TouchableOpacity>
 
         {/* Delivered Reports Card */}
@@ -62,7 +62,7 @@ const ArtisansReport = ({ navigation, route }) => {
             source={require("../asserts/delivered.jpg")}
             style={styles.cardImage}
           />
-          <Text style={styles.cardTitle}>Delivered Reports</Text>
+          <Text style={styles.cardTitle}>Delivered</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f4f6f9",
   },
   header: {
+      paddingTop: 40,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
