@@ -746,13 +746,32 @@ const AdminReports = ({ navigation }) => {
                 transparent={true}
                 onRequestClose={() => setFullscreenImage(null)}
             >
-                <ImageViewer
-                    imageUrls={[{ url: fullscreenImage }]}
-                    enableSwipeDown={true}
-                    onSwipeDown={() => setFullscreenImage(null)}
-                    onCancel={() => setFullscreenImage(null)}
-                    saveToLocalByLongPress={false}
-                />
+                <View style={{ flex: 1, backgroundColor: "#000" }}>
+                    {/* Close Button */}
+                    <TouchableOpacity
+                        style={{
+                            position: "absolute",
+                            top: 40,
+                            right: 20,
+                            zIndex: 10,
+                            backgroundColor: "rgba(0,0,0,0.6)",
+                            borderRadius: 20,
+                            padding: 6,
+                        }}
+                        onPress={() => setFullscreenImage(null)}
+                    >
+                        <Ionicons name="close" size={28} color="#fff" />
+                    </TouchableOpacity>
+
+                    {/* Image Viewer */}
+                    <ImageViewer
+                        imageUrls={[{ url: fullscreenImage }]}
+                        enableSwipeDown
+                        onSwipeDown={() => setFullscreenImage(null)}
+                        onCancel={() => setFullscreenImage(null)}
+                        saveToLocalByLongPress={false}
+                    />
+                </View>
             </Modal>
 
             {/* Artisan Selection */}
@@ -1285,13 +1304,32 @@ const AdminReports = ({ navigation }) => {
                 <View style={{ width: 30 }} />
             </View>
             <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
-                <ImageViewer
-                    imageUrls={[{ url: fullscreenImage }]}   // ✅ now always 1 valid image
-                    enableSwipeDown={true}
-                    onSwipeDown={() => setFullscreenImage(null)}
-                    onCancel={() => setFullscreenImage(null)}
-                    saveToLocalByLongPress={false}
-                />
+                <View style={{ flex: 1, backgroundColor: "#000" }}>
+                    {/* Close Button */}
+                    <TouchableOpacity
+                        style={{
+                            position: "absolute",
+                            top: 40,
+                            right: 20,
+                            zIndex: 10,
+                            backgroundColor: "rgba(0,0,0,0.6)",
+                            borderRadius: 20,
+                            padding: 6,
+                        }}
+                        onPress={() => setFullscreenImage(null)}
+                    >
+                        <Ionicons name="close" size={28} color="#fff" />
+                    </TouchableOpacity>
+
+                    {/* Image Viewer */}
+                    <ImageViewer
+                        imageUrls={[{ url: fullscreenImage }]}
+                        enableSwipeDown
+                        onSwipeDown={() => setFullscreenImage(null)}
+                        onCancel={() => setFullscreenImage(null)}
+                        saveToLocalByLongPress={false}
+                    />
+                </View>
             </Modal>
 
 
@@ -1879,13 +1917,32 @@ const AdminReports = ({ navigation }) => {
                 <View style={{ width: 30 }} />
             </View>
             <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
-                <ImageViewer
-                    imageUrls={[{ url: fullscreenImage }]}   // ✅ now always 1 valid image
-                    enableSwipeDown={true}
-                    onSwipeDown={() => setFullscreenImage(null)}
-                    onCancel={() => setFullscreenImage(null)}
-                    saveToLocalByLongPress={false}
-                />
+                <View style={{ flex: 1, backgroundColor: "#000" }}>
+                    {/* Close Button */}
+                    <TouchableOpacity
+                        style={{
+                            position: "absolute",
+                            top: 40,
+                            right: 20,
+                            zIndex: 10,
+                            backgroundColor: "rgba(0,0,0,0.6)",
+                            borderRadius: 20,
+                            padding: 6,
+                        }}
+                        onPress={() => setFullscreenImage(null)}
+                    >
+                        <Ionicons name="close" size={28} color="#fff" />
+                    </TouchableOpacity>
+
+                    {/* Image Viewer */}
+                    <ImageViewer
+                        imageUrls={[{ url: fullscreenImage }]}
+                        enableSwipeDown
+                        onSwipeDown={() => setFullscreenImage(null)}
+                        onCancel={() => setFullscreenImage(null)}
+                        saveToLocalByLongPress={false}
+                    />
+                </View>
             </Modal>
             {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
