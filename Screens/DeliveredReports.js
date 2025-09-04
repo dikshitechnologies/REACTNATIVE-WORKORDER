@@ -23,7 +23,6 @@ const DeliveredReports = ({ navigation, route }) => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState(null);
-  const [validUrl, setValidUrl] = useState(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -46,30 +45,37 @@ const DeliveredReports = ({ navigation, route }) => {
     fetchReports("", 1, false);
   };
 
-  // fallback image
-  const FallbackImage = ({ fileName, style, onSuccess }) => {
+  // ✅ fallback image that resolves its own URL
+  const FallbackImage = ({ fileName, style, onPress }) => {
     const [uriIndex, setUriIndex] = useState(0);
+    const [resolvedUrl, setResolvedUrl] = useState(null);
+
     const extensions = [".jpg", ".jpeg", ".png"];
     const sources = extensions.map((ext) => `${IMG_URL}${fileName}${ext}`);
 
     return (
-      <Image
-        source={{ uri: sources[uriIndex] }}
+      <TouchableOpacity
+        onPress={() => resolvedUrl && onPress(resolvedUrl)}
         style={style}
-        resizeMode="contain"
-        onError={() => {
-          if (uriIndex < sources.length - 1) {
-            setUriIndex(uriIndex + 1);
-          } else {
-            console.log("No valid image found for", fileName);
-          }
-        }}
-        onLoad={() => onSuccess && onSuccess(sources[uriIndex])}
-      />
+      >
+        <Image
+          source={{ uri: sources[uriIndex] }}
+          style={{ width: "100%", height: "100%" }}
+          resizeMode="contain"
+          onError={() => {
+            if (uriIndex < sources.length - 1) {
+              setUriIndex(uriIndex + 1);
+            } else {
+              console.log("❌ No valid image found for", fileName);
+            }
+          }}
+          onLoad={() => setResolvedUrl(sources[uriIndex])}
+        />
+      </TouchableOpacity>
     );
   };
 
-  // fetch delivered reports with search + paging
+  // ✅ fetch delivered reports with search + paging
   const fetchReports = async (query = "", pageNum = 1, append = false) => {
     try {
       setLoading(true);
@@ -80,7 +86,11 @@ const DeliveredReports = ({ navigation, route }) => {
 
       if (Array.isArray(res.data)) {
         const mapped = res.data.map((item, index) => ({
-          id: `${pageNum}-${index}`,
+          // ✅ stable unique ID
+          id:
+            item.fTransaId?.toString() ||
+            item.fIssueNo?.toString() ||
+            `${pageNum}-${index}`,
           globalIndex: (pageNum - 1) * 30 + (index + 1),
           issueNo: item.fIssueNo,
           orderNo: item.fOrderNo,
@@ -96,6 +106,7 @@ const DeliveredReports = ({ navigation, route }) => {
           sNo: item.fSNo,
           status: item.fConfirmStatus === "Y" ? "Delivered" : "Pending",
         }));
+
         setReports((prev) => (append ? [...prev, ...mapped] : mapped));
         setHasMore(res.data.length === 30);
       } else {
@@ -128,16 +139,11 @@ const DeliveredReports = ({ navigation, route }) => {
       <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
 
       {/* Product Image */}
-      <TouchableOpacity
-        onPress={() => setFullscreenImage(validUrl)}
+      <FallbackImage
+        fileName={item.design}
         style={styles.imageWrapper}
-      >
-        <FallbackImage
-          fileName={item.design}
-          style={{ width: "100%", height: "100%" }}
-          onSuccess={(url) => setValidUrl(url)}
-        />
-      </TouchableOpacity>
+        onPress={(url) => setFullscreenImage(url)}
+      />
 
       {/* Details */}
       <View style={styles.detailsBox}>
@@ -309,6 +315,11 @@ const DeliveredReports = ({ navigation, route }) => {
               />
             )
           }
+          // ✅ performance optimizations
+          initialNumToRender={10}
+          maxToRenderPerBatch={15}
+          windowSize={7}
+          removeClippedSubviews={true}
         />
       )}
 
