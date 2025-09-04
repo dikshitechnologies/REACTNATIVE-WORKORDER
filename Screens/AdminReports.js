@@ -858,7 +858,7 @@ const AdminReports = ({ navigation }) => {
                         />
 
                         {/* Select All */}
-                        <TouchableOpacity
+                        {/* <TouchableOpacity
                             style={{
                                 flexDirection: "row",
                                 alignItems: "center",
@@ -892,7 +892,7 @@ const AdminReports = ({ navigation }) => {
                             >
                                 Select All
                             </Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
 
                         {/* Artisan List */}
                         <FlatList
@@ -1408,7 +1408,7 @@ const AdminReports = ({ navigation }) => {
                         />
 
                         {/* Select All */}
-                        <TouchableOpacity
+                        {/* <TouchableOpacity
                             style={{
                                 flexDirection: "row",
                                 alignItems: "center",
@@ -1446,7 +1446,7 @@ const AdminReports = ({ navigation }) => {
                             >
                                 Select All
                             </Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
 
                         {/* Artisan List */}
                         <FlatList
@@ -1566,7 +1566,7 @@ const AdminReports = ({ navigation }) => {
                 <ScrollView horizontal style={{ marginBottom: 80 }}>
                     <View style={{ flex: 1 }}>
                         {/* Select All */}
-                        <View
+                        {/* <View
                             style={{
                                 flexDirection: "row",
                                 alignItems: "center",
@@ -1581,7 +1581,7 @@ const AdminReports = ({ navigation }) => {
                                 />
                             </TouchableOpacity>
                             <Text>Select All</Text>
-                        </View>
+                        </View> */}
 
                         {/* Table Header */}
                         <View
@@ -1992,7 +1992,7 @@ const AdminReports = ({ navigation }) => {
                         />
 
                         {/* Select All */}
-                        <TouchableOpacity
+                        {/* <TouchableOpacity
                             style={{
                                 flexDirection: "row",
                                 alignItems: "center",
@@ -2026,7 +2026,7 @@ const AdminReports = ({ navigation }) => {
                             >
                                 Select All
                             </Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
 
                         {/* Artisan List */}
                         <FlatList
@@ -2129,7 +2129,7 @@ const AdminReports = ({ navigation }) => {
                 <ScrollView horizontal style={{ marginBottom: 80 }}>
                     <View style={{ flex: 1 }}>
                         {/* Select All */}
-                        <View
+                        {/* <View
                             style={{
                                 flexDirection: "row",
                                 alignItems: "center",
@@ -2156,7 +2156,7 @@ const AdminReports = ({ navigation }) => {
                                 />
                             </TouchableOpacity>
                             <Text>Select All</Text>
-                        </View>
+                        </View> */}
 
                         {/* Table Header */}
                         <View
@@ -2540,15 +2540,20 @@ const AdminReports = ({ navigation }) => {
                 <View style={{ width: 30 }} />
             </View>
 
+            {/* 👇 MODIFIED BANNER JSX */}
             <View style={styles.bannerWrapper}>
                 <Image
                     source={require("../asserts/achariss.jpg")}
-                    style={styles.banner}
+                    style={styles.bannerImage}
                     resizeMode="cover"
                 />
-
+                <View style={styles.overlay} />
+                <Image
+                    source={require("../asserts/rkjewellers.png")}
+                    style={styles.bannerLogo}
+                    resizeMode="contain"
+                />
                 <Text style={styles.welcomeText}>Hello, Admin</Text>
-
             </View>
 
             <FlatList
@@ -2601,14 +2606,6 @@ const styles = StyleSheet.create({
         textAlign: "center",
         flex: 1,
     },
-    banner: {
-        width: "90%",
-        height: 190,
-        borderRadius: 20,
-        alignSelf: "center",
-        marginVertical: 16,
-        opacity: 0.7,
-    },
     gridContainer: { paddingHorizontal: 12 },
     row: { justifyContent: "space-between", marginBottom: 14 },
     card: {
@@ -2660,22 +2657,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-    bannerWrapper: {
-        position: "relative",
-        alignItems: "center",
-        justifyContent: "center", // 👈 centers vertically
-        marginVertical: 10,
-    },
-    welcomeText: {
-        position: "absolute",
-        fontSize: 24,
-        fontWeight: "700",
-        color: "#f9feffff", // 👈 gold color
-        textAlign: "center",
-        textShadowColor: "rgba(0,0,0,0.6)",
-        textShadowOffset: { width: 1, height: 1 },
-        textShadowRadius: 4,
-    },
     input: {
         borderWidth: 1,
         borderColor: "#ccc",
@@ -2686,4 +2667,42 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
     },
 
+    // 👇 NEW AND UPDATED BANNER STYLES
+    bannerWrapper: {
+        height: hp("25%"),
+        width: "90%",
+        alignSelf: "center",
+        alignItems: "center",
+        justifyContent: "center",
+        marginVertical: 16,
+        borderRadius: 20,
+        overflow: 'hidden',
+        position: "relative",
+    },
+    bannerImage: {
+        ...StyleSheet.absoluteFillObject,
+        width: null,
+        height: null,
+    },
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(0, 0, 0, 0.72)",
+    },
+    bannerLogo: {
+        width: wp("60%"),
+        height: hp("20%"),
+        position: 'absolute',
+    },
+    welcomeText: {
+        position: "absolute",
+        bottom: 15,
+        fontSize: 24,
+        fontWeight: "700",
+        color: "#f9feffff",
+        textAlign: "center",
+        textShadowColor: "rgba(0,0,0,0.6)",
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 4,
+        zIndex: 1,
+    },
 });

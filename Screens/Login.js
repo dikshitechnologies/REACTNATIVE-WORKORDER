@@ -12,14 +12,18 @@ import {
   Animated,
   ScrollView,
   Alert,
+  Image, // 👈 Import Image
 } from "react-native";
 import { BackHandler } from "react-native";
 import * as Animatable from "react-native-animatable";
 import Ionicons from "react-native-vector-icons/Ionicons"; // 👈 for eye icon
 import AsyncStorage from "@react-native-async-storage/async-storage"; // 👈 for remember me
-import { BASE_URL } from './Links';
+import { BASE_URL } from "./Links";
 
-import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from "react-native-responsive-screen";
 const { height } = Dimensions.get("window");
 const LoginScreen = ({ navigation }) => {
   const [mode, setMode] = useState(null); // "admin" | "achari" | null
@@ -30,8 +34,8 @@ const LoginScreen = ({ navigation }) => {
   const [rememberMe, setRememberMe] = useState(false);
   useEffect(() => {
     const backAction = () => {
-      BackHandler.exitApp();   // 👈 Close the app
-      return true;             // Prevent default behavior
+      BackHandler.exitApp(); // 👈 Close the app
+      return true; // Prevent default behavior
     };
 
     const backHandler = BackHandler.addEventListener(
@@ -75,8 +79,6 @@ const LoginScreen = ({ navigation }) => {
     })();
   }, []);
 
-
-
   // handle login
   const handleLogin = async () => {
     try {
@@ -114,7 +116,10 @@ const LoginScreen = ({ navigation }) => {
         const text = await response.text();
         console.log("📩 Admin Login Response:", text);
 
-        if (response.ok && text.trim().toLowerCase().includes("login success")) {
+        if (
+          response.ok &&
+          text.trim().toLowerCase().includes("login success")
+        ) {
           // ✅ Remember me save
           if (rememberMe) {
             await AsyncStorage.setItem("adminUser", username);
@@ -183,7 +188,6 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -193,6 +197,11 @@ const LoginScreen = ({ navigation }) => {
         source={require("../asserts/goldartlogin.png")}
         style={styles.background}
       >
+        <View style={styles.overlay} />
+        <Image
+          source={require("../asserts/rkjewellers.png")}
+          style={styles.logo}
+        />
         {/* If no mode selected → show 2 buttons */}
         {!mode && (
           <Animatable.View
@@ -218,7 +227,6 @@ const LoginScreen = ({ navigation }) => {
         {mode && (
           <View style={{ flex: 1 }}>
             {/* Header */}
-            {/* Header */}
             <View style={styles.header}>
               <ImageBackground
                 source={
@@ -229,6 +237,11 @@ const LoginScreen = ({ navigation }) => {
                 style={styles.headerBackground}
                 resizeMode="cover"
               >
+                <View style={styles.overlay} />
+                <Image
+                  source={require("../asserts/rkjewellers.png")}
+                  style={styles.logo_two}
+                />
                 <Animated.Image
                   source={
                     mode === "admin"
@@ -322,23 +335,38 @@ const LoginScreen = ({ navigation }) => {
                       <Text style={{ marginLeft: 8, color: "#2d531a" }}>
                         Remember Me
                       </Text>
-                    </TouchableOpacity></>
+                    </TouchableOpacity>
+                  </>
                 )}
 
-                <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={handleLogin}
+                >
                   <Text style={styles.loginButtonText}>Login</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.backButton} onPress={() => setMode(null)}>
-                  <Ionicons name="arrow-undo" size={22} color="#2d531a" style={{ marginRight: 6 }} />
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => setMode(null)}
+                >
+                  <Ionicons
+                    name="arrow-undo"
+                    size={22}
+                    color="#2d531a"
+                    style={{ marginRight: 6 }}
+                  />
                   <Text style={styles.backLink}>Back</Text>
                 </TouchableOpacity>
 
-
-                <Text style={[
-                  styles.footerText,
-                  mode === "admin" ? styles.footerAdmin : styles.footerAchari
-                ]}>
+                <Text
+                  style={[
+                    styles.footerText,
+                    mode === "admin"
+                      ? styles.footerAdmin
+                      : styles.footerAchari,
+                  ]}
+                >
                   @Dikshi Technologies - 7448880375
                 </Text>
               </ScrollView>
@@ -365,12 +393,16 @@ const styles = StyleSheet.create({
   },
   choiceText: { color: "#fff", fontSize: 18, fontWeight: "600" },
   header: {
-    height: height * 0.40,
+    height: height * 0.4,
     overflow: "hidden",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
   },
-  headerBackground: { flex: 1, justifyContent: "center", alignItems: "center" },
+  headerBackground: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   headerImage: {
     width: 120,
     height: 120,
@@ -378,7 +410,7 @@ const styles = StyleSheet.create({
     bottom: 30,
   },
   formWrapper: {
-    height: height * 0.60,
+    height: height * 0.6,
     backgroundColor: "#fff",
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
@@ -419,7 +451,6 @@ const styles = StyleSheet.create({
     justifyContent: "center", // centers horizontally
     marginTop: 20,
   },
-
   backLink: {
     fontSize: 16,
     fontWeight: "500",
@@ -428,15 +459,31 @@ const styles = StyleSheet.create({
   footerAdmin: {
     marginTop: hp("11%"), // Admin-specific spacing
   },
-
   footerAchari: {
-    marginTop: hp("20%"),  // Achari-specific spacing
+    marginTop: hp("20%"), // Achari-specific spacing
   },
   footerText: {
-
     textAlign: "center",
     fontSize: 12,
     color: "#888",
     fontStyle: "italic",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.66)",
+  },
+  logo: {
+    position: "absolute",
+    width: wp("120%"), // Increased size
+    height: wp("120%"), // Increased size
+    top: hp("10%"), // Positioned from the top
+    alignSelf: "center", // Centered horizontally
+    resizeMode: "contain",
+  },
+  logo_two: {
+    // This is now centered by the parent container `headerBackground`
+    width: wp("85%"), // A bit smaller to fit nicely in the header
+    height: wp("85%"),
+    resizeMode: "contain",
   },
 });
