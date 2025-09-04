@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   },
   choiceText: { color: "#fff", fontSize: 18, fontWeight: "600" },
   header: {
-    height: height * 0.45,
+    height: height * 0.40,
     overflow: "hidden",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     bottom: 30,
   },
   formWrapper: {
-    height: height * 0.65,
+    height: height * 0.60,
     backgroundColor: "#fff",
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     color: "#2d531a",
   },
   footerAdmin: {
-    marginTop: hp("14%"), // Admin-specific spacing
+    marginTop: hp("11%"), // Admin-specific spacing
   },
 
   footerAchari: {
