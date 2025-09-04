@@ -248,7 +248,7 @@ const LoginScreen = ({ navigation }) => {
               style={styles.formWrapper}
             >
               <ScrollView
-                contentContainerStyle={{ paddingBottom: 40 }}
+                contentContainerStyle={{ paddingBottom: 10 }}
                 showsVerticalScrollIndicator={false}
               >
                 {mode === "admin" && (
