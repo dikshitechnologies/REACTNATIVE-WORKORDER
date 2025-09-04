@@ -130,76 +130,86 @@ const PendingReports = ({ navigation, route }) => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      {/* Card number */}
-      <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
+ const renderItem = ({ item }) => (
+  <View style={styles.card}>
+    {/* Card number */}
+    <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
 
-      {/* Product Image */}
-      <TouchableOpacity
-        onPress={() => setFullscreenImage(validUrl)}
-        style={styles.imageWrapper}
-      >
-        <FallbackImage
-          fileName={item.design}
-          style={{ width: "100%", height: "100%" }}
-          onSuccess={(url) => setValidUrl(url)}
-        />
-      </TouchableOpacity>
+    {/* Product Image */}
+    <TouchableOpacity
+      onPress={() => setFullscreenImage(validUrl)}
+      style={styles.imageWrapper}
+    >
+      <FallbackImage
+        fileName={item.design}
+        style={{ width: "100%", height: "100%" }}
+        onSuccess={(url) => setValidUrl(url)}
+      />
+    </TouchableOpacity>
 
-      {/* Details */}
-      <View style={styles.detailsBox}>
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>SNo:</Text>
-          <Text style={styles.value}>{item.sNo}</Text>
-          <Text style={styles.label}>Weight:</Text>
-          <Text style={styles.value}>{item.weight}</Text>
-        </View>
+    {/* Details in new order */}
+    <View style={styles.detailsBox}>
 
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Design:</Text>
-          <Text style={styles.value}>{item.design}</Text>
-          <Text style={styles.label}>Size:</Text>
-          <Text style={styles.value}>{item.size}</Text>
-        </View>
-
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Order No:</Text>
-          <Text style={styles.value}>{item.orderNo}</Text>
-          <Text style={styles.label}>Qty:</Text>
-          <Text style={styles.value}>{item.qty}</Text>
-        </View>
-
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Order Date:</Text>
-          <Text style={styles.value}>{item.orderDate}</Text>
-          <Text style={styles.label}>Order Type:</Text>
-          <Text style={styles.value}>{item.orderType}</Text>
-        </View>
-
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Purity:</Text>
-          <Text style={styles.value}>{item.purity}</Text>
-          <Text style={styles.label}>Theme:</Text>
-          <Text style={styles.value}>{item.theme}</Text>
-        </View>
-
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Status:</Text>
-          <Text style={styles.value}>{item.status}</Text>
-          <Text style={styles.label}>Transa Id:</Text>
-          <Text style={styles.value}>{item.transaId}</Text>
-        </View>
-
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Product:</Text>
-          <Text style={styles.value}>{item.product}</Text>
-          <Text style={styles.label}>Artisan:</Text>
-          <Text style={styles.value}>{item.artisan}</Text>
-        </View>
+      {/* S.No + Design (highlighted) */}
+      <View style={styles.detailRow}>
+        <Text style={[styles.label, styles.highlights]}>DESIGN:</Text>
+        <Text style={[styles.value, styles.highlight]}>{item.design}</Text>
+        <Text style={[styles.label, styles.highlights]}>SNO:</Text>
+        <Text style={[styles.value, styles.highlight]}>{item.sNo}</Text>
+        
       </View>
+
+      {/* Weight + Size */}
+      <View style={styles.detailRow}>
+        <Text style={styles.label}>Weight:</Text>
+        <Text style={styles.value}>{item.weight}</Text>
+        <Text style={styles.label}>Size:</Text>
+        <Text style={styles.value}>{item.size}</Text>
+      </View>
+
+      {/* Order No + Qty */}
+      <View style={styles.detailRow}>
+        <Text style={styles.label}>Order No:</Text>
+        <Text style={styles.value}>{item.orderNo}</Text>
+        <Text style={styles.label}>Qty:</Text>
+        <Text style={styles.value}>{item.qty}</Text>
+      </View>
+
+      {/* Order Date + Order Type */}
+      <View style={styles.detailRow}>
+        <Text style={styles.label}>Order Date:</Text>
+        <Text style={styles.value}>{item.orderDate}</Text>
+        <Text style={styles.label}>Order Type:</Text>
+        <Text style={styles.value}>{item.orderType}</Text>
+      </View>
+
+      {/* Purity + Theme */}
+      <View style={styles.detailRow}>
+        <Text style={styles.label}>Purity:</Text>
+        <Text style={styles.value}>{item.purity}</Text>
+        <Text style={styles.label}>Theme:</Text>
+        <Text style={styles.value}>{item.theme}</Text>
+      </View>
+
+      {/* Status + Transa Id */}
+      <View style={styles.detailRow}>
+        <Text style={styles.label}>Status:</Text>
+        <Text style={styles.value}>{item.status}</Text>
+        <Text style={styles.label}>Transa Id:</Text>
+        <Text style={styles.value}>{item.transaId}</Text>
+      </View>
+
+      {/* Product + Artisan */}
+      <View style={styles.detailRow}>
+        <Text style={styles.label}>Product:</Text>
+        <Text style={styles.value}>{item.product}</Text>
+        <Text style={styles.label}>Artisan:</Text>
+        <Text style={styles.value}>{item.artisan}</Text>
+      </View>
+
     </View>
-  );
+  </View>
+);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -569,5 +579,16 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#000",
   },
+  highlight: {
+  color: "#2d531a",   // Dark green (matches your theme)
+  fontWeight: "bold",
+  fontSize: 14,
+},
+ highlights: {
+  color: "rgba(120, 3, 3, 1)",   // Dark green (matches your theme)
+  fontWeight: "bold",
+  fontSize: 14,
+},
+
 
 });
