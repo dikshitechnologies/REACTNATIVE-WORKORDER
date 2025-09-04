@@ -30,15 +30,13 @@ const isTablet = DeviceInfo.isTablet();
 
 const AdminReports = ({ navigation }) => {
     const [partyName, setPartyName] = useState("");
-    const [groupName, setGroupName] = useState("");
-    const [gstType, setGstType] = useState("");
+    const [phoneWarning, setPhoneWarning] = useState("");
+
+
     const [phone, setPhone] = useState("");
-    const [street, setStreet] = useState("");
-    const [area, setArea] = useState("");
-    const [city, setCity] = useState("");
-    const [pincode, setPincode] = useState("");
-    const [cellNo, setCellNo] = useState("");
-    const [stateName, setStateName] = useState("");
+
+
+    const [selectedPartyCode, setSelectedPartyCode] = useState(null);
 
     // Modal states
     const [showPartyModal, setShowPartyModal] = useState(false);
@@ -46,21 +44,48 @@ const AdminReports = ({ navigation }) => {
 
     const clearForm = () => {
         setPartyName("");
-        setGroupName("");
-        setGstType("");
+        setPhoneWarning("");
         setPhone("");
-        setStreet("");
-        setArea("");
-        setCity("");
-        setPincode("");
-        setCellNo("");
-        setStateName("");
+
     };
 
-    const updateForm = () => {
-        Alert.alert("User Updated", "User creation details updated successfully!");
-        // 👉 Replace with API POST/PUT logic
+    const updateForm = async () => {
+        if (!selectedPartyCode) {
+            Alert.alert("Validation", "Please select a Party first");
+            return;
+        }
+        if (!phone) {
+            Alert.alert("Validation", "Please enter a phone number");
+            return;
+        }
+        if (phone.length !== 10) {
+            Alert.alert("Validation", "Phone number must be exactly 10 digits");
+            return;
+        }
+
+        try {
+            const res = await axios.put(
+                `${BASE_URL}Party/UpdatePhone?fCode=${selectedPartyCode}&phone=${phone}`
+            );
+
+            if (res.status === 200) {
+                Alert.alert("Success", "Phone updated successfully!");
+
+                // ✅ Clear form after success
+                setPartyName("");
+                setSelectedPartyCode(null);
+                setPhone("");
+                setPhoneWarning("");
+            } else {
+                Alert.alert("Error", "Failed to update phone number");
+            }
+        } catch (err) {
+            console.error("Update error:", err);
+            Alert.alert("Error", "Something went wrong");
+        }
     };
+
+
     const [activeSection, setActiveSection] = useState(null);
     const [showArtisanModal, setShowArtisanModal] = useState(false);
     const [selectedArtisans, setSelectedArtisans] = useState([]);
@@ -105,6 +130,7 @@ const AdminReports = ({ navigation }) => {
     const renderUserCreation = () => {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
+                {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => setActiveSection(null)}>
                         <Ionicons name="arrow-undo" size={30} color="#fff" />
@@ -115,7 +141,7 @@ const AdminReports = ({ navigation }) => {
 
                 <KeyboardAwareScrollView
                     contentContainerStyle={{ padding: 16 }}
-                    extraScrollHeight={60}   // scrolls a bit above keyboard
+                    extraScrollHeight={60}
                     enableOnAndroid={true}
                     keyboardShouldPersistTaps="handled"
                 >
@@ -124,17 +150,21 @@ const AdminReports = ({ navigation }) => {
                         style={{
                             backgroundColor: "#fff",
                             borderRadius: 16,
-                            padding: 15,
+                            padding: 20,
                             shadowColor: "#000",
                             shadowOpacity: 0.1,
                             shadowOffset: { width: 0, height: 2 },
                             shadowRadius: 6,
                             elevation: 4,
-                            marginBottom: 100, // leave space for footer buttons
                         }}
                     >
+                        {/* Card Heading */}
+                        <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 15, color: "#2d531a" }}>
+                            Add / Update Phone Number
+                        </Text>
+
                         {/* Party Name with search icon */}
-                        <Text>Party Name</Text>
+                        <Text style={{ marginBottom: 6 }}>Party Name</Text>
                         <TouchableOpacity onPress={() => setShowPartyModal(true)}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <TextInput
@@ -149,52 +179,55 @@ const AdminReports = ({ navigation }) => {
                             </View>
                         </TouchableOpacity>
 
-                        <Text>Group Name</Text>
-                        <TextInput style={styles.input} value={groupName} onChangeText={setGroupName} />
+                        {/* Phone Number */}
 
-                        <Text>GST Type</Text>
-                        <TextInput style={styles.input} value={gstType} onChangeText={setGstType} />
 
-                        <Text>Phone No</Text>
+
+                        {phoneWarning ? (
+                            <Text
+                                style={{
+                                    color: phone.includes("⚠️") ? "red" : "#2d531a", // red for missing, greenish for info
+                                    marginBottom: 6,
+                                }}
+                            >
+                                {phoneWarning}
+                            </Text>
+                        ) : null}
+                        {/* Phone Number */}
+                        <Text style={{ marginTop: 16, marginBottom: 6 }}>Phone No</Text>
                         <TextInput
                             style={styles.input}
                             value={phone}
-                            onChangeText={setPhone}
-                            keyboardType="phone-pad"
+                            onChangeText={(text) => {
+                                // allow only numbers and max 10 digits
+                                const cleaned = text.replace(/[^0-9]/g, "");
+                                if (cleaned.length <= 10) {
+                                    setPhone(cleaned);
+                                }
+                            }}
+                            keyboardType="number-pad"
+                            maxLength={10}  // 👈 ensures only 10 digits
                         />
 
-                        <Text>Street</Text>
-                        <TextInput style={styles.input} value={street} onChangeText={setStreet} />
-
-                        <Text>Area</Text>
-                        <TextInput style={styles.input} value={area} onChangeText={setArea} />
-
-                        <Text>City</Text>
-                        <TextInput style={styles.input} value={city} onChangeText={setCity} />
-
-                        <Text>Pincode</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={pincode}
-                            onChangeText={setPincode}
-                            keyboardType="numeric"
-                        />
-
-                        <Text>Cell No</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={cellNo}
-                            onChangeText={setCellNo}
-                            keyboardType="phone-pad"
-                        />
-
-                        <Text>State</Text>
-                        <TextInput style={styles.input} value={stateName} onChangeText={setStateName} />
+                        {/* Buttons inside card */}
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                marginTop: 20,
+                            }}
+                        >
+                            <TouchableOpacity style={styles.clearButton} onPress={clearForm}>
+                                <Text style={styles.buttonText}>Clear</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.updateButton} onPress={updateForm}>
+                                <Text style={styles.buttonText}>Update</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-
                 </KeyboardAwareScrollView>
 
-                {/* Party Modal */}
+                {/* Party Modal (same as before) */}
                 <Modal visible={showPartyModal} transparent animationType="slide">
                     <View
                         style={{
@@ -250,8 +283,20 @@ const AdminReports = ({ navigation }) => {
                                         }}
                                         onPress={() => {
                                             setPartyName(item.name);
+                                            setSelectedPartyCode(item.code);
+
+                                            if (!item.phone || item.phone.trim() === "") {
+                                                setPhone("");
+                                                setPhoneWarning("⚠️ No phone number for this party, please enter a number.");
+                                            } else {
+                                                setPhone(item.phone);
+                                                setPhoneWarning("ℹ️ Phone number already exists. Update if needed.");
+                                            }
+
                                             setShowPartyModal(false);
                                         }}
+
+
                                     >
                                         <Text style={{ fontSize: 16, color: "#2d531a" }}>
                                             {item.name} ({item.code})
@@ -262,19 +307,10 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     </View>
                 </Modal>
-
-                {/* Footer Buttons */}
-                <View style={styles.footer}>
-                    <TouchableOpacity style={styles.clearButton} onPress={clearForm}>
-                        <Text style={styles.buttonText}>Clear</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.updateButton} onPress={updateForm}>
-                        <Text style={styles.buttonText}>Update</Text>
-                    </TouchableOpacity>
-                </View>
             </SafeAreaView>
         );
     };
+
 
     const returnUpdateData = async () => {
         if (returnSelectedRows.length === 0) {
@@ -442,6 +478,7 @@ const AdminReports = ({ navigation }) => {
                     id: `${page}-${index}`,
                     code: item.fCode,
                     name: item.fAcname,
+                    phone: item.fphone,
                 }));
                 if (page === 1) {
                     setArtisans(mapped);
