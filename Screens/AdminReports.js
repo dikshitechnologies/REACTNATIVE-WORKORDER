@@ -1185,7 +1185,7 @@ const AdminReports = ({ navigation }) => {
                                 </View>
                             )}
                             showsVerticalScrollIndicator
-                            style={{ maxHeight: 500 }}
+                            style={{ maxHeight:isTablet? 750: 500 }}
                             onEndReached={() => {
                                 if (!deliveredLoading && deliveredHasMore) {
                                     const nextPage = deliveredPageNumber + 1;
@@ -1804,7 +1804,7 @@ const AdminReports = ({ navigation }) => {
                                 </View>
                             )}
                             showsVerticalScrollIndicator
-                            style={{ maxHeight: 500 }}
+                            style={{ maxHeight:isTablet? 750:500 }}
                             onEndReached={() => {
                                 if (!loading && hasMore) {
                                     const nextPage = pageNumber + 1;
