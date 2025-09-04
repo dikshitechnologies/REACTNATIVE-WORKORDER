@@ -83,9 +83,8 @@ const PendingReports = ({ navigation, route }) => {
     try {
       setLoading(true);
 
-      const url = `${BASE_URL}ItemTransaction/GetPendingByCustomer?cusCode=${
-        user?.fCode
-      }&search=${query}&pageNumber=${pageNum}&pageSize=30`;
+      const url = `${BASE_URL}ItemTransaction/GetPendingByCustomer?cusCode=${user?.fCode
+        }&search=${query}&pageNumber=${pageNum}&pageSize=30`;
       console.log("📡 Fetching reports:", url);
 
       const res = await axios.get(url);
@@ -137,10 +136,10 @@ const PendingReports = ({ navigation, route }) => {
     return () => clearTimeout(timer);
   }, [search]);
 
- const renderItem = ({ item }) => (
-  <View style={styles.card}>
-    {/* Card number */}
-    <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
+  const renderItem = ({ item }) => (
+    <View style={styles.card}>
+      {/* Card number */}
+      <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
 
       {/* Product Image */}
       <View style={styles.imageWrapper}>
@@ -151,69 +150,101 @@ const PendingReports = ({ navigation, route }) => {
         />
       </View>
 
-    {/* Details in new order */}
-    <View style={styles.detailsBox}>
+      {/* Details in new order */}
+      <View style={styles.detailsBox}>
 
-      {/* S.No + Design (highlighted) */}
-      <View style={styles.detailRow}>
-        <Text style={[styles.label, styles.highlights]}>DESIGN:</Text>
-        <Text style={[styles.value, styles.highlight]}>{item.design}</Text>
-        <Text style={[styles.label, styles.highlights]}>SNO:</Text>
-        <Text style={[styles.value, styles.highlight]}>{item.sNo}</Text>
-        
+        {/* S.No + Design (highlighted) */}
+        <View style={styles.detailContainer}>
+          <View style={styles.detailRow}>
+            <Text style={[{
+              fontWeight: "bold",
+
+              width: wp("30%"),
+            }, styles.highlights]}>DESIGN:</Text>
+            <Text style={[{
+
+              width: wp("40%"),
+              marginRight: wp("5%"),
+            }, styles.highlight]}>{item.design}</Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <Text style={[{
+              fontWeight: "bold",
+
+              width: wp("30%"),
+            }, styles.highlights]}>SNO:</Text>
+            <Text style={[{
+
+              width: wp("40%"),
+              marginRight: wp("5%"),
+            }, styles.highlight]}>{item.sNo}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={[{
+              fontWeight: "bold",
+
+              width: wp("30%")
+            }, styles.highlights]}>ORDER NO:</Text>
+            <Text style={[styles.highlight, {
+
+              width: wp("40%"),
+              marginRight: wp("5%"),
+            }]}>{item.orderNo}</Text>
+          </View>
+        </View>
+
+
+        {/* Weight + Size */}
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Weight:</Text>
+          <Text style={styles.value}>{item.weight}</Text>
+          <Text style={styles.label}>Size:</Text>
+          <Text style={styles.value}>{item.size}</Text>
+        </View>
+
+        {/* Order No + Qty */}
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Product:</Text>
+          <Text style={styles.value}>{item.product}</Text>
+          <Text style={styles.label}>Qty:</Text>
+          <Text style={styles.value}>{item.qty}</Text>
+        </View>
+
+        {/* Order Date + Order Type */}
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Order Date:</Text>
+          <Text style={styles.value}>  {item.orderDate ? item.orderDate.replace(/-/g, "/") : ""}</Text>
+          <Text style={styles.label}>Order Type:</Text>
+          <Text style={styles.value}>{item.orderType}</Text>
+        </View>
+
+        {/* Purity + Theme */}
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Purity:</Text>
+          <Text style={styles.value}>{item.purity}</Text>
+          <Text style={styles.label}>Theme:</Text>
+          <Text style={styles.value}>{item.theme}</Text>
+        </View>
+
+        {/* Status + Transa Id */}
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Status:</Text>
+          <Text style={styles.value}>{item.status}</Text>
+          <Text style={styles.label}>Transa Id:</Text>
+          <Text style={styles.value}>{item.transaId}</Text>
+        </View>
+
+        {/* Product + Artisan */}
+        <View style={styles.detailRow}>
+
+          <Text style={styles.label}>Artisan:</Text>
+          <Text style={styles.value}>{item.artisan}</Text>
+        </View>
+
       </View>
-
-      {/* Weight + Size */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Weight:</Text>
-        <Text style={styles.value}>{item.weight}</Text>
-        <Text style={styles.label}>Size:</Text>
-        <Text style={styles.value}>{item.size}</Text>
-      </View>
-
-      {/* Order No + Qty */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Order No:</Text>
-        <Text style={styles.value}>{item.orderNo}</Text>
-        <Text style={styles.label}>Qty:</Text>
-        <Text style={styles.value}>{item.qty}</Text>
-      </View>
-
-      {/* Order Date + Order Type */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Order Date:</Text>
-        <Text style={styles.value}>{item.orderDate}</Text>
-        <Text style={styles.label}>Order Type:</Text>
-        <Text style={styles.value}>{item.orderType}</Text>
-      </View>
-
-      {/* Purity + Theme */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Purity:</Text>
-        <Text style={styles.value}>{item.purity}</Text>
-        <Text style={styles.label}>Theme:</Text>
-        <Text style={styles.value}>{item.theme}</Text>
-      </View>
-
-      {/* Status + Transa Id */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Status:</Text>
-        <Text style={styles.value}>{item.status}</Text>
-        <Text style={styles.label}>Transa Id:</Text>
-        <Text style={styles.value}>{item.transaId}</Text>
-      </View>
-
-      {/* Product + Artisan */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Product:</Text>
-        <Text style={styles.value}>{item.product}</Text>
-        <Text style={styles.label}>Artisan:</Text>
-        <Text style={styles.value}>{item.artisan}</Text>
-      </View>
-
     </View>
-  </View>
-);
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -586,15 +617,22 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   highlight: {
-  color: "#2d531a",   // Dark green (matches your theme)
-  fontWeight: "bold",
-  fontSize: 14,
-},
- highlights: {
-  color: "rgba(120, 3, 3, 1)",   // Dark green (matches your theme)
-  fontWeight: "bold",
-  fontSize: 14,
-},
-
+    color: "#2d531a",   // Dark green (matches your theme)
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  highlights: {
+    color: "rgba(120, 3, 3, 1)",   // Dark green (matches your theme)
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  detailContainer: {
+    backgroundColor: "#f3f9f4ff", // light background
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
 
 });

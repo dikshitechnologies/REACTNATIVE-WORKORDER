@@ -1086,7 +1086,11 @@ const AdminReports = ({ navigation }) => {
                                                         <Text style={{ fontWeight: "bold" }}>
                                                             Order Date:{" "}
                                                         </Text>
-                                                        {item.orderDate}
+                                                        {new Date(item.orderDate).toLocaleDateString("en-GB", {
+                                                            day: "2-digit",
+                                                            month: "2-digit",
+                                                            year: "numeric",
+                                                        })}
                                                     </Text>
                                                     <Text>
                                                         <Text style={{ fontWeight: "bold" }}>
@@ -1680,7 +1684,11 @@ const AdminReports = ({ navigation }) => {
                                                         <Text style={{ fontWeight: "bold" }}>
                                                             Order Date:{" "}
                                                         </Text>
-                                                        {item.orderDate}
+                                                        {new Date(item.orderDate).toLocaleDateString("en-GB", {
+                                                            day: "2-digit",
+                                                            month: "2-digit",
+                                                            year: "numeric",
+                                                        })}
                                                     </Text>
                                                     <Text>
                                                         <Text style={{ fontWeight: "bold" }}>
@@ -2273,7 +2281,11 @@ const AdminReports = ({ navigation }) => {
                                                         <Text style={{ fontWeight: "bold" }}>
                                                             Order Date:{" "}
                                                         </Text>
-                                                        {item.orderDate}
+                                                        {new Date(item.orderDate).toLocaleDateString("en-GB", {
+                                                            day: "2-digit",
+                                                            month: "2-digit",
+                                                            year: "numeric",
+                                                        })}
                                                     </Text>
                                                     <Text>
                                                         <Text style={{ fontWeight: "bold" }}>

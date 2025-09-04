@@ -80,7 +80,22 @@ const LoginScreen = ({ navigation }) => {
   // handle login
   const handleLogin = async () => {
     try {
+      // 🛑 Validation checks before API call
+      if (!mode) {
+        Alert.alert("Validation", "Please select Admin or Achari mode");
+        return;
+      }
+
       if (mode === "admin") {
+        if (!username.trim()) {
+          Alert.alert("Validation", "Please enter username");
+          return;
+        }
+        if (!password.trim()) {
+          Alert.alert("Validation", "Please enter password");
+          return;
+        }
+
         const url = `${BASE_URL}Auth/Login`;
         console.log("🔗 Admin Login API URL:", url);
 
@@ -100,29 +115,18 @@ const LoginScreen = ({ navigation }) => {
         console.log("📩 Admin Login Response:", text);
 
         if (response.ok && text.trim().toLowerCase().includes("login success")) {
-
-
           // ✅ Remember me save
-          // inside handleLogin
           if (rememberMe) {
-            if (mode === "admin") {
-              await AsyncStorage.setItem("adminUser", username);
-              await AsyncStorage.setItem("adminPass", password);
-              await AsyncStorage.setItem("loginMode", "admin");   // save mode
-              await AsyncStorage.removeItem("achariPhone");
-            } else if (mode === "achari") {
-              await AsyncStorage.setItem("achariPhone", phone);
-              await AsyncStorage.setItem("loginMode", "achari");  // save mode
-              await AsyncStorage.removeItem("adminUser");
-              await AsyncStorage.removeItem("adminPass");
-            }
+            await AsyncStorage.setItem("adminUser", username);
+            await AsyncStorage.setItem("adminPass", password);
+            await AsyncStorage.setItem("loginMode", "admin");
+            await AsyncStorage.removeItem("achariPhone");
           } else {
             await AsyncStorage.removeItem("adminUser");
             await AsyncStorage.removeItem("adminPass");
             await AsyncStorage.removeItem("achariPhone");
             await AsyncStorage.removeItem("loginMode");
           }
-
 
           // ✅ Clear fields
           setUsername("");
@@ -133,6 +137,11 @@ const LoginScreen = ({ navigation }) => {
           Alert.alert("Error", text || "Invalid admin credentials");
         }
       } else if (mode === "achari") {
+        if (!phone.trim()) {
+          Alert.alert("Validation", "Please enter phone number");
+          return;
+        }
+
         const url = `${BASE_URL}Auth/GetByPhone/${phone}`;
         console.log("🔗 Achari Login API URL:", url);
 
@@ -147,22 +156,12 @@ const LoginScreen = ({ navigation }) => {
         console.log("📩 Achari Login Response:", data);
 
         if (response.ok && data?.fAcname) {
-
-
           // ✅ Remember me save
-          // inside handleLogin
           if (rememberMe) {
-            if (mode === "admin") {
-              await AsyncStorage.setItem("adminUser", username);
-              await AsyncStorage.setItem("adminPass", password);
-              await AsyncStorage.setItem("loginMode", "admin");   // save mode
-              await AsyncStorage.removeItem("achariPhone");
-            } else if (mode === "achari") {
-              await AsyncStorage.setItem("achariPhone", phone);
-              await AsyncStorage.setItem("loginMode", "achari");  // save mode
-              await AsyncStorage.removeItem("adminUser");
-              await AsyncStorage.removeItem("adminPass");
-            }
+            await AsyncStorage.setItem("achariPhone", phone);
+            await AsyncStorage.setItem("loginMode", "achari");
+            await AsyncStorage.removeItem("adminUser");
+            await AsyncStorage.removeItem("adminPass");
           } else {
             await AsyncStorage.removeItem("adminUser");
             await AsyncStorage.removeItem("adminPass");
@@ -183,6 +182,7 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert("Error", "Something went wrong, please try again");
     }
   };
+
 
   return (
     <KeyboardAvoidingView

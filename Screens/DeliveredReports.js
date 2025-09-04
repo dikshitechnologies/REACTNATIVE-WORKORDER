@@ -99,12 +99,12 @@ const DeliveredReports = ({ navigation, route }) => {
           product: item.fProduct,
           design: item.fDesign,
           weight: item.fWeight,
-          size: item.fSize,
+          size: item.fSize|| "N/A",
           qty: item.fQty,
           purity: item.fPurity,
           theme: item.fTheme,
           sNo: item.fSNo,
-          status: item.fConfirmStatus === "Y" ? "Delivered" : "Pending",
+          status: item.fconfirmStatus === "Y" ? "Delivered" : "Pending",
         }));
 
         setReports((prev) => (append ? [...prev, ...mapped] : mapped));
@@ -133,10 +133,10 @@ const DeliveredReports = ({ navigation, route }) => {
     return () => clearTimeout(timer);
   }, [search]);
 
- const renderItem = ({ item }) => (
-  <View style={styles.card}>
-    {/* Card number */}
-    <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
+  const renderItem = ({ item }) => (
+    <View style={styles.card}>
+      {/* Card number */}
+      <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
 
       {/* Product Image */}
       <FallbackImage
@@ -145,63 +145,100 @@ const DeliveredReports = ({ navigation, route }) => {
         onPress={(url) => setFullscreenImage(url)}
       />
 
-    {/* Details - reordered */}
-    <View style={styles.detailsBox}>
+      {/* Details - reordered */}
+      <View style={styles.detailsBox}>
 
-      {/* Design + S.No (highlighted) */}
-      <View style={styles.detailRow}>
-        <Text style={[styles.label, styles.highlightLabel]}>DESIGN:</Text>
-        <Text style={[styles.value, styles.highlightValue]}>{item.design}</Text>
-        <Text style={[styles.label, styles.highlightLabel]}>SNO:</Text>
-        <Text style={[styles.value, styles.highlightValue]}>{item.sNo}</Text>
-      </View>
+        {/* Design + S.No (highlighted) */}
+        <View style={styles.detailContainer}>
+          <View style={styles.detailRow}>
+            <Text style={[{
+              fontWeight: "bold",
 
-      {/* Weight + Size */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Weight:</Text>
-        <Text style={styles.value}>{item.weight}</Text>
-        <Text style={styles.label}>Size:</Text>
-        <Text style={styles.value}>{item.size}</Text>
-      </View>
+              width: wp("30%"),
+            }, styles.highlightLabel]}>DESIGN:</Text>
+            <Text style={[{
 
-      {/* Order No + Qty */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Order No:</Text>
-        <Text style={styles.value}>{item.orderNo}</Text>
-        <Text style={styles.label}>Qty:</Text>
-        <Text style={styles.value}>{item.qty}</Text>
-      </View>
+              width: wp("40%"),
+              marginRight: wp("5%"),
+            }, styles.highlightValue]}>{item.design}</Text>
+          </View>
 
-      {/* Order Date + Order Type */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Order Date:</Text>
-        <Text style={styles.value}>{item.orderDate}</Text>
-        <Text style={styles.label}>Order Type:</Text>
-        <Text style={styles.value}>{item.orderType}</Text>
-      </View>
+          <View style={styles.detailRow}>
+            <Text style={[{
+              fontWeight: "bold",
 
-      {/* Purity + Theme */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Purity:</Text>
-        <Text style={styles.value}>{item.purity}</Text>
-        <Text style={styles.label}>Theme:</Text>
-        <Text style={styles.value}>{item.theme}</Text>
-      </View>
+              width: wp("30%"),
+            }, styles.highlightLabel]}>SNO:</Text>
+            <Text style={[{
 
-      {/* Status */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Status:</Text>
-        <Text style={styles.value}>{item.status}</Text>
-      </View>
+              width: wp("40%"),
+              marginRight: wp("5%"),
+            }, styles.highlightValue]}>{item.sNo}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={[{
+              fontWeight: "bold",
 
-      {/* Product */}
-      <View style={styles.detailRow}>
-        <Text style={styles.label}>Product:</Text>
-        <Text style={styles.value}>{item.product}</Text>
+              width: wp("30%")
+            }, styles.highlightLabel]}>ORDER NO:</Text>
+            <Text style={[styles.highlightValue, {
+
+              width: wp("40%"),
+              marginRight: wp("5%"),
+            }]}>{item.orderNo}</Text>
+          </View>
+        </View>
+
+
+        {/* Weight + Size */}
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Weight:</Text>
+          <Text style={styles.value}>{item.weight}</Text>
+          <Text style={styles.label}>Size:</Text>
+          <Text style={styles.value}>{item.size}</Text>
+        </View>
+
+        {/* Order No + Qty */}
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Product:</Text>
+          <Text style={styles.value}>{item.product}</Text>
+          <Text style={styles.label}>Qty:</Text>
+          <Text style={styles.value}>{item.qty}</Text>
+        </View>
+
+        {/* Order Date + Order Type */}
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Order Date:</Text>
+          <Text style={styles.value}>
+            {new Date(item.orderDate).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })}
+          </Text>
+          <Text style={styles.label}>Order Type:</Text>
+          <Text style={styles.value}>{item.orderType}</Text>
+        </View>
+
+        {/* Purity + Theme */}
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Purity:</Text>
+          <Text style={styles.value}>{item.purity}</Text>
+          <Text style={styles.label}>Theme:</Text>
+          <Text style={styles.value}>{item.theme}</Text>
+        </View>
+
+        {/* Status */}
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Status:</Text>
+          <Text style={styles.value}>{item.status}</Text>
+        </View>
+
+        {/* Product */}
+
       </View>
     </View>
-  </View>
-);
+  );
 
 
   return (
@@ -575,15 +612,22 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   highlightValue: {
-  color: "#2d531a",   // Dark green (matches your theme)
-  fontWeight: "bold",
-  fontSize: 14,
-},
-highlightLabel: {
-  color: "rgba(120, 3, 3, 1)",   // Dark green (matches your theme)
-  fontWeight: "bold",
-  fontSize: 14,
-},
-
+    color: "#2d531a",   // Dark green (matches your theme)
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  highlightLabel: {
+    color: "rgba(120, 3, 3, 1)",   // Dark green (matches your theme)
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  detailContainer: {
+    backgroundColor: "#f3f9f4ff", // light background
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
 
 });
