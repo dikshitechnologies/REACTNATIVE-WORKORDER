@@ -21,6 +21,13 @@ import { BackHandler } from "react-native";
 const PendingReports = ({ navigation, route }) => {
   const user = route?.params?.user;
 
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
   useEffect(() => {
     const backAction = () => {
       navigation.replace("ArtisansReport", { user });
@@ -41,52 +48,52 @@ const PendingReports = ({ navigation, route }) => {
     fetchReports("", 1, false);
   };
 
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [fullscreenImage, setFullscreenImage] = useState(null);
-  const [validUrl, setValidUrl] = useState(null);
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-
-  // fallback image
-  const FallbackImage = ({ fileName, style, onSuccess }) => {
+  // ✅ Self-contained FallbackImage
+  const FallbackImage = ({ fileName, style, onPress }) => {
     const [uriIndex, setUriIndex] = useState(0);
+    const [resolvedUrl, setResolvedUrl] = useState(null);
+
     const extensions = [".jpg", ".jpeg", ".png"];
     const sources = extensions.map((ext) => `${IMG_URL}${fileName}${ext}`);
 
     return (
-      <Image
-        source={{ uri: sources[uriIndex] }}
+      <TouchableOpacity
+        onPress={() => resolvedUrl && onPress(resolvedUrl)}
         style={style}
-        resizeMode="contain"
-        onError={() => {
-          if (uriIndex < sources.length - 1) {
-            setUriIndex(uriIndex + 1);
-          } else {
-            console.log("No valid image found for", fileName);
-          }
-        }}
-        onLoad={() => onSuccess && onSuccess(sources[uriIndex])}
-      />
+      >
+        <Image
+          source={{ uri: sources[uriIndex] }}
+          style={{ width: "100%", height: "100%" }}
+          resizeMode="contain"
+          onError={() => {
+            if (uriIndex < sources.length - 1) {
+              setUriIndex(uriIndex + 1);
+            } else {
+              console.log("No valid image found for", fileName);
+            }
+          }}
+          onLoad={() => setResolvedUrl(sources[uriIndex])}
+        />
+      </TouchableOpacity>
     );
   };
 
-  // fetch reports with search + paging
+  // ✅ fetch reports with stable IDs
   const fetchReports = async (query = "", pageNum = 1, append = false) => {
     try {
       setLoading(true);
 
-      const url = `${BASE_URL}ItemTransaction/GetPendingByCustomer?cusCode=${user?.fCode
-        }&search=${query}&pageNumber=${pageNum}&pageSize=30`;
+      const url = `${BASE_URL}ItemTransaction/GetPendingByCustomer?cusCode=${
+        user?.fCode
+      }&search=${query}&pageNumber=${pageNum}&pageSize=30`;
       console.log("📡 Fetching reports:", url);
 
       const res = await axios.get(url);
 
       if (res.data?.data && Array.isArray(res.data.data)) {
         const mapped = res.data.data.map((item, index) => ({
-          id: `${pageNum}-${index}`,
-          globalIndex: (pageNum - 1) * 30 + (index + 1), // continuous numbering
+          id: item.fTransaId || item.fIssueNo || `${pageNum}-${index}`, // ✅ stable key
+          globalIndex: (pageNum - 1) * 30 + (index + 1),
           issueNo: item.fIssueNo,
           orderNo: item.fOrderNo,
           orderDate: item.fOrderDate,
@@ -121,7 +128,7 @@ const PendingReports = ({ navigation, route }) => {
     fetchReports();
   }, []);
 
-  // ✅ Debounced search effect (only one)
+  // ✅ Debounced search effect
   useEffect(() => {
     const timer = setTimeout(() => {
       setPage(1);
@@ -135,17 +142,14 @@ const PendingReports = ({ navigation, route }) => {
     {/* Card number */}
     <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
 
-    {/* Product Image */}
-    <TouchableOpacity
-      onPress={() => setFullscreenImage(validUrl)}
-      style={styles.imageWrapper}
-    >
-      <FallbackImage
-        fileName={item.design}
-        style={{ width: "100%", height: "100%" }}
-        onSuccess={(url) => setValidUrl(url)}
-      />
-    </TouchableOpacity>
+      {/* Product Image */}
+      <View style={styles.imageWrapper}>
+        <FallbackImage
+          fileName={item.design}
+          style={{ width: "100%", height: "100%" }}
+          onPress={(url) => setFullscreenImage(url)}
+        />
+      </View>
 
     {/* Details in new order */}
     <View style={styles.detailsBox}>
@@ -225,7 +229,6 @@ const PendingReports = ({ navigation, route }) => {
         <View style={{ width: 30 }} />
       </View>
 
-     
       {/* fullscreen image */}
       <Modal
         visible={!!fullscreenImage}
@@ -237,7 +240,7 @@ const PendingReports = ({ navigation, route }) => {
           <TouchableOpacity
             style={{
               position: "absolute",
-              top: 40, // adjust depending on status bar
+              top: 40,
               right: 20,
               zIndex: 10,
               backgroundColor: "rgba(0,0,0,0.6)",
@@ -259,7 +262,6 @@ const PendingReports = ({ navigation, route }) => {
           />
         </View>
       </Modal>
-
 
       {/* Search bar */}
       <View style={{ padding: 12 }}>
@@ -305,7 +307,7 @@ const PendingReports = ({ navigation, route }) => {
         <FlatList
           data={reports}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ paddingBottom: 100 }}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -334,6 +336,10 @@ const PendingReports = ({ navigation, route }) => {
               />
             )
           }
+          initialNumToRender={10}
+          maxToRenderPerBatch={15}
+          windowSize={7}
+          removeClippedSubviews={true}
         />
       )}
 
