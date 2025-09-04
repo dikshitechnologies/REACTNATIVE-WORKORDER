@@ -2749,6 +2749,7 @@ const styles = StyleSheet.create({
         width: wp("60%"),
         height: hp("20%"),
         position: 'absolute',
+        marginBottom: hp("4%"),
     },
     welcomeText: {
         position: "absolute",
