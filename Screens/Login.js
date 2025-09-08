@@ -194,7 +194,7 @@ const LoginScreen = ({ navigation }) => {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ImageBackground
-        source={require("../asserts/goldartlogin.png")}
+        source={require("../asserts/black.jpg")}
         style={styles.background}
       >
         <View style={styles.overlay} />
@@ -231,8 +231,8 @@ const LoginScreen = ({ navigation }) => {
               <ImageBackground
                 source={
                   mode === "admin"
-                    ? require("../asserts/adminslogin.png") // 👈 Admin background image
-                    : require("../asserts/acharilogin.png") // 👈 Achari background image
+                    ? require("../asserts/blacking.png") // 👈 Admin background image
+                    : require("../asserts/blacking.png") // 👈 Achari background image
                 }
                 style={styles.headerBackground}
                 resizeMode="cover"
@@ -245,8 +245,8 @@ const LoginScreen = ({ navigation }) => {
                 <Animated.Image
                   source={
                     mode === "admin"
-                      ? require("../asserts/adminslogin.png") // 👈 Admin logo/image
-                      : require("../asserts/acharilogin.png") // 👈 Achari logo/image
+                      ? require("../asserts/blacking.png") // 👈 Admin logo/image
+                      : require("../asserts/blacking.png") // 👈 Achari logo/image
                   }
                   style={[styles.headerImage, { opacity: imageOpacity }]}
                   resizeMode="contain"

@@ -3,7 +3,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import SplashScreen from "./Screens/Splash";
+
 import AnimatedLogin from "./Screens/Login";
 import ArtisansReport from "./Screens/ArtisansReport";
 import PendingReports from "./Screens/PendingReports";
@@ -17,7 +17,7 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Splash" component={SplashScreen} />
+     
           <Stack.Screen name="Login" component={AnimatedLogin} />
           <Stack.Screen name="ArtisansReport" component={ArtisansReport} />
           <Stack.Screen name="PendingReports" component={PendingReports} />

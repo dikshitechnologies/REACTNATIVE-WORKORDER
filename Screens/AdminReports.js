@@ -2600,7 +2600,7 @@ const AdminReports = ({ navigation }) => {
             {/* 👇 MODIFIED BANNER JSX */}
             <View style={styles.bannerWrapper}>
                 <Image
-                    source={require("../asserts/achariss.jpg")}
+                    source={require("../asserts/name.jpg")}
                     style={styles.bannerImage}
                     resizeMode="cover"
                 />
