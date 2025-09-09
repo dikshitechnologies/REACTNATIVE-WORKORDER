@@ -457,10 +457,13 @@ const styles = StyleSheet.create({
     color: "#2d531a",
   },
   footerAdmin: {
-    marginTop: hp("11%"), // Admin-specific spacing
+    marginTop: Platform.select({
+      ios: hp("9%"),
+      android: hp("12%"), // you can tweak separately
+    }),
   },
   footerAchari: {
-    marginTop: hp("20%"), // Achari-specific spacing
+    marginTop: Platform.OS === "ios" ? hp("16%") : hp("18%"),
   },
   footerText: {
     textAlign: "center",
