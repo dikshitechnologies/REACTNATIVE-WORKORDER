@@ -98,6 +98,7 @@ const AdminReports = ({ navigation }) => {
     const [selectAll, setSelectAll] = useState(false);
     const [artisans, setArtisans] = useState([]);
     const [pageNumber, setPageNumber] = useState(1);
+    const [artisanPage, setArtisanPage] = useState(1); // ✅ FIX: Dedicated page state for artisan modals
     const [loading, setLoading] = useState(false);
     const [loadings, setLoadings] = useState(false);
     const [hasMore, setHasMore] = useState(true);
@@ -120,7 +121,7 @@ const AdminReports = ({ navigation }) => {
     const [deliveredSelectedRows, setDeliveredSelectedRows] = useState([]);
     const [deliveredSelectAll, setDeliveredSelectAll] = useState(false);
     const [deliveredPageNumber, setDeliveredPageNumber] = useState(1);
-    const [deliveredLoading, setDeliveredLoading] = useState(false);
+    const [deliveredLoading, setDeliveredLoading] = useState(false); // ✅ FIX: Dedicated loading state
     const [fullscreenImage, setFullscreenImage] = useState(null); // holds the fileName (design)
 
     const [deliveredHasMore, setDeliveredHasMore] = useState(true);
@@ -465,13 +466,31 @@ const AdminReports = ({ navigation }) => {
         return () => clearTimeout(delayDebounce);
     }, [searchSNo, selectedArtisans]);
 
+    // ✅ FIX: useEffects to allow searching for artisans in each modal
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
-            setPageNumber(1);
+            setArtisanPage(1);
             fetchArtisans(1, artisanSearch);
         }, 500);
         return () => clearTimeout(delayDebounce);
     }, [artisanSearch]);
+
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+            setArtisanPage(1);
+            fetchArtisans(1, deliveredArtisanSearch);
+        }, 500);
+        return () => clearTimeout(delayDebounce);
+    }, [deliveredArtisanSearch]);
+
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+            setArtisanPage(1);
+            fetchArtisans(1, returnArtisanSearch);
+        }, 500);
+        return () => clearTimeout(delayDebounce);
+    }, [returnArtisanSearch]);
+
 
     const fetchArtisans = async (page = 1, search = "") => {
         if (loading || (page !== 1 && !hasMore)) return;
@@ -494,8 +513,11 @@ const AdminReports = ({ navigation }) => {
                     setArtisans((prev) => [...prev, ...mapped]);
                 }
                 const total = data.totalRecords || 0;
-                const alreadyLoaded = page * 30;
+                const alreadyLoaded = (page-1) * 30 + mapped.length;
                 setHasMore(alreadyLoaded < total);
+            } else {
+                 if (page === 1) setArtisans([]);
+                 setHasMore(false);
             }
         } catch (err) {
             console.error("Error fetching artisans:", err);
@@ -546,19 +568,18 @@ const AdminReports = ({ navigation }) => {
             console.error("Error fetching pending orders:", err);
         }
         finally {
-            setLoading(false);
+            setLoadings(false); // ✅ FIX: Was 'setLoading(false)', now correctly sets 'setLoadings(false)'
         }
     };
     const fetchDeliveredOrders = async (selectedCodes, page = 1, search = "") => {
 
         if (!selectedCodes || selectedCodes.length === 0) return;
-        setLoadings(true);
+        setDeliveredLoading(true); // ✅ FIX: Use dedicated loading state 'deliveredLoading'
         try {
             const cusCodes = selectedCodes.map((c) => `cusCodes=${c}`).join("&");
             const res = await axios.get(
                 `${BASE_URL}ItemTransaction/GetDeliveryAdmin?${cusCodes}&search=${search}&pageNumber=${page}&pageSize=30`
             );
-            console.log("Pending API sample:", res.data[0]);
             if (res.data) {
                 const mapped = res.data.map((item, index) => ({
                     id: `${page}-${index}`,
@@ -590,7 +611,7 @@ const AdminReports = ({ navigation }) => {
             console.error("Error fetching delivered orders:", err);
         }
         finally {
-            setLoadings(false);
+            setDeliveredLoading(false); // ✅ FIX: Use dedicated loading state 'deliveredLoading'
         }
     };
 
@@ -936,15 +957,17 @@ const AdminReports = ({ navigation }) => {
                                 </TouchableOpacity>
                             )}
                             onEndReached={() => {
-                                if (!deliveredLoading && deliveredHasMore) {
-                                    const nextPage = deliveredPageNumber + 1;
-                                    setDeliveredPageNumber(nextPage);
+                                // ✅ FIX: Use correct artisan pagination logic
+                                if (!loading && hasMore) {
+                                    const nextPage = artisanPage + 1;
+                                    setArtisanPage(nextPage);
                                     fetchArtisans(nextPage, deliveredArtisanSearch);
                                 }
                             }}
                             onEndReachedThreshold={0.5}
                             ListFooterComponent={
-                                deliveredLoading ? (
+                                // ✅ FIX: Use correct artisan loading state
+                                loading ? (
                                     <Text style={{ textAlign: "center", padding: 10 }}>
                                         Loading...
                                     </Text>
@@ -972,6 +995,7 @@ const AdminReports = ({ navigation }) => {
                                 style={styles.updateButton}
                                 onPress={() => {
                                     setDeliveredShowArtisanModal(false);
+                                    setDeliveredPageNumber(1); // Reset data page number
                                     const codes = artisans
                                         .filter((a) =>
                                             deliveredSelectedArtisans.includes(a.id)
@@ -1050,6 +1074,7 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     )}
                     onEndReached={() => {
+                        // ✅ FIX: Use correct loading state check
                         if (!deliveredLoading && deliveredHasMore) {
                             const nextPage = deliveredPageNumber + 1;
                             setDeliveredPageNumber(nextPage);
@@ -1061,10 +1086,15 @@ const AdminReports = ({ navigation }) => {
                     }}
                     onEndReachedThreshold={0.5}
                     ListFooterComponent={
-                        loadings ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null
+                        // ✅ FIX: Improved footer with "No more data"
+                        deliveredLoading ? (
+                            <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text>
+                        ) : !deliveredHasMore && deliveredTableData.length > 0 ? (
+                            <Text style={{ textAlign: "center", padding: 10 }}>No more data</Text>
+                        ) : null
                     }
                 />
-            ) : loadings ? (
+            ) : deliveredLoading ? ( // ✅ FIX: Use correct loading state
                 <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>Loading...</Text>
                 </View>
@@ -1099,7 +1129,7 @@ const AdminReports = ({ navigation }) => {
                         setDeliveredTableData([]);
                         setDeliveredPageNumber(1);
                         setDeliveredHasMore(true);
-                        setLoadings(false);
+                        setDeliveredLoading(false); // ✅ FIX: Reset correct loading state
                     }}
                 >
                     <Text style={styles.buttonText}>Clear</Text>
@@ -1310,8 +1340,8 @@ const AdminReports = ({ navigation }) => {
                             )}
                             onEndReached={() => {
                                 if (!loading && hasMore) {
-                                    const nextPage = pageNumber + 1;
-                                    setPageNumber(nextPage);
+                                    const nextPage = artisanPage + 1;
+                                    setArtisanPage(nextPage);
                                     fetchArtisans(nextPage, artisanSearch);
                                 }
                             }}
@@ -1352,12 +1382,13 @@ const AdminReports = ({ navigation }) => {
                                 style={styles.updateButton}
                                 onPress={() => {
                                     setShowArtisanModal(false);
+                                    setPageNumber(1); // Reset data page number
                                     const codes = artisans
                                         .filter((a) =>
                                             selectedArtisans.includes(a.id)
                                         )
                                         .map((a) => a.code);
-                                    fetchPendingOrders(codes);
+                                    fetchPendingOrders(codes, 1);
                                 }}
                             >
                                 <Text style={{ color: "#fff", fontWeight: "600" }}>
@@ -1441,7 +1472,8 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     )}
                     onEndReached={() => {
-                        if (!loading && hasMore) {
+                        // ✅ FIX: Check 'loadings' instead of 'loading'
+                        if (!loadings && hasMore) {
                             const nextPage = pageNumber + 1;
                             setPageNumber(nextPage);
                             const codes = artisans
@@ -1452,7 +1484,12 @@ const AdminReports = ({ navigation }) => {
                     }}
                     onEndReachedThreshold={0.5}
                     ListFooterComponent={
-                        loadings ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null
+                        // ✅ FIX: Improved footer with "No more data"
+                        loadings ? (
+                            <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text>
+                        ) : !hasMore && tableData.length > 0 ? (
+                            <Text style={{ textAlign: "center", padding: 10 }}>No more data</Text>
+                        ) : null
                     }
                 />
             ) : loadings ? (
@@ -1602,15 +1639,17 @@ const AdminReports = ({ navigation }) => {
                                 </TouchableOpacity>
                             )}
                             onEndReached={() => {
-                                if (!returnLoading && returnHasMore) {
-                                    const nextPage = returnPageNumber + 1;
-                                    setReturnPageNumber(nextPage);
+                                // ✅ FIX: Use correct artisan pagination logic
+                                if (!loading && hasMore) {
+                                    const nextPage = artisanPage + 1;
+                                    setArtisanPage(nextPage);
                                     fetchArtisans(nextPage, returnArtisanSearch);
                                 }
                             }}
                             onEndReachedThreshold={0.5}
                             ListFooterComponent={
-                                returnLoading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null
+                                // ✅ FIX: Use correct artisan loading state
+                                loading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null
                             }
                         />
                         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -1627,10 +1666,11 @@ const AdminReports = ({ navigation }) => {
                                 style={styles.updateButton}
                                 onPress={() => {
                                     setReturnShowArtisanModal(false);
+                                    setReturnPageNumber(1); // Reset data page number
                                     const codes = artisans
                                         .filter((a) => returnSelectedArtisans.includes(a.id))
                                         .map((a) => a.code);
-                                    fetchReturnOrders(codes);
+                                    fetchReturnOrders(codes, 1);
                                 }}
                             >
                                 <Text style={{ color: "#fff", fontWeight: "600" }}>Apply</Text>
@@ -1728,7 +1768,12 @@ const AdminReports = ({ navigation }) => {
                     }}
                     onEndReachedThreshold={0.5}
                     ListFooterComponent={
-                        returnLoading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null
+                        // ✅ FIX: Improved footer with "No more data"
+                        returnLoading ? (
+                            <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text>
+                        ) : !returnHasMore && returnTableData.length > 0 ? (
+                            <Text style={{ textAlign: "center", padding: 10 }}>No more data</Text>
+                        ) : null
                     }
                 />
             ) : returnLoading ? (
