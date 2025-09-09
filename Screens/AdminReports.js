@@ -13,7 +13,8 @@ import {
     ScrollView,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import React, { useState, useEffect } from "react";
+import React from 'react';
+import { useState, useEffect } from "react";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { BackHandler } from "react-native";
 import axios from "axios";
@@ -92,20 +93,19 @@ const AdminReports = ({ navigation }) => {
     const [searchSNo, setSearchSNo] = useState("");
     const [validUrl, setValidUrl] = useState(null);
 
-    const [expandedRow, setExpandedRow] = useState(null);
     const [tableData, setTableData] = useState([]);  // ✅ start empty
     const [selectedRows, setSelectedRows] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
     const [artisans, setArtisans] = useState([]);
     const [pageNumber, setPageNumber] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [loadings, setLoadings] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [artisanSearch, setArtisanSearch] = useState("");
     // States for Return
     const [returnShowArtisanModal, setReturnShowArtisanModal] = useState(false);
     const [returnSelectedArtisans, setReturnSelectedArtisans] = useState([]);
     const [returnSearchSNo, setReturnSearchSNo] = useState("");
-    const [returnExpandedRow, setReturnExpandedRow] = useState(null);
     const [returnTableData, setReturnTableData] = useState([]);
     const [returnSelectedRows, setReturnSelectedRows] = useState([]);
     const [returnSelectAll, setReturnSelectAll] = useState(false);
@@ -116,7 +116,6 @@ const AdminReports = ({ navigation }) => {
     const [deliveredShowArtisanModal, setDeliveredShowArtisanModal] = useState(false);
     const [deliveredSelectedArtisans, setDeliveredSelectedArtisans] = useState([]);
     const [deliveredSearchSNo, setDeliveredSearchSNo] = useState("");
-    const [deliveredExpandedRow, setDeliveredExpandedRow] = useState(null);
     const [deliveredTableData, setDeliveredTableData] = useState([]);
     const [deliveredSelectedRows, setDeliveredSelectedRows] = useState([]);
     const [deliveredSelectAll, setDeliveredSelectAll] = useState(false);
@@ -164,7 +163,7 @@ const AdminReports = ({ navigation }) => {
                         </Text>
 
                         {/* Party Name with search icon */}
-                        <Text style={{ marginBottom: 6 }}>Party Name</Text>
+                        <Text style={{ marginBottom: 6, fontWeight: 'bold', color: "#2d531a" }}>Party Name</Text>
                         <TouchableOpacity onPress={() => setShowPartyModal(true)}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <TextInput
@@ -194,7 +193,7 @@ const AdminReports = ({ navigation }) => {
                             </Text>
                         ) : null}
                         {/* Phone Number */}
-                        <Text style={{ marginTop: 16, marginBottom: 6 }}>Phone No</Text>
+                        <Text style={{ marginTop: 16, marginBottom: 6, fontWeight: 'bold', color: "#2d531a" }}>Phone No</Text>
                         <TextInput
                             style={styles.input}
                             value={phone}
@@ -412,27 +411,36 @@ const AdminReports = ({ navigation }) => {
     }, [returnSearchSNo, returnSelectedArtisans]);
 
 
-    const FallbackImage = ({ fileName, style, onSuccess }) => {
+    const FallbackImage = ({ fileName, style, onSuccess, onPress }) => {
         const [uriIndex, setUriIndex] = useState(0);
+        const [resolvedUrl, setResolvedUrl] = useState(null);
         const extensions = [".jpg", ".jpeg", ".png"];
         const sources = extensions.map((ext) => `${IMG_URL}${fileName}${ext}`);
 
         return (
-            <Image
-                source={{ uri: sources[uriIndex] }}
+            <TouchableOpacity
+                onPress={() => resolvedUrl && onPress(resolvedUrl)}
                 style={style}
-                resizeMode="contain"
-                onError={() => {
-                    if (uriIndex < sources.length - 1) {
-                        setUriIndex(uriIndex + 1);
-                    } else {
-                        console.log("No valid image found for", fileName);
-                    }
-                }}
-                onLoad={() => {
-                    if (onSuccess) onSuccess(sources[uriIndex]); // ✅ report back valid URL
-                }}
-            />
+                disabled={!onPress}
+            >
+                <Image
+                    source={{ uri: sources[uriIndex] }}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="contain"
+                    onError={() => {
+                        if (uriIndex < sources.length - 1) {
+                            setUriIndex(uriIndex + 1);
+                        } else {
+                            // console.log("No valid image found for", fileName);
+                        }
+                    }}
+                    onLoad={() => {
+                        const validUrl = sources[uriIndex];
+                        setResolvedUrl(validUrl);
+                        if (onSuccess) onSuccess(validUrl); // ✅ report back valid URL
+                    }}
+                />
+            </TouchableOpacity>
         );
     };
 
@@ -499,7 +507,7 @@ const AdminReports = ({ navigation }) => {
     // ✅ Fetch pending orders for artisans
     const fetchPendingOrders = async (selectedCodes, page = 1, search = "") => {
         if (!selectedCodes || selectedCodes.length === 0) return;
-
+        setLoadings(true);
         try {
             const cusCodes = selectedCodes.map((c) => `cusCodes=${c}`).join("&");
             const res = await axios.get(
@@ -537,10 +545,14 @@ const AdminReports = ({ navigation }) => {
         } catch (err) {
             console.error("Error fetching pending orders:", err);
         }
+        finally {
+            setLoading(false);
+        }
     };
     const fetchDeliveredOrders = async (selectedCodes, page = 1, search = "") => {
-        if (!selectedCodes || selectedCodes.length === 0) return;
 
+        if (!selectedCodes || selectedCodes.length === 0) return;
+        setLoadings(true);
         try {
             const cusCodes = selectedCodes.map((c) => `cusCodes=${c}`).join("&");
             const res = await axios.get(
@@ -576,6 +588,9 @@ const AdminReports = ({ navigation }) => {
             }
         } catch (err) {
             console.error("Error fetching delivered orders:", err);
+        }
+        finally {
+            setLoadings(false);
         }
     };
 
@@ -711,7 +726,7 @@ const AdminReports = ({ navigation }) => {
         setTableData([]);
         setPageNumber(1);
         setHasMore(true);
-        setExpandedRow(null);
+        setLoadings(false);
     };
 
 
@@ -875,45 +890,6 @@ const AdminReports = ({ navigation }) => {
                             value={deliveredArtisanSearch || ""}
                             onChangeText={(text) => setDeliveredArtisanSearch(text)}
                         />
-
-                        {/* Select All */}
-                        {/* <TouchableOpacity
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                paddingVertical: 10,
-                                borderBottomWidth: 1,
-                                borderColor: "#eee",
-                            }}
-                            onPress={() => {
-                                if (deliveredSelectedArtisans.length === artisans.length) {
-                                    setDeliveredSelectedArtisans([]);
-                                } else {
-                                    setDeliveredSelectedArtisans(artisans.map((a) => a.id));
-                                }
-                            }}
-                        >
-                            <Ionicons
-                                name={
-                                    deliveredSelectedArtisans.length === artisans.length
-                                        ? "checkbox"
-                                        : "square-outline"
-                                }
-                                size={22}
-                                color="#2d531a"
-                            />
-                            <Text
-                                style={{
-                                    fontSize: 16,
-                                    marginLeft: 8,
-                                    color: "#2d531a",
-                                }}
-                            >
-                                Select All
-                            </Text>
-                        </TouchableOpacity> */}
-
-                        {/* Artisan List */}
                         <FlatList
                             data={artisans}
                             keyExtractor={(item) => item.id}
@@ -1013,261 +989,101 @@ const AdminReports = ({ navigation }) => {
 
             {/* Table */}
             {deliveredTableData.length > 0 ? (
-                <ScrollView horizontal style={{ marginBottom: 80 }}>
-                    <View style={{ flex: 1 }}>
-                        {/* Table Header */}
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                backgroundColor: "#ccc",
-                                padding: 8,
-                            }}
-                        >
-                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>#</Text>
-                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Product</Text>
-                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Design</Text>
-                            <Text style={{ width: wp("25%"), fontWeight: "700" }}>S.No</Text>
-                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>View</Text>
-                        </View>
-
-                        {/* Table Rows */}
-                        <FlatList
-                            data={deliveredFilteredData}
-                            keyExtractor={(item) => item.id.toString()}
-                            renderItem={({ item, index }) => (
-                                <View style={{ borderBottomWidth: 1, borderColor: "#ccc" }}>
-                                    <View
-                                        style={{
-                                            flexDirection: "row",
-                                            padding: 8,
-                                            alignItems: "center",
-                                        }}
-                                    >
-                                        <Text style={{ width: wp("12%") }}>{index + 1}</Text>
-                                        <Text style={{ width: wp("24%") }}>{item.product}</Text>
-                                        <Text style={{ width: wp("24%") }}>{item.design}</Text>
-                                        <Text style={{ width: wp("25%") }}>{item.sNo}</Text>
-                                        <TouchableOpacity
-                                            style={{ width: wp("12%") }}
-                                            onPress={() =>
-                                                setDeliveredExpandedRow(
-                                                    deliveredExpandedRow === item.id ? null : item.id
-                                                )
-                                            }
-                                        >
-                                            <Ionicons
-                                                name={
-                                                    deliveredExpandedRow === item.id
-                                                        ? "eye-off"
-                                                        : "eye"
-                                                }
-                                                size={24}
-                                                color="#2d531a"
-                                            />
-                                        </TouchableOpacity>
+                <FlatList
+                    data={deliveredFilteredData}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
+                    renderItem={({ item, index }) => (
+                        <View style={styles.card}>
+                            <Text style={styles.cardNumber}>#{index + 1}</Text>
+                            <View style={styles.imageWrapper}>
+                                <FallbackImage
+                                    fileName={item.design}
+                                    style={{ width: "100%", height: "100%" }}
+                                    onPress={(url) => setFullscreenImage(url)}
+                                />
+                            </View>
+                            <View style={styles.detailsBox}>
+                                <View style={styles.detailContainer}>
+                                    <View style={styles.detailRow}>
+                                        <Text style={[styles.highlights, { width: wp("30%") }]}>DESIGN:</Text>
+                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.design}</Text>
                                     </View>
-
-                                    {/* Expanded Row */}
-                                    {deliveredExpandedRow === item.id && (
-                                        <View
-                                            style={{
-                                                padding: wp("3%"),
-                                                backgroundColor: "#eaf5ea",
-                                            }}
-                                        >
-                                            <View
-                                                style={{
-                                                    flexDirection: "row",
-                                                    alignItems: "flex-start",
-                                                }}
-                                            >
-                                                {/* Left details */}
-                                                <View
-                                                    style={{
-                                                        flexShrink: 1,
-                                                        maxWidth: wp("65%"),
-                                                        paddingRight: wp("3%"),
-                                                    }}
-                                                >
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order No:{" "}
-                                                        </Text>
-                                                        {item.orderNo}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order Type:{" "}
-                                                        </Text>
-                                                        {item.orderType}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order Date:{" "}
-                                                        </Text>
-                                                        {new Date(item.orderDate).toLocaleDateString("en-GB", {
-                                                            day: "2-digit",
-                                                            month: "2-digit",
-                                                            year: "numeric",
-                                                        })}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Product:{" "}
-                                                        </Text>
-                                                        {item.product}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Design:{" "}
-                                                        </Text>
-                                                        {item.design}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Weight:{" "}
-                                                        </Text>
-                                                        {item.weight}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Size:{" "}
-                                                        </Text>
-                                                        {item.size}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Qty:{" "}
-                                                        </Text>
-                                                        {item.qty}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Purity:{" "}
-                                                        </Text>
-                                                        {item.purity}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Theme:{" "}
-                                                        </Text>
-                                                        {item.theme}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Status:{" "}
-                                                        </Text>
-                                                        {item.status}
-                                                    </Text>
-                                                </View>
-
-                                                {/* Right image */}
-                                                <TouchableOpacity
-                                                    onPress={() => setFullscreenImage(validUrl)}
-                                                    style={{
-                                                        width: wp("45%"),
-                                                        height: hp("25%"),
-                                                        borderWidth: 1,
-                                                        borderColor: "#ccc",
-                                                        borderRadius: wp("3%"),
-                                                        overflow: "hidden",
-                                                    }}
-                                                >
-                                                    <FallbackImage
-                                                        fileName={item.design}
-                                                        style={{ width: "100%", height: "100%" }}
-                                                        onSuccess={(url) => setValidUrl(url)}
-                                                    />
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-                                    )}
+                                    <View style={styles.detailRow}>
+                                        <Text style={[styles.highlights, { width: wp("30%") }]}>SNO:</Text>
+                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.sNo}</Text>
+                                    </View>
+                                    <View style={styles.detailRow}>
+                                        <Text style={[styles.highlights, { width: wp("30%") }]}>ORDER NO:</Text>
+                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.orderNo}</Text>
+                                    </View>
                                 </View>
-                            )}
-                            showsVerticalScrollIndicator
-                            style={{ maxHeight:isTablet? 750: 500 }}
-                            onEndReached={() => {
-                                if (!deliveredLoading && deliveredHasMore) {
-                                    const nextPage = deliveredPageNumber + 1;
-                                    setDeliveredPageNumber(nextPage);
-                                    const codes = artisans
-                                        .filter((a) =>
-                                            deliveredSelectedArtisans.includes(a.id)
-                                        )
-                                        .map((a) => a.code);
-                                    fetchDeliveredOrders(codes, nextPage, deliveredSearchSNo);
-                                }
-                            }}
-                            onEndReachedThreshold={0.5}
-                            ListFooterComponent={
-                                deliveredLoading ? (
-                                    <Text style={{ textAlign: "center", padding: 10 }}>
-                                        Loading...
-                                    </Text>
-                                ) : null
-                            }
-                            ListEmptyComponent={
-                                !deliveredLoading ? (
-                                    <View
-                                        style={{
-                                            flex: 1,
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            padding: 20,
-                                        }}
-                                    >
-                                        <Image
-                                            source={require("../asserts/Search.png")}
-                                            style={{
-                                                width: 180,
-                                                height: 180,
-                                                marginBottom: 16,
-                                                resizeMode: "contain",
-                                            }}
-                                        />
-                                        <Text
-                                            style={{
-                                                fontSize: 16,
-                                                color: "#666",
-                                                textAlign: "center",
-                                            }}
-                                        >
-                                            Select an artisan and/or search S.No or Design or
-                                            Product or Order No to view the table.
-                                        </Text>
-                                    </View>
-                                ) : null
-                            }
-                        />
-                    </View>
-                </ScrollView>
-            ) : (
-                <View
-                    style={{
-                        flex: 1,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 20,
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Weight:</Text>
+                                    <Text style={styles.value}>{item.weight}</Text>
+                                    <Text style={styles.label}>Size:</Text>
+                                    <Text style={styles.value}>{item.size}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Product:</Text>
+                                    <Text style={styles.value}>{item.product}</Text>
+                                    <Text style={styles.label}>Qty:</Text>
+                                    <Text style={styles.value}>{item.qty}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Order Date:</Text>
+                                    <Text style={styles.value}>{new Date(item.orderDate).toLocaleDateString("en-GB")}</Text>
+                                    <Text style={styles.label}>Order Type:</Text>
+                                    <Text style={styles.value}>{item.orderType}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Purity:</Text>
+                                    <Text style={styles.value}>{item.purity}</Text>
+                                    <Text style={styles.label}>Theme:</Text>
+                                    <Text style={styles.value}>{item.theme}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Status:</Text>
+                                    <Text style={styles.value}>{item.status}</Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+                    onEndReached={() => {
+                        if (!deliveredLoading && deliveredHasMore) {
+                            const nextPage = deliveredPageNumber + 1;
+                            setDeliveredPageNumber(nextPage);
+                            const codes = artisans
+                                .filter((a) => deliveredSelectedArtisans.includes(a.id))
+                                .map((a) => a.code);
+                            fetchDeliveredOrders(codes, nextPage, deliveredSearchSNo);
+                        }
                     }}
-                >
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={
+                        loadings ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null
+                    }
+                />
+            ) : loadings ? (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>Loading...</Text>
+                </View>
+            ) : deliveredSelectedArtisans.length > 0 ? (
+                <View style={styles.emptyContainer}>
                     <Image
                         source={require("../asserts/Search.png")}
-                        style={{
-                            width: 180,
-                            height: 180,
-                            marginBottom: 16,
-                            resizeMode: "contain",
-                        }}
+                        style={styles.emptyImage}
                     />
-                    <Text
-                        style={{
-                            fontSize: 16,
-                            color: "#666",
-                            textAlign: "center",
-                        }}
-                    >
-                        Select an artisan and/or search S.No or Design or Product or Order
-                        No to view the table.
+                    <Text style={styles.emptyText}>No data found</Text>
+                </View>
+            ) : (
+                <View style={styles.emptyContainer}>
+                    <Image
+                        source={require("../asserts/Search.png")}
+                        style={styles.emptyImage}
+                    />
+                    <Text style={styles.emptyText}>
+                        Select an artisan and/or search S.No or Design or Product or Order No to view the table.
                     </Text>
                 </View>
             )}
@@ -1283,7 +1099,7 @@ const AdminReports = ({ navigation }) => {
                         setDeliveredTableData([]);
                         setDeliveredPageNumber(1);
                         setDeliveredHasMore(true);
-                        setDeliveredExpandedRow(null);
+                        setLoadings(false);
                     }}
                 >
                     <Text style={styles.buttonText}>Clear</Text>
@@ -1340,9 +1156,6 @@ const AdminReports = ({ navigation }) => {
                         style={{
                             flexDirection: "row",
                             alignItems: "center",
-
-
-
                         }}
                     >
                         <TextInput
@@ -1444,49 +1257,6 @@ const AdminReports = ({ navigation }) => {
                             value={artisanSearch || ""}
                             onChangeText={(text) => setArtisanSearch(text)}
                         />
-
-                        {/* Select All */}
-                        {/* <TouchableOpacity
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                paddingVertical: 10,
-                                borderBottomWidth: 1,
-                                borderColor: "#eee",
-                            }}
-                            onPress={() => {
-                                if (
-                                    selectedArtisans.length === artisans.length
-                                ) {
-                                    setSelectedArtisans([]);
-                                } else {
-                                    setSelectedArtisans(
-                                        artisans.map((a) => a.id)
-                                    );
-                                }
-                            }}
-                        >
-                            <Ionicons
-                                name={
-                                    selectedArtisans.length === artisans.length
-                                        ? "checkbox"
-                                        : "square-outline"
-                                }
-                                size={22}
-                                color="#2d531a"
-                            />
-                            <Text
-                                style={{
-                                    fontSize: 16,
-                                    marginLeft: 8,
-                                    color: "#2d531a",
-                                }}
-                            >
-                                Select All
-                            </Text>
-                        </TouchableOpacity> */}
-
-                        {/* Artisan List */}
                         <FlatList
                             data={artisans}
                             keyExtractor={(item) => item.id}
@@ -1601,294 +1371,113 @@ const AdminReports = ({ navigation }) => {
 
             {/* Table */}
             {tableData.length > 0 ? (
-                <ScrollView horizontal style={{ marginBottom: 80 }}>
-                    <View style={{ flex: 1 }}>
-                        {/* Select All */}
-                        {/* <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                padding: 8,
-                            }}
-                        >
-                            <TouchableOpacity style={{ width: 50 }} onPress={toggleSelectAll}>
-                                <Ionicons
-                                    name={selectAll ? "checkbox" : "square-outline"}
-                                    size={24}
-                                    color="#2d531a"
+                <FlatList
+                    data={filteredData}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
+                    renderItem={({ item, index }) => (
+                        <View style={styles.card}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                <Text style={styles.cardNumber}>#{index + 1}</Text>
+                                <TouchableOpacity onPress={() => toggleRow(item.id)}>
+                                    <Ionicons
+                                        name={selectedRows.includes(item.id) ? "checkbox" : "square-outline"}
+                                        size={28}
+                                        color="#2d531a"
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.imageWrapper}>
+                                <FallbackImage
+                                    fileName={item.design}
+                                    style={{ width: "100%", height: "100%" }}
+                                    onPress={(url) => setFullscreenImage(url)}
                                 />
-                            </TouchableOpacity>
-                            <Text>Select All</Text>
-                        </View> */}
-
-                        {/* Table Header */}
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                backgroundColor: "#ccc",
-                                padding: 8,
-                            }}
-                        >
-                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>Select</Text>
-                            <Text style={{ width: wp("7%"), fontWeight: "700" }}>#</Text>
-                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Product</Text>
-                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Design</Text>
-                            <Text style={{ width: wp("18%"), fontWeight: "700" }}>S.No</Text>
-                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>View</Text>
-                        </View>
-
-                        {/* ✅ FlatList with pagination + empty state */}
-                        <FlatList
-                            data={filteredData}
-                            keyExtractor={(item) => item.id.toString()}
-                            renderItem={({ item, index }) => (
-                                <View style={{ borderBottomWidth: 1, borderColor: "#ccc" }}>
-                                    <View
-                                        style={{
-                                            flexDirection: "row",
-                                            padding: 8,
-                                            alignItems: "center",
-                                        }}
-                                    >
-                                        <TouchableOpacity
-                                            style={{ width: wp("12%") }}
-                                            onPress={() => toggleRow(item.id)}
-                                        >
-                                            <Ionicons
-                                                name={
-                                                    selectedRows.includes(item.id)
-                                                        ? "checkbox"
-                                                        : "square-outline"
-                                                }
-                                                size={24}
-                                                color="#2d531a"
-                                            />
-                                        </TouchableOpacity>
-                                        <Text style={{ width: wp("7%") }}>{index + 1}</Text>
-                                        <Text style={{ width: wp("24%") }}>{item.product}</Text>
-                                        <Text style={{ width: wp("24%") }}>{item.design}</Text>
-                                        <Text style={{ width: wp("18%") }}>{item.sNo}</Text>
-                                        <TouchableOpacity
-                                            style={{ width: wp("12%") }}
-                                            onPress={() =>
-                                                setExpandedRow(
-                                                    expandedRow === item.id ? null : item.id
-                                                )
-                                            }
-                                        >
-                                            <Ionicons
-                                                name={expandedRow === item.id ? "eye-off" : "eye"}
-                                                size={24}
-                                                color="#2d531a"
-                                            />
-                                        </TouchableOpacity>
+                            </View>
+                            <View style={styles.detailsBox}>
+                                <View style={styles.detailContainer}>
+                                    <View style={styles.detailRow}>
+                                        <Text style={[styles.highlights, { width: wp("30%") }]}>DESIGN:</Text>
+                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.design}</Text>
                                     </View>
-
-                                    {/* Expanded Row */}
-                                    {expandedRow === item.id && (
-                                        <View
-                                            style={{
-                                                padding: wp("3%"),
-                                                backgroundColor: "#eaf5ea",
-                                            }}
-                                        >
-                                            <View
-                                                style={{
-                                                    flexDirection: "row",
-                                                    alignItems: "flex-start",
-                                                }}
-                                            >
-                                                {/* Left details */}
-                                                <View
-                                                    style={{
-                                                        flexShrink: 1,
-                                                        maxWidth: wp("65%"),
-                                                        paddingRight: wp("3%"),
-                                                    }}
-                                                >
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order No:{" "}
-                                                        </Text>
-                                                        {item.orderNo}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order Type:{" "}
-                                                        </Text>
-                                                        {item.orderType}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order Date:{" "}
-                                                        </Text>
-                                                        {new Date(item.orderDate).toLocaleDateString("en-GB", {
-                                                            day: "2-digit",
-                                                            month: "2-digit",
-                                                            year: "numeric",
-                                                        })}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Product:{" "}
-                                                        </Text>
-                                                        {item.product}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Design:{" "}
-                                                        </Text>
-                                                        {item.design}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Weight:{" "}
-                                                        </Text>
-                                                        {item.weight}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Size:{" "}
-                                                        </Text>
-                                                        {item.size}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Qty:{" "}
-                                                        </Text>
-                                                        {item.qty}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Purity:{" "}
-                                                        </Text>
-                                                        {item.purity}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Theme:{" "}
-                                                        </Text>
-                                                        {item.theme}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Status:{" "}
-                                                        </Text>
-                                                        {item.status}
-                                                    </Text>
-                                                </View>
-
-                                                {/* Right image */}
-                                                <TouchableOpacity
-                                                    onPress={() => setFullscreenImage(validUrl)}  // 👈 set the working URL
-                                                    style={{
-                                                        width: wp("45%"),
-                                                        height: hp("25%"),
-                                                        borderWidth: 1,
-                                                        borderColor: "#ccc",
-                                                        borderRadius: wp("3%"),
-                                                        overflow: "hidden",
-                                                    }}
-                                                >
-                                                    <FallbackImage
-                                                        fileName={item.design}
-                                                        style={{ width: "100%", height: "100%" }}
-                                                        onSuccess={(url) => setValidUrl(url)}  // 👈 store the actual valid URL
-                                                    />
-                                                </TouchableOpacity>
-
-
-                                            </View>
-                                        </View>
-                                    )}
+                                    <View style={styles.detailRow}>
+                                        <Text style={[styles.highlights, { width: wp("30%") }]}>SNO:</Text>
+                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.sNo}</Text>
+                                    </View>
+                                    <View style={styles.detailRow}>
+                                        <Text style={[styles.highlights, { width: wp("30%") }]}>ORDER NO:</Text>
+                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.orderNo}</Text>
+                                    </View>
                                 </View>
-                            )}
-                            showsVerticalScrollIndicator
-                            style={{ maxHeight:isTablet? 750:500 }}
-                            onEndReached={() => {
-                                if (!loading && hasMore) {
-                                    const nextPage = pageNumber + 1;
-                                    setPageNumber(nextPage);
-                                    const codes = artisans
-                                        .filter((a) => selectedArtisans.includes(a.id))
-                                        .map((a) => a.code);
-                                    fetchPendingOrders(codes, nextPage, searchSNo);
-                                }
-                            }}
-                            onEndReachedThreshold={0.5}
-                            ListFooterComponent={
-                                loading ? (
-                                    <Text style={{ textAlign: "center", padding: 10 }}>
-                                        Loading...
-                                    </Text>
-                                ) : null
-                            }
-                            ListEmptyComponent={
-                                !loading ? (
-                                    <View
-                                        style={{
-                                            flex: 1,
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            padding: 20,
-                                        }}
-                                    >
-                                        <Image
-                                            source={require("../asserts/Search.png")} // 👈 replace with your image path
-                                            style={{
-                                                width: 180,
-                                                height: 180,
-                                                marginBottom: 16, // space between image and text
-                                                resizeMode: "contain",
-                                            }}
-                                        />
-                                        <Text
-                                            style={{
-                                                fontSize: 16,
-                                                color: "#666",
-                                                textAlign: "center",
-                                            }}
-                                        >
-                                            Select an artisan and/or search S.No or Design or Product or Order No to view the table.
-                                        </Text>
-                                    </View>
-                                ) : null
-                            }
-                        />
-                    </View>
-                </ScrollView>
-            ) : (
-                // optional: you can completely remove this else block
-                <View
-                    style={{
-                        flex: 1,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 20,
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Weight:</Text>
+                                    <Text style={styles.value}>{item.weight}</Text>
+                                    <Text style={styles.label}>Size:</Text>
+                                    <Text style={styles.value}>{item.size}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Product:</Text>
+                                    <Text style={styles.value}>{item.product}</Text>
+                                    <Text style={styles.label}>Qty:</Text>
+                                    <Text style={styles.value}>{item.qty}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Order Date:</Text>
+                                    <Text style={styles.value}>{new Date(item.orderDate).toLocaleDateString("en-GB")}</Text>
+                                    <Text style={styles.label}>Order Type:</Text>
+                                    <Text style={styles.value}>{item.orderType}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Purity:</Text>
+                                    <Text style={styles.value}>{item.purity}</Text>
+                                    <Text style={styles.label}>Theme:</Text>
+                                    <Text style={styles.value}>{item.theme}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Status:</Text>
+                                    <Text style={styles.value}>{item.status}</Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+                    onEndReached={() => {
+                        if (!loading && hasMore) {
+                            const nextPage = pageNumber + 1;
+                            setPageNumber(nextPage);
+                            const codes = artisans
+                                .filter((a) => selectedArtisans.includes(a.id))
+                                .map((a) => a.code);
+                            fetchPendingOrders(codes, nextPage, searchSNo);
+                        }
                     }}
-                >
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={
+                        loadings ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null
+                    }
+                />
+            ) : loadings ? (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>Loading...</Text>
+                </View>
+            ) : selectedArtisans.length > 0 ? (
+                <View style={styles.emptyContainer}>
                     <Image
-                        source={require("../asserts/Search.png")} // 👈 replace with your image path
-                        style={{
-                            width: 180,
-                            height: 180,
-                            marginBottom: 16, // space between image and text
-                            resizeMode: "contain",
-                        }}
+                        source={require("../asserts/Search.png")}
+                        style={styles.emptyImage}
                     />
-                    <Text
-                        style={{
-                            fontSize: 16,
-                            color: "#666",
-                            textAlign: "center",
-                        }}
-                    >
+                    <Text style={styles.emptyText}>No data found</Text>
+                </View>
+            ) : (
+                <View style={styles.emptyContainer}>
+                    <Image
+                        source={require("../asserts/Search.png")}
+                        style={styles.emptyImage}
+                    />
+                    <Text style={styles.emptyText}>
                         Select an artisan and/or search S.No or Design or Product or Order No to view the table.
                     </Text>
                 </View>
             )}
-
-
 
             {/* Footer */}
             <View style={styles.footer}>
@@ -1918,23 +1507,15 @@ const AdminReports = ({ navigation }) => {
             </View>
             <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
                 <View style={{ flex: 1, backgroundColor: "#000" }}>
-                    {/* Close Button */}
                     <TouchableOpacity
                         style={{
-                            position: "absolute",
-                            top: 40,
-                            right: 20,
-                            zIndex: 10,
-                            backgroundColor: "rgba(0,0,0,0.6)",
-                            borderRadius: 20,
-                            padding: 6,
+                            position: "absolute", top: 40, right: 20, zIndex: 10,
+                            backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 20, padding: 6,
                         }}
                         onPress={() => setFullscreenImage(null)}
                     >
                         <Ionicons name="close" size={28} color="#fff" />
                     </TouchableOpacity>
-
-                    {/* Image Viewer */}
                     <ImageViewer
                         imageUrls={[{ url: fullscreenImage }]}
                         enableSwipeDown
@@ -1944,19 +1525,13 @@ const AdminReports = ({ navigation }) => {
                     />
                 </View>
             </Modal>
-            {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
                 <TouchableOpacity onPress={() => setReturnShowArtisanModal(true)}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <TextInput
                             style={{
-                                borderWidth: 1,
-                                borderColor: "#ccc",
-                                padding: 10,
-                                borderRadius: 10,
-                                color: "#000",
-                                width: isTablet ? wp("90%") : wp("85%"),
-                                marginRight: 8,
+                                borderWidth: 1, borderColor: "#ccc", padding: 10, borderRadius: 10,
+                                color: "#000", width: isTablet ? wp("90%") : wp("85%"), marginRight: 8,
                             }}
                             placeholderTextColor={"#7c7c7cff"}
                             placeholder="Select Artisan"
@@ -1966,9 +1541,7 @@ const AdminReports = ({ navigation }) => {
                                     : returnSelectedArtisans
                                         .map((id) => {
                                             const artisan = artisans.find((a) => a.id === id);
-                                            return artisan
-                                                ? `${artisan.name} (${artisan.code})`
-                                                : "";
+                                            return artisan ? `${artisan.name} (${artisan.code})` : "";
                                         })
                                         .join(", ")
                             }
@@ -1979,154 +1552,51 @@ const AdminReports = ({ navigation }) => {
                     </View>
                 </TouchableOpacity>
             </View>
-
-            {/* Search S.No / Design */}
             <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
                 <TextInput
-                    style={{
-                        borderWidth: 1,
-                        borderColor: "#ccc",
-                        padding: 10,
-                        borderRadius: 10,
-                    }}
+                    style={{ borderWidth: 1, borderColor: "#ccc", padding: 10, borderRadius: 10 }}
                     placeholderTextColor={"#7c7c7cff"}
                     placeholder="Search S.No / Design / Product / Order No"
                     value={returnSearchSNo}
                     onChangeText={setReturnSearchSNo}
                 />
             </View>
-
-            {/* Artisan Modal */}
             <Modal visible={returnShowArtisanModal} transparent animationType="slide">
-                <View
-                    style={{
-                        flex: 1,
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        justifyContent: "center",
-                        padding: 20,
-                    }}
-                >
-                    <View
-                        style={{
-                            backgroundColor: "#fff",
-                            borderRadius: 16,
-                            padding: 20,
-                            maxHeight: "80%",
-                        }}
-                    >
-                        {/* Header */}
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 12,
-                            }}
-                        >
-                            <Text style={{ fontSize: 18, fontWeight: "700" }}>
-                                Select Artisan
-                            </Text>
-                            <TouchableOpacity
-                                onPress={() => setReturnShowArtisanModal(false)}
-                            >
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}>
+                    <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, maxHeight: "80%" }}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                            <Text style={{ fontSize: 18, fontWeight: "700" }}>Select Artisan</Text>
+                            <TouchableOpacity onPress={() => setReturnShowArtisanModal(false)}>
                                 <Ionicons name="close" size={28} />
                             </TouchableOpacity>
                         </View>
-
-                        {/* Search Bar */}
                         <TextInput
-                            style={{
-                                borderWidth: 1,
-                                borderColor: "#ccc",
-                                padding: 10,
-                                borderRadius: 10,
-                                marginBottom: 10,
-                            }}
+                            style={{ borderWidth: 1, borderColor: "#ccc", padding: 10, borderRadius: 10, marginBottom: 10 }}
                             placeholder="Search Artisan"
                             placeholderTextColor={"#7c7c7cff"}
                             value={returnArtisanSearch || ""}
                             onChangeText={(text) => setReturnArtisanSearch(text)}
                         />
-
-                        {/* Select All */}
-                        {/* <TouchableOpacity
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                paddingVertical: 10,
-                                borderBottomWidth: 1,
-                                borderColor: "#eee",
-                            }}
-                            onPress={() => {
-                                if (returnSelectedArtisans.length === artisans.length) {
-                                    setReturnSelectedArtisans([]);
-                                } else {
-                                    setReturnSelectedArtisans(artisans.map((a) => a.id));
-                                }
-                            }}
-                        >
-                            <Ionicons
-                                name={
-                                    returnSelectedArtisans.length === artisans.length
-                                        ? "checkbox"
-                                        : "square-outline"
-                                }
-                                size={22}
-                                color="#2d531a"
-                            />
-                            <Text
-                                style={{
-                                    fontSize: 16,
-                                    marginLeft: 8,
-                                    color: "#2d531a",
-                                }}
-                            >
-                                Select All
-                            </Text>
-                        </TouchableOpacity> */}
-
-                        {/* Artisan List */}
                         <FlatList
                             data={artisans}
                             keyExtractor={(item) => item.id}
                             renderItem={({ item: artisan }) => (
                                 <TouchableOpacity
-                                    style={{
-                                        flexDirection: "row",
-                                        alignItems: "center",
-                                        paddingVertical: 10,
-                                    }}
+                                    style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10 }}
                                     onPress={() => {
                                         if (returnSelectedArtisans.includes(artisan.id)) {
-                                            setReturnSelectedArtisans(
-                                                returnSelectedArtisans.filter(
-                                                    (id) => id !== artisan.id
-                                                )
-                                            );
+                                            setReturnSelectedArtisans(returnSelectedArtisans.filter((id) => id !== artisan.id));
                                         } else {
-                                            setReturnSelectedArtisans([
-                                                ...returnSelectedArtisans,
-                                                artisan.id,
-                                            ]);
+                                            setReturnSelectedArtisans([...returnSelectedArtisans, artisan.id]);
                                         }
                                     }}
                                 >
                                     <Ionicons
-                                        name={
-                                            returnSelectedArtisans.includes(artisan.id)
-                                                ? "checkbox"
-                                                : "square-outline"
-                                        }
+                                        name={returnSelectedArtisans.includes(artisan.id) ? "checkbox" : "square-outline"}
                                         size={22}
                                         color="#2d531a"
                                     />
-                                    <Text
-                                        style={{
-                                            fontSize: 16,
-                                            marginLeft: 8,
-                                            color: "#2d531a",
-                                        }}
-                                    >
+                                    <Text style={{ fontSize: 16, marginLeft: 8, color: "#2d531a" }}>
                                         {artisan.name} ({artisan.code})
                                     </Text>
                                 </TouchableOpacity>
@@ -2140,21 +1610,10 @@ const AdminReports = ({ navigation }) => {
                             }}
                             onEndReachedThreshold={0.5}
                             ListFooterComponent={
-                                returnLoading ? (
-                                    <Text style={{ textAlign: "center", padding: 10 }}>
-                                        Loading...
-                                    </Text>
-                                ) : null
+                                returnLoading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null
                             }
                         />
-
-                        {/* Footer Buttons */}
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                            }}
-                        >
+                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                             <TouchableOpacity
                                 style={styles.clearButton}
                                 onPress={() => {
@@ -2171,7 +1630,7 @@ const AdminReports = ({ navigation }) => {
                                     const codes = artisans
                                         .filter((a) => returnSelectedArtisans.includes(a.id))
                                         .map((a) => a.code);
-                                    fetchReturnOrders(codes); // 👈 replace with Return API if needed
+                                    fetchReturnOrders(codes);
                                 }}
                             >
                                 <Text style={{ color: "#fff", fontWeight: "600" }}>Apply</Text>
@@ -2181,329 +1640,121 @@ const AdminReports = ({ navigation }) => {
                 </View>
             </Modal>
 
-            {/* Table */}
             {returnTableData.length > 0 ? (
-                <ScrollView horizontal style={{ marginBottom: 80 }}>
-                    <View style={{ flex: 1 }}>
-                        {/* Select All */}
-                        {/* <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                padding: 8,
-                            }}
-                        >
-                            <TouchableOpacity
-                                style={{ width: 50 }}
-                                onPress={() => {
-                                    if (returnSelectAll) {
-                                        setReturnSelectedRows([]);
-                                        setReturnSelectAll(false);
+                <FlatList
+                    data={returnTableData}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
+                    renderItem={({ item, index }) => (
+                        <View style={styles.card}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                <Text style={styles.cardNumber}>#{index + 1}</Text>
+                                <TouchableOpacity onPress={() => {
+                                    if (returnSelectedRows.includes(item.id)) {
+                                        setReturnSelectedRows(returnSelectedRows.filter((id) => id !== item.id));
                                     } else {
-                                        const ids = returnTableData.map((item) => item.id);
-                                        setReturnSelectedRows(ids);
-                                        setReturnSelectAll(true);
+                                        setReturnSelectedRows([...returnSelectedRows, item.id]);
                                     }
-                                }}
-                            >
-                                <Ionicons
-                                    name={returnSelectAll ? "checkbox" : "square-outline"}
-                                    size={24}
-                                    color="#2d531a"
+                                }}>
+                                    <Ionicons
+                                        name={returnSelectedRows.includes(item.id) ? "checkbox" : "square-outline"}
+                                        size={28}
+                                        color="#2d531a"
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.imageWrapper}>
+                                <FallbackImage
+                                    fileName={item.design}
+                                    style={{ width: "100%", height: "100%" }}
+                                    onPress={(url) => setFullscreenImage(url)}
                                 />
-                            </TouchableOpacity>
-                            <Text>Select All</Text>
-                        </View> */}
-
-                        {/* Table Header */}
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                backgroundColor: "#ccc",
-                                padding: 8,
-                            }}
-                        >
-                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>Select</Text>
-                            <Text style={{ width: wp("7%"), fontWeight: "700" }}>#</Text>
-                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Product</Text>
-                            <Text style={{ width: wp("24%"), fontWeight: "700" }}>Design</Text>
-                            <Text style={{ width: wp("18%"), fontWeight: "700" }}>S.No</Text>
-                            <Text style={{ width: wp("12%"), fontWeight: "700" }}>View</Text>
-                        </View>
-
-                        {/* Rows */}
-                        <FlatList
-                            data={returnTableData}
-                            keyExtractor={(item) => item.id.toString()}
-                            renderItem={({ item, index }) => (
-                                <View
-                                    style={{
-                                        borderBottomWidth: 1,
-                                        borderColor: "#ccc",
-                                    }}
-                                >
-                                    <View
-                                        style={{
-                                            flexDirection: "row",
-                                            padding: 8,
-                                            alignItems: "center",
-                                        }}
-                                    >
-                                        <TouchableOpacity
-                                            style={{ width: wp("12%") }}
-                                            onPress={() => {
-                                                if (returnSelectedRows.includes(item.id)) {
-                                                    setReturnSelectedRows(
-                                                        returnSelectedRows.filter(
-                                                            (id) => id !== item.id
-                                                        )
-                                                    );
-                                                } else {
-                                                    setReturnSelectedRows([
-                                                        ...returnSelectedRows,
-                                                        item.id,
-                                                    ]);
-                                                }
-                                            }}
-                                        >
-                                            <Ionicons
-                                                name={
-                                                    returnSelectedRows.includes(item.id)
-                                                        ? "checkbox"
-                                                        : "square-outline"
-                                                }
-                                                size={24}
-                                                color="#2d531a"
-                                            />
-                                        </TouchableOpacity>
-                                        <Text style={{ width: wp("7%") }}>{index + 1}</Text>
-                                        <Text style={{ width: wp("24%") }}>{item.product}</Text>
-                                        <Text style={{ width: wp("24%") }}>{item.design}</Text>
-                                        <Text style={{ width: wp("18%") }}>{item.sNo}</Text>
-                                        <TouchableOpacity
-                                            style={{ width: wp("12%") }}
-                                            onPress={() =>
-                                                setReturnExpandedRow(
-                                                    returnExpandedRow === item.id ? null : item.id
-                                                )
-                                            }
-                                        >
-                                            <Ionicons
-                                                name={
-                                                    returnExpandedRow === item.id
-                                                        ? "eye-off"
-                                                        : "eye"
-                                                }
-                                                size={24}
-                                                color="#2d531a"
-                                            />
-                                        </TouchableOpacity>
+                            </View>
+                            <View style={styles.detailsBox}>
+                                <View style={styles.detailContainer}>
+                                    <View style={styles.detailRow}>
+                                        <Text style={[styles.highlights, { width: wp("30%") }]}>DESIGN:</Text>
+                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.design}</Text>
                                     </View>
-
-                                    {/* Expanded Row */}
-                                    {returnExpandedRow === item.id && (
-                                        <View
-                                            style={{
-                                                padding: wp("3%"),
-                                                backgroundColor: "#eaf5ea",
-                                            }}
-                                        >
-                                            <View
-                                                style={{
-                                                    flexDirection: "row",
-                                                    alignItems: "flex-start",
-                                                }}
-                                            >
-                                                {/* Left details */}
-                                                <View
-                                                    style={{
-                                                        flexShrink: 1,
-                                                        maxWidth: wp("65%"),
-                                                        paddingRight: wp("3%"),
-                                                    }}
-                                                >
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order No:{" "}
-                                                        </Text>
-                                                        {item.orderNo}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order Type:{" "}
-                                                        </Text>
-                                                        {item.orderType}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Order Date:{" "}
-                                                        </Text>
-                                                        {new Date(item.orderDate).toLocaleDateString("en-GB", {
-                                                            day: "2-digit",
-                                                            month: "2-digit",
-                                                            year: "numeric",
-                                                        })}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Product:{" "}
-                                                        </Text>
-                                                        {item.product}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Design:{" "}
-                                                        </Text>
-                                                        {item.design}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Weight:{" "}
-                                                        </Text>
-                                                        {item.weight}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Size:{" "}
-                                                        </Text>
-                                                        {item.size}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Qty:{" "}
-                                                        </Text>
-                                                        {item.qty}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Purity:{" "}
-                                                        </Text>
-                                                        {item.purity}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Theme:{" "}
-                                                        </Text>
-                                                        {item.theme}
-                                                    </Text>
-                                                    <Text>
-                                                        <Text style={{ fontWeight: "bold" }}>
-                                                            Status:{" "}
-                                                        </Text>
-                                                        {item.status}
-                                                    </Text>
-                                                </View>
-
-                                                {/* Right image */}
-                                                <TouchableOpacity
-                                                    onPress={() => setFullscreenImage(validUrl)}  // 👈 set the working URL
-                                                    style={{
-                                                        width: wp("45%"),
-                                                        height: hp("25%"),
-                                                        borderWidth: 1,
-                                                        borderColor: "#ccc",
-                                                        borderRadius: wp("3%"),
-                                                        overflow: "hidden",
-                                                    }}
-                                                >
-                                                    <FallbackImage
-                                                        fileName={item.design}
-                                                        style={{ width: "100%", height: "100%" }}
-                                                        onSuccess={(url) => setValidUrl(url)}  // 👈 store the actual valid URL
-                                                    />
-                                                </TouchableOpacity>
-
-                                            </View>
-                                        </View>
-                                    )}
+                                    <View style={styles.detailRow}>
+                                        <Text style={[styles.highlights, { width: wp("30%") }]}>SNO:</Text>
+                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.sNo}</Text>
+                                    </View>
+                                    <View style={styles.detailRow}>
+                                        <Text style={[styles.highlights, { width: wp("30%") }]}>ORDER NO:</Text>
+                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.orderNo}</Text>
+                                    </View>
                                 </View>
-                            )}
-                            onEndReached={() => {
-                                if (!returnLoading && returnHasMore) {
-                                    const nextPage = returnPageNumber + 1;
-                                    setReturnPageNumber(nextPage);
-                                    const codes = artisans
-                                        .filter((a) => returnSelectedArtisans.includes(a.id))
-                                        .map((a) => a.code);
-                                    fetchReturnOrders(codes, nextPage, returnSearchSNo);
-                                    // 👆 replace with Return API if different
-                                }
-                            }}
-                            onEndReachedThreshold={0.5}
-                            ListFooterComponent={
-                                returnLoading ? (
-                                    <Text style={{ textAlign: "center", padding: 10 }}>
-                                        Loading...
-                                    </Text>
-                                ) : null
-                            }
-                            ListEmptyComponent={
-                                !returnLoading ? (
-                                    <View
-                                        style={{
-                                            flex: 1,
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            padding: 20,
-                                        }}
-                                    >
-                                        <Image
-                                            source={require("../asserts/Search.png")}
-                                            style={{
-                                                width: 180,
-                                                height: 180,
-                                                marginBottom: 16,
-                                                resizeMode: "contain",
-                                            }}
-                                        />
-                                        <Text
-                                            style={{
-                                                fontSize: 16,
-                                                color: "#666",
-                                                textAlign: "center",
-                                            }}
-                                        >
-                                            Select an artisan and/or search S.No or Design or Product
-                                            or Order No to view the table.
-                                        </Text>
-                                    </View>
-                                ) : null
-                            }
-                        />
-                    </View>
-                </ScrollView>
-            ) : (
-                <View
-                    style={{
-                        flex: 1,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 20,
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Weight:</Text>
+                                    <Text style={styles.value}>{item.weight}</Text>
+                                    <Text style={styles.label}>Size:</Text>
+                                    <Text style={styles.value}>{item.size}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Product:</Text>
+                                    <Text style={styles.value}>{item.product}</Text>
+                                    <Text style={styles.label}>Qty:</Text>
+                                    <Text style={styles.value}>{item.qty}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Order Date:</Text>
+                                    <Text style={styles.value}>{new Date(item.orderDate).toLocaleDateString("en-GB")}</Text>
+                                    <Text style={styles.label}>Order Type:</Text>
+                                    <Text style={styles.value}>{item.orderType}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Purity:</Text>
+                                    <Text style={styles.value}>{item.purity}</Text>
+                                    <Text style={styles.label}>Theme:</Text>
+                                    <Text style={styles.value}>{item.theme}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.label}>Status:</Text>
+                                    <Text style={styles.value}>{item.status}</Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+                    onEndReached={() => {
+                        if (!returnLoading && returnHasMore) {
+                            const nextPage = returnPageNumber + 1;
+                            setReturnPageNumber(nextPage);
+                            const codes = artisans
+                                .filter((a) => returnSelectedArtisans.includes(a.id))
+                                .map((a) => a.code);
+                            fetchReturnOrders(codes, nextPage, returnSearchSNo);
+                        }
                     }}
-                >
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={
+                        returnLoading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null
+                    }
+                />
+            ) : returnLoading ? (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>Loading...</Text>
+                </View>
+            ) : returnSelectedArtisans.length > 0 ? (
+                <View style={styles.emptyContainer}>
                     <Image
                         source={require("../asserts/Search.png")}
-                        style={{
-                            width: 180,
-                            height: 180,
-                            marginBottom: 16,
-                            resizeMode: "contain",
-                        }}
+                        style={styles.emptyImage}
                     />
-                    <Text
-                        style={{
-                            fontSize: 16,
-                            color: "#666",
-                            textAlign: "center",
-                        }}
-                    >
-                        Select an artisan and/or search S.No or Design or Product or Order No to
-                        view the table.
+                    <Text style={styles.emptyText}>No data found</Text>
+                </View>
+            ) : (
+                <View style={styles.emptyContainer}>
+                    <Image
+                        source={require("../asserts/Search.png")}
+                        style={styles.emptyImage}
+                    />
+                    <Text style={styles.emptyText}>
+                        Select an artisan and/or search S.No or Design or Product or Order No to view the table.
                     </Text>
                 </View>
             )}
 
-            {/* Footer */}
             <View style={styles.footer}>
                 <TouchableOpacity
                     style={styles.clearButton}
@@ -2516,7 +1767,7 @@ const AdminReports = ({ navigation }) => {
                         setReturnTableData([]);
                         setReturnPageNumber(1);
                         setReturnHasMore(true);
-                        setReturnExpandedRow(null);
+
                     }}
                 >
                     <Text style={styles.buttonText}>Clear</Text>
@@ -2668,18 +1919,15 @@ const styles = StyleSheet.create({
     card: {
         flex: 1,
         backgroundColor: "#fff",
-        margin: 6,
-        borderRadius: 16,
-        paddingVertical: 20,
-        alignItems: "center",
-        justifyContent: "center",
-        shadowColor: "#2d531a",
+        borderRadius: 12,
+        margin: 10,
+        padding: 12,
+        shadowColor: "#000",
         shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 3 },
-        shadowRadius: 5,
-        elevation: 4,
+        shadowRadius: 6,
+        elevation: 3,
     },
-    cardImage: { width: 80, height: 80, marginBottom: 8 },
+    cardImage: { width: 80, height: 80, marginBottom: 8, marginLeft: wp('7%') },
     cardText: {
         fontSize: 15,
         fontWeight: "600",
@@ -2762,5 +2010,74 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 1, height: 1 },
         textShadowRadius: 4,
         zIndex: 1,
+    },
+    // Styles from PendingReports
+    emptyContainer: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+        marginTop: hp('10%')
+    },
+    emptyImage: {
+        width: 180,
+        height: 180,
+        marginBottom: 16,
+        resizeMode: "contain",
+    },
+    emptyText: {
+        fontSize: 16,
+        color: "#666",
+        textAlign: "center",
+    },
+    imageWrapper: {
+        width: "100%",
+        height: hp("30%"),
+        borderRadius: 10,
+        overflow: "hidden",
+        marginBottom: 12,
+        backgroundColor: 'white'
+    },
+    detailsBox: {
+        marginTop: 8,
+    },
+    highlight: {
+        color: "#2d531a",
+        fontWeight: "bold",
+        fontSize: 15,
+    },
+    highlights: {
+        color: "rgba(120, 3, 3, 1)",
+        fontWeight: "bold",
+        fontSize: 15,
+    },
+    detailContainer: {
+        backgroundColor: "#f3f9f4ff",
+        padding: 10,
+        borderRadius: 8,
+        marginVertical: 8,
+        borderWidth: 1,
+        borderColor: "#ddd",
+    },
+    detailRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginVertical: 4,
+    },
+    label: {
+        fontWeight: "bold",
+        color: "#000",
+        width: wp("20%"),
+    },
+    value: {
+        color: "#000",
+        width: wp("25%"),
+        marginRight: wp("5%"),
+    },
+    cardNumber: {
+        fontWeight: 'bold',
+        fontSize: 16,
+        color: '#555',
+        marginBottom: 10,
     },
 });
