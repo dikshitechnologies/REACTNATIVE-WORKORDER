@@ -681,12 +681,7 @@ const AdminReports = ({ navigation }) => {
     };
 
     // ✅ Only filter by S.No / Design
-    const filteredData = tableData.filter(
-        (item) =>
-            searchSNo === "" ||
-            item.sNo.includes(searchSNo) ||
-            item.design.toLowerCase().includes(searchSNo.toLowerCase())
-    );
+
 
     // ✅ Update payload will use hidden fields
     // ✅ Update payload will use hidden fields
@@ -1403,7 +1398,7 @@ const AdminReports = ({ navigation }) => {
             {/* Table */}
             {tableData.length > 0 ? (
                 <FlatList
-                    data={filteredData}
+                    data={tableData}
                     keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
                     renderItem={({ item, index }) => (
