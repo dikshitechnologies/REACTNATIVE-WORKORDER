@@ -1984,7 +1984,7 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 3,
     },
-    cardImage: { width: 80, height: 80, marginBottom: 8, marginLeft:isTablet? wp('14%'):wp('7%') },
+    cardImage: { width: 80, height: 80, marginBottom: 8, alignSelf:'center' },
     cardText: {
         fontSize: 15,
         fontWeight: "600",
