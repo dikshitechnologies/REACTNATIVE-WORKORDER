@@ -513,11 +513,11 @@ const AdminReports = ({ navigation }) => {
                     setArtisans((prev) => [...prev, ...mapped]);
                 }
                 const total = data.totalRecords || 0;
-                const alreadyLoaded = (page-1) * 30 + mapped.length;
+                const alreadyLoaded = (page - 1) * 30 + mapped.length;
                 setHasMore(alreadyLoaded < total);
             } else {
-                 if (page === 1) setArtisans([]);
-                 setHasMore(false);
+                if (page === 1) setArtisans([]);
+                setHasMore(false);
             }
         } catch (err) {
             console.error("Error fetching artisans:", err);
@@ -1819,7 +1819,19 @@ const AdminReports = ({ navigation }) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.updateButton}
-                    onPress={returnUpdateData}
+                    onPress={() => {
+                        returnUpdateData(); // first call your API update
+
+                        // then clear states
+                        setReturnSelectedRows([]);
+                        setReturnSelectedArtisans([]);
+                        setReturnSearchSNo("");
+                        setReturnArtisanSearch("");
+                        setReturnSelectAll(false);
+                        setReturnTableData([]);
+                        setReturnPageNumber(1);
+                        setReturnHasMore(true);
+                    }}
                 >
                     <Text style={styles.buttonText}>Update</Text>
                 </TouchableOpacity>
