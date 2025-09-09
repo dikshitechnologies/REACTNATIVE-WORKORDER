@@ -681,12 +681,7 @@ const AdminReports = ({ navigation }) => {
     };
 
     // ✅ Only filter by S.No / Design
-    const filteredData = tableData.filter(
-        (item) =>
-            searchSNo === "" ||
-            item.sNo.includes(searchSNo) ||
-            item.design.toLowerCase().includes(searchSNo.toLowerCase())
-    );
+
 
     // ✅ Update payload will use hidden fields
     // ✅ Update payload will use hidden fields
@@ -1403,7 +1398,7 @@ const AdminReports = ({ navigation }) => {
             {/* Table */}
             {tableData.length > 0 ? (
                 <FlatList
-                    data={filteredData}
+                    data={tableData}
                     keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
                     renderItem={({ item, index }) => (
@@ -1984,7 +1979,7 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 3,
     },
-    cardImage: { width: 80, height: 80, marginBottom: 8, marginLeft:isTablet? wp('14%'):wp('7%') },
+    cardImage: { width: 80, height: 80, marginBottom: 8, marginLeft: isTablet ? wp('14%') : wp('7%') },
     cardText: {
         fontSize: 15,
         fontWeight: "600",
