@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useRef } from "react";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import Share from "react-native-share";
+import RNPrint from "react-native-print";
 
 import {
   View,
@@ -249,6 +250,20 @@ const DeliveredReports = ({ navigation, route }) => {
       </View>
     </View>
   );
+const printImage = async () => {
+  try {
+    if (!viewRef.current) return;
+
+    const uri = await captureRef(viewRef, {
+      format: "png",
+      quality: 1,
+    });
+
+    await RNPrint.print({ filePath: uri });
+  } catch (e) {
+    console.log("❌ Print error:", e);
+  }
+};
 
   const shareToWhatsApp = async () => {
     try {
@@ -362,39 +377,55 @@ const DeliveredReports = ({ navigation, route }) => {
 
           {/* Bottom buttons */}
           <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-evenly",
-              marginVertical: 20,
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => setFullscreenImage(null)}
-              style={{
-                backgroundColor: "rgba(120,3,3,1)",
-                paddingVertical: 10,
-                paddingHorizontal: 20,
-                borderRadius: 10,
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
-            </TouchableOpacity>
+  style={{
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    marginVertical: 20,
+  }}
+>
+  <TouchableOpacity
+    onPress={() => setFullscreenImage(null)}
+    style={{
+      backgroundColor: "rgba(120,3,3,1)",
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+    }}
+  >
+    <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
+  </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={shareToWhatsApp}
-              style={{
-                backgroundColor: "#25D366",
-                paddingVertical: 10,
-                paddingHorizontal: 20,
-                borderRadius: 10,
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
-              <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
-            </TouchableOpacity>
-          </View>
+  <TouchableOpacity
+    onPress={shareToWhatsApp}
+    style={{
+      backgroundColor: "#25D366",
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+      flexDirection: "row",
+      alignItems: "center",
+    }}
+  >
+    <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
+    <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={printImage}
+    style={{
+      backgroundColor: "#2d531a",
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+      flexDirection: "row",
+      alignItems: "center",
+    }}
+  >
+    <Ionicons name="print" size={22} color="#fff" style={{ marginRight: 8 }} />
+    <Text style={{ color: "#fff", fontWeight: "bold" }}>Print</Text>
+  </TouchableOpacity>
+</View>
+
         </SafeAreaView>
       </Modal>
 
