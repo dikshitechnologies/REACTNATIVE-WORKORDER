@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   Modal,
   Alert,
   Platform,
-  Share,
+  Dimensions,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from "axios";
@@ -20,17 +20,28 @@ import { BASE_URL, IMG_URL } from "./Links";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import ImageViewer from "react-native-image-zoom-viewer";
 import { BackHandler } from "react-native";
+import XLSX from 'xlsx';
+import RNFS from 'react-native-fs';
+import Share from 'react-native-share';
+import RNPrint from "react-native-print";
+import ViewShot, { captureRef } from "react-native-view-shot";
+import ImageZoom from 'react-native-image-pan-zoom';
+
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
 
 const OverdueReports = ({ navigation, route }) => {
   const user = route?.params?.user;
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
   const [totalRecords, setTotalRecords] = useState(0);
+  const viewRef = useRef();
 
   useEffect(() => {
     const backAction = () => {
@@ -163,16 +174,75 @@ const OverdueReports = ({ navigation, route }) => {
     }
   };
 
-  // ✅ Simple CSV Export using react-native-share
+  // ✅ Generate Excel file
+  const generateExcelFile = async () => {
+    try {
+      // Prepare data for Excel
+      const excelData = reports.map((item, index) => ({
+        "S.No": index + 1,
+        "Issue No": item.issueNo || "N/A",
+        "Order No": item.orderNo || "N/A",
+        "Order Date": formatDate(item.orderDate),
+        "Due Date": formatDate(item.dueDate),
+        "Days Overdue": item.daysOverdue || 0,
+        "Status": item.status || "N/A",
+        "Order Type": item.orderType || "N/A",
+        "Product": item.product || "N/A",
+        "Design": item.design || "N/A",
+        "Weight": item.weight || "N/A",
+        "Size": item.size || "N/A",
+        "Quantity": item.qty || "N/A",
+        "Purity": item.purity || "N/A",
+        "Theme": item.theme || "N/A",
+        "Serial No": item.sNo || "N/A",
+        "Transaction ID": item.transaId || "N/A"
+      }));
+
+      // Create worksheet
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Overdue Reports");
+
+      // Generate file name with timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const fileName = `Overdue_Reports_${timestamp}.xlsx`;
+      
+      // Generate file path
+      let filePath = '';
+      if (Platform.OS === 'android') {
+        filePath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
+      } else {
+        filePath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+      }
+
+      // Convert workbook to binary string
+      const wbout = XLSX.write(wb, { type: 'binary', bookType: 'xlsx' });
+
+      // Write file
+      await RNFS.writeFile(filePath, wbout, 'ascii');
+      
+      console.log("✅ Excel file saved at:", filePath);
+      return { filePath, fileName };
+
+    } catch (error) {
+      console.log("❌ Error generating Excel file:", error);
+      throw error;
+    }
+  };
+
+  // ✅ Export to Excel function with confirmation
   const handleExportToExcel = () => {
     if (reports.length === 0) {
       Alert.alert("No Data", "There is no data to export.");
       return;
     }
 
+    // Show confirmation alert
     Alert.alert(
-      "Export Overdue Data",
-      `Do you want to export ${reports.length} overdue records?`,
+      "Export to Excel",
+      `Do you want to export ${reports.length} overdue records to Excel?`,
       [
         {
           text: "Cancel",
@@ -180,105 +250,94 @@ const OverdueReports = ({ navigation, route }) => {
         },
         {
           text: "Export",
-          onPress: () => exportToCSV()
+          onPress: () => exportToExcel()
         }
       ]
     );
   };
 
-  // ✅ Generate and share CSV
-  const exportToCSV = async () => {
+  // ✅ Actual export function
+  const exportToExcel = async () => {
     try {
       setExportLoading(true);
 
-      // CSV headers
-      const headers = [
-        'S.No',
-        'Issue No',
-        'Order No', 
-        'Order Date',
-        'Due Date',
-        'Days Overdue',
-        'Status',
-        'Order Type',
-        'Product',
-        'Design',
-        'Weight',
-        'Size',
-        'Quantity',
-        'Purity',
-        'Theme',
-        'Serial No',
-        'Transaction ID'
-      ];
+      const { filePath, fileName } = await generateExcelFile();
 
-      // CSV rows
-      const csvRows = reports.map((item, index) => {
-        const overdueStatus = getOverdueStatus(item.daysOverdue);
-        return [
-          (index + 1).toString(),
-          item.issueNo || 'N/A',
-          item.orderNo || 'N/A',
-          formatDate(item.orderDate),
-          formatDate(item.dueDate),
-          item.daysOverdue?.toString() || '0',
-          overdueStatus.text,
-          item.orderType || 'N/A',
-          item.product || 'N/A',
-          item.design || 'N/A',
-          item.weight?.toString() || 'N/A',
-          item.size || 'N/A',
-          item.qty?.toString() || 'N/A',
-          item.purity || 'N/A',
-          item.theme || 'N/A',
-          item.sNo || 'N/A',
-          item.transaId?.toString() || 'N/A'
-        ];
-      });
-
-      // Create CSV content
-      const csvContent = [
-        headers.join(','),
-        ...csvRows.map(row => row.map(field => `"${field}"`).join(','))
-      ].join('\n');
-
-      // Create filename
-      const timestamp = new Date().toISOString().split('T')[0];
-      const fileName = `Overdue_Reports_${timestamp}.csv`;
-
-      // Share the CSV content
+      // Open share dialog
       try {
-        await Share.share({
-          title: 'Overdue Reports Export',
+        await Share.open({
+          url: `file://${filePath}`,
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          filename: fileName,
+          subject: 'Overdue Reports Export',
           message: `Overdue Reports Data (${reports.length} records)`,
-          url: `data:text/csv;base64,${btoa(csvContent)}`,
         });
         
         Alert.alert(
           "Success",
-          `Overdue data has been prepared for export!\n\nFile: ${fileName}\nRecords: ${reports.length}`,
+          `Excel file has been generated successfully!\n\nFile: ${fileName}\nRecords: ${reports.length}`,
           [{ text: "OK" }]
         );
         
       } catch (shareError) {
         console.log('Share cancelled or failed:', shareError);
-        // Fallback: show success message
+        // If share is cancelled, still show success message
         Alert.alert(
-          "Export Ready",
-          `CSV data for ${reports.length} overdue records has been prepared.\n\nFile: ${fileName}`,
+          "Success",
+          `Excel file has been generated successfully!\n\nFile: ${fileName}\nRecords: ${reports.length}\n\nFile saved at: ${filePath}`,
           [{ text: "OK" }]
         );
       }
 
     } catch (error) {
-      console.log("❌ Error exporting overdue data:", error);
+      console.log("❌ Error exporting to Excel:", error);
       Alert.alert(
         "Export Failed", 
-        "Failed to export overdue data. Please try again.",
+        "Failed to export data to Excel. Please try again.",
         [{ text: "OK" }]
       );
     } finally {
       setExportLoading(false);
+    }
+  };
+
+  // ✅ Print function
+  const printImage = async () => {
+    try {
+      if (!viewRef.current) return;
+
+      const uri = await captureRef(viewRef, {
+        format: "png",
+        quality: 1,
+      });
+
+      await RNPrint.print({ filePath: uri });
+    } catch (e) {
+      console.log("❌ Print error:", e);
+    }
+  };
+
+  // ✅ Share to WhatsApp function
+  const shareToWhatsApp = async () => {
+    try {
+      if (!viewRef.current || !selectedItem) return;
+
+      // Capture screenshot of the fullscreen view (image + overlay text)
+      const uri = await captureRef(viewRef, {
+        format: "png",
+        quality: 0.9,
+      });
+
+      const shareOptions = {
+        title: "Share via WhatsApp",
+        message: `S.No: ${selectedItem.sNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}\nDesign: ${selectedItem.design}\nOrder No: ${selectedItem.orderNo}\nDays Overdue: ${selectedItem.daysOverdue}`,
+        url: uri,
+        social: Share.Social.WHATSAPP,
+      };
+
+      await Share.open(shareOptions);
+    } catch (error) {
+      console.log("❌ Error sharing:", error);
     }
   };
 
@@ -314,7 +373,10 @@ const OverdueReports = ({ navigation, route }) => {
         <FallbackImage
           fileName={item.design}
           style={styles.imageWrapper}
-          onPress={(url) => setFullscreenImage(url)}
+          onPress={(url) => {
+            setSelectedItem(item);
+            setFullscreenImage(url);
+          }}
         />
 
         {/* Details */}
@@ -437,29 +499,154 @@ const OverdueReports = ({ navigation, route }) => {
         onRequestClose={() => setFullscreenImage(null)}
       >
         <View style={{ flex: 1, backgroundColor: "#000" }}>
-          {/* Close Button */}
-          <TouchableOpacity
-            style={{
-              position: "absolute",
-              top: 40,
-              right: 20,
-              zIndex: 10,
-              backgroundColor: "rgba(0,0,0,0.6)",
-              borderRadius: 20,
-              padding: 6,
-            }}
-            onPress={() => setFullscreenImage(null)}
-          >
-            <Ionicons name="close" size={28} color="#fff" />
-          </TouchableOpacity>
+          {/* Image Viewer with Capture */}
+          <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
+            <View
+              style={{
+                flex: 1,
+                borderWidth: 2,
+                borderColor: "#000",
+                margin: 10,
+                padding: 10,
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: "#fff",
+              }}
+            >
+              {/* Product image */}
+              <View
+                style={{
+                  width: '100%',
+                  height: '75%',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <ImageZoom
+                  cropWidth={screenWidth}
+                  cropHeight={screenHeight * 0.75}
+                  imageWidth={screenWidth * 0.8}
+                  imageHeight={screenHeight * 0.75}
+                  enableSwipeDown={false}
+                  pinchToZoom={true}
+                  centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }}
+                >
+                  <Image
+                    source={{ uri: fullscreenImage }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      resizeMode: 'contain',
+                      alignSelf: 'center',
+                    }}
+                  />
+                </ImageZoom>
+              </View>
 
-          <ImageViewer
-            imageUrls={[{ url: fullscreenImage }]}
-            enableSwipeDown
-            onSwipeDown={() => setFullscreenImage(null)}
-            onCancel={() => setFullscreenImage(null)}
-            saveToLocalByLongPress={false}
-          />
+              {/* Details section */}
+              {selectedItem && (
+                <View
+                  style={{
+                    width: "90%",
+                    marginTop: 20,
+                    backgroundColor: "#fff",
+                    borderTopWidth: 1,
+                    borderColor: "#ffffffff",
+                    paddingTop: 10,
+                  }}
+                >
+                  {/* Row 1 */}
+                  <View style={styles.detailRowFix}>
+                    <Text style={styles.detailLabel1}>SNo :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.sNo}</Text>
+
+                    <Text style={styles.detailLabel1}>Weight :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.weight}</Text>
+                  </View>
+
+                  {/* Row 2 */}
+                  <View style={styles.detailRowFix}>
+                    <Text style={styles.detailLabel1}>Size :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.size}</Text>
+
+                    <Text style={styles.detailLabel1}>Qty :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.qty}</Text>
+                  </View>
+
+                  {/* Row 3 */}
+                  <View style={styles.detailRowFix}>
+                    <Text style={styles.detailLabel1}>Design :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.design}</Text>
+
+                    <Text style={styles.detailLabel1}>Order No :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.orderNo}</Text>
+                  </View>
+
+                  {/* Row 4 - Overdue specific */}
+                  <View style={styles.detailRowFix}>
+                    <Text style={styles.detailLabel1}>Days Overdue :</Text>
+                    <Text style={[styles.detailValue1, { color: '#d32f2f', fontWeight: 'bold' }]}>
+                      {selectedItem.daysOverdue}
+                    </Text>
+
+                    <Text style={styles.detailLabel1}>Due Date :</Text>
+                    <Text style={styles.detailValue1}>{formatDate(selectedItem.dueDate)}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </ViewShot>
+
+          {/* Buttons below */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-evenly",
+              marginVertical: 20,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => setFullscreenImage(null)}
+              style={{
+                backgroundColor: "rgba(120,3,3,1)",
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                borderRadius: 10,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={shareToWhatsApp}
+              style={{
+                backgroundColor: "#25D366",
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                borderRadius: 10,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={printImage}
+              style={{
+                backgroundColor: "#2d531a",
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                borderRadius: 10,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Ionicons name="print" size={22} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>Print</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
 
@@ -719,6 +906,24 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     borderWidth: 1,
     borderColor: "#ddd",
+  },
+  detailRowFix: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 4,
+  },
+  detailLabel1: {
+    width: "20%",
+    textAlign: "left",
+    fontWeight: "bold",
+    fontSize: 12,
+    color: "#000",
+  },
+  detailValue1: {
+    width: "35%",
+    textAlign: "left",
+    fontSize: 11,
+    color: "#000",
   },
   emptyContainer: {
     flex: 1,
