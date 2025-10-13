@@ -786,7 +786,8 @@ const AdminReports = ({ navigation }) => {
         { id: "2", title: "Pending", icon: require("../asserts/undelivered.jpg") },
         { id: "3", title: "Delivered", icon: require("../asserts/delivered.jpg") },
         { id: "4", title: "Return", icon: require("../asserts/return.jpg") },
-        { id: "5", title: "Overdue", icon: require("../asserts/overdue.png") },
+        { id: "5", title: "Return List", icon: require("../asserts/returnlist.jpg") },
+        { id: "6", title: "Overdue", icon: require("../asserts/overdue.png") },
     ];
     const deliveredFilteredData = deliveredTableData.filter(
         (item) =>
