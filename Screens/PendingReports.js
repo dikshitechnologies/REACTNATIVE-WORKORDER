@@ -12,6 +12,8 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Alert,
+  Platform,
 } from "react-native";
 import { useRef } from "react";
 import ViewShot, { captureRef } from "react-native-view-shot";
@@ -23,6 +25,9 @@ import { BASE_URL, IMG_URL } from "./Links";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import ImageViewer from "react-native-image-zoom-viewer";
 import { BackHandler } from "react-native";
+import XLSX from 'xlsx';
+import RNFS from 'react-native-fs';
+import Share from 'react-native-share';
 
 const PendingReports = ({ navigation, route }) => {
   const user = route?.params?.user;
@@ -36,6 +41,7 @@ const PendingReports = ({ navigation, route }) => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [exportLoading, setExportLoading] = useState(false);
 
   useEffect(() => {
     const backAction = () => {
@@ -132,6 +138,132 @@ const PendingReports = ({ navigation, route }) => {
     }
   };
 
+  // ✅ Generate Excel file
+  const generateExcelFile = async () => {
+    try {
+      // Prepare data for Excel
+      const excelData = reports.map((item, index) => ({
+        "S.No": index + 1,
+        "Issue No": item.issueNo || "N/A",
+        "Order No": item.orderNo || "N/A",
+        "Order Date": item.orderDate ? item.orderDate.replace(/-/g, "/") : "N/A",
+        "Order Type": item.orderType || "N/A",
+        "Product": item.product || "N/A",
+        "Design": item.design || "N/A",
+        "Weight": item.weight || "N/A",
+        "Size": item.size || "N/A",
+        "Quantity": item.qty || "N/A",
+        "Purity": item.purity || "N/A",
+        "Theme": item.theme || "N/A",
+        "Serial No": item.sNo || "N/A",
+        "Status": item.status || "N/A",
+        "Transaction ID": item.transaId || "N/A",
+        "Artisan": item.artisan || "N/A",
+      }));
+
+      // Create worksheet
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Pending Reports");
+
+      // Generate file name with timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const fileName = `Pending_Reports_${timestamp}.xlsx`;
+      
+      // Generate file path
+      let filePath = '';
+      if (Platform.OS === 'android') {
+        filePath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
+      } else {
+        filePath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+      }
+
+      // Convert workbook to binary string
+      const wbout = XLSX.write(wb, { type: 'binary', bookType: 'xlsx' });
+
+      // Write file
+      await RNFS.writeFile(filePath, wbout, 'ascii');
+      
+      console.log("✅ Excel file saved at:", filePath);
+      return { filePath, fileName };
+
+    } catch (error) {
+      console.log("❌ Error generating Excel file:", error);
+      throw error;
+    }
+  };
+
+  // ✅ Export to Excel function with confirmation
+  const handleExportToExcel = () => {
+    if (reports.length === 0) {
+      Alert.alert("No Data", "There is no data to export.");
+      return;
+    }
+
+    // Show confirmation alert
+    Alert.alert(
+      "Export to Excel",
+      `Do you want to export ${reports.length} records to Excel?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Export",
+          onPress: () => exportToExcel()
+        }
+      ]
+    );
+  };
+
+  // ✅ Actual export function
+  const exportToExcel = async () => {
+    try {
+      setExportLoading(true);
+
+      const { filePath, fileName } = await generateExcelFile();
+
+      // Open share dialog
+      try {
+        await Share.open({
+          url: `file://${filePath}`,
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          filename: fileName,
+          subject: 'Pending Reports Export',
+          message: `Pending Reports Data (${reports.length} records)`,
+        });
+        
+        Alert.alert(
+          "Success",
+          `Excel file has been generated successfully!\n\nFile: ${fileName}\nRecords: ${reports.length}`,
+          [{ text: "OK" }]
+        );
+        
+      } catch (shareError) {
+        console.log('Share cancelled or failed:', shareError);
+        // If share is cancelled, still show success message
+        Alert.alert(
+          "Success",
+          `Excel file has been generated successfully!\n\nFile: ${fileName}\nRecords: ${reports.length}\n\nFile saved at: ${filePath}`,
+          [{ text: "OK" }]
+        );
+      }
+
+    } catch (error) {
+      console.log("❌ Error exporting to Excel:", error);
+      Alert.alert(
+        "Export Failed", 
+        "Failed to export data to Excel. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchReports();
   }, []);
@@ -171,11 +303,9 @@ const PendingReports = ({ navigation, route }) => {
           <View style={styles.detailRow}>
             <Text style={[{
               fontWeight: "bold",
-
               width: wp("30%"),
             }, styles.highlights]}>DESIGN:</Text>
             <Text style={[{
-
               width: wp("40%"),
               marginRight: wp("5%"),
             }, styles.highlight]}>{item.design}</Text>
@@ -184,11 +314,9 @@ const PendingReports = ({ navigation, route }) => {
           <View style={styles.detailRow}>
             <Text style={[{
               fontWeight: "bold",
-
               width: wp("30%"),
             }, styles.highlights]}>SNO:</Text>
             <Text style={[{
-
               width: wp("40%"),
               marginRight: wp("5%"),
             }, styles.highlight]}>{item.sNo}</Text>
@@ -196,17 +324,14 @@ const PendingReports = ({ navigation, route }) => {
           <View style={styles.detailRow}>
             <Text style={[{
               fontWeight: "bold",
-
               width: wp("30%")
             }, styles.highlights]}>ORDER NO:</Text>
             <Text style={[styles.highlight, {
-
               width: wp("40%"),
               marginRight: wp("5%"),
             }]}>{item.orderNo}</Text>
           </View>
         </View>
-
 
         {/* Weight + Size */}
         <View style={styles.detailRow}>
@@ -307,7 +432,17 @@ const PendingReports = ({ navigation, route }) => {
           <Ionicons name="arrow-undo" size={30} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Pending</Text>
-        <View style={{ width: 30 }} />
+        <TouchableOpacity
+          style={styles.excelButton}
+          onPress={handleExportToExcel}
+          disabled={exportLoading || reports.length === 0}
+        >
+          {exportLoading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Ionicons name="document-text" size={24} color="#fff" />
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* fullscreen image */}
@@ -532,7 +667,6 @@ const PendingReports = ({ navigation, route }) => {
   );
 };
 
-
 export default PendingReports;
 
 const styles = StyleSheet.create({
@@ -556,6 +690,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
     flex: 1,
   },
+  excelButton: {
+    padding: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 8,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -570,6 +713,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     backgroundColor: '#fff',
   },
+  // ... rest of your existing styles remain the same
   selectAllContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -627,22 +771,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 4,
-    //marginRight: wp("%")
   },
-
   label: {
     fontWeight: "bold",
     color: "#000",
-    width: wp("20%"),   // fixed width for alignment
+    width: wp("20%"),
   },
-
   value: {
     color: "#000",
     width: wp("25%"),
     marginRight: wp("5%"),
   },
-
-
   detailsRightImage: {
     width: wp("45%"),
     height: hp("25%"),
@@ -786,22 +925,21 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   highlight: {
-    color: "#2d531a",   // Dark green (matches your theme)
+    color: "#2d531a",
     fontWeight: "bold",
     fontSize: 15,
   },
   highlights: {
-    color: "rgba(120, 3, 3, 1)",   // Dark green (matches your theme)
+    color: "rgba(120, 3, 3, 1)",
     fontWeight: "bold",
     fontSize: 15,
   },
   detailContainer: {
-    backgroundColor: "#f3f9f4ff", // light background
+    backgroundColor: "#f3f9f4ff",
     padding: 10,
     borderRadius: 8,
     marginVertical: 8,
     borderWidth: 1,
     borderColor: "#ddd",
   },
-
 });
