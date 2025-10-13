@@ -18,7 +18,7 @@ import { useState, useEffect } from "react";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { BackHandler } from "react-native";
 import axios from "axios";
-import { BASE_URL, IMG_URL } from "./Links";   // ✅ include IMG_URL
+import { BASE_URL, IMG_URL } from "./Links";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import ImageViewer from "react-native-image-zoom-viewer";
 import { Dimensions } from "react-native";
