@@ -14,17 +14,18 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import React from 'react';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { BackHandler } from "react-native";
 import axios from "axios";
 import { BASE_URL, IMG_URL } from "./Links";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
-import ImageViewer from "react-native-image-zoom-viewer";
 import { Dimensions } from "react-native";
+import ViewShot, { captureRef } from "react-native-view-shot";
+import Share from 'react-native-share';
+import DeviceInfo from "react-native-device-info";
 
 const { width, height } = Dimensions.get("window");
-import DeviceInfo from "react-native-device-info";
 
 const isTablet = DeviceInfo.isTablet();
 // A common threshold for tablets
@@ -42,6 +43,10 @@ const AdminReports = ({ navigation }) => {
     // Modal states
     const [showPartyModal, setShowPartyModal] = useState(false);
     const [partySearch, setPartySearch] = useState("");
+    
+    // New state and ref for image sharing
+    const viewRef = useRef();
+    const [selectedItem, setSelectedItem] = useState(null);
 
     const clearForm = () => {
         setPartyName("");
@@ -126,6 +131,33 @@ const AdminReports = ({ navigation }) => {
 
     const [deliveredHasMore, setDeliveredHasMore] = useState(true);
     const [deliveredArtisanSearch, setDeliveredArtisanSearch] = useState("");
+
+    const shareToWhatsApp = async () => {
+        try {
+            if (!viewRef.current || !selectedItem) return;
+
+            // Capture screenshot of the fullscreen view (image + overlay text)
+            const uri = await captureRef(viewRef, {
+                format: "png",
+                quality: 0.9,
+            });
+
+            const shareOptions = {
+                title: "Share via WhatsApp",
+                message: `Design: ${selectedItem.design}\nS.No: ${selectedItem.sNo}\nOrder No: ${selectedItem.orderNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}`,
+                url: uri,
+                social: Share.Social.WHATSAPP,
+            };
+
+            await Share.open(shareOptions);
+        } catch (error) {
+            console.log("❌ Error sharing:", error);
+            if (error.message !== "User did not share") {
+               Alert.alert("Error", "An error occurred while sharing.");
+            }
+        }
+    };
+    
     // ✅ Fallback image component
     const renderUserCreation = () => {
         return (
@@ -772,38 +804,66 @@ const AdminReports = ({ navigation }) => {
                 <View style={{ width: 30 }} />
             </View>
 
-            {/* Fullscreen Image Viewer */}
+            {/* Fullscreen Image Viewer with Sharing */}
             <Modal
                 visible={!!fullscreenImage}
-                transparent={true}
+                transparent={false}
                 onRequestClose={() => setFullscreenImage(null)}
             >
-                <View style={{ flex: 1, backgroundColor: "#000" }}>
-                    {/* Close Button */}
-                    <TouchableOpacity
-                        style={{
-                            position: "absolute",
-                            top: 40,
-                            right: 20,
-                            zIndex: 10,
-                            backgroundColor: "rgba(0,0,0,0.6)",
-                            borderRadius: 20,
-                            padding: 6,
-                        }}
-                        onPress={() => setFullscreenImage(null)}
-                    >
-                        <Ionicons name="close" size={28} color="#fff" />
-                    </TouchableOpacity>
+                <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+                    <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
+                        <View
+                            style={{
+                                flex: 1,
+                                borderWidth: 2,
+                                borderColor: "#000",
+                                margin: 10,
+                                padding: 10,
+                                justifyContent: "center",
+                                alignItems: "center",
+                                backgroundColor: "#fff",
+                            }}
+                        >
+                            <Image
+                                source={{ uri: fullscreenImage }}
+                                style={{ width: "80%", height: "75%", resizeMode: "contain" }}
+                            />
+                            {selectedItem && (
+                                <View style={{ width: "90%", marginTop: 20, borderTopWidth: 1, borderColor: "#eee", paddingTop: 10 }}>
+                                    <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>SNo :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.sNo}</Text>
+                                        <Text style={styles.detailLabel1}>Weight :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.weight}</Text>
+                                    </View>
+                                    <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>Size :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.size}</Text>
+                                        <Text style={styles.detailLabel1}>Qty :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.qty}</Text>
+                                    </View>
+                                    <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>Design :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.design}</Text>
+                                        <Text style={styles.detailLabel1}>Order No :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.orderNo}</Text>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+                    </ViewShot>
 
-                    {/* Image Viewer */}
-                    <ImageViewer
-                        imageUrls={[{ url: fullscreenImage }]}
-                        enableSwipeDown
-                        onSwipeDown={() => setFullscreenImage(null)}
-                        onCancel={() => setFullscreenImage(null)}
-                        saveToLocalByLongPress={false}
-                    />
-                </View>
+                    {/* Bottom buttons */}
+                    <View style={styles.modalFooterButtons}>
+                        <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
+                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={shareToWhatsApp} style={styles.modalShareButton}>
+                            <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
+                        </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
             </Modal>
 
             {/* Artisan Selection */}
@@ -1020,7 +1080,10 @@ const AdminReports = ({ navigation }) => {
                                 <FallbackImage
                                     fileName={item.design}
                                     style={{ width: "100%", height: "100%" }}
-                                    onPress={(url) => setFullscreenImage(url)}
+                                    onPress={(url) => {
+                                        setFullscreenImage(url);
+                                        setSelectedItem(item);
+                                    }}
                                 />
                             </View>
                             <View style={styles.detailsBox}>
@@ -1145,33 +1208,65 @@ const AdminReports = ({ navigation }) => {
                 <Text style={styles.headerTitle}>Pending</Text>
                 <View style={{ width: 30 }} />
             </View>
-            <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
-                <View style={{ flex: 1, backgroundColor: "#000" }}>
-                    {/* Close Button */}
-                    <TouchableOpacity
-                        style={{
-                            position: "absolute",
-                            top: 40,
-                            right: 20,
-                            zIndex: 10,
-                            backgroundColor: "rgba(0,0,0,0.6)",
-                            borderRadius: 20,
-                            padding: 6,
-                        }}
-                        onPress={() => setFullscreenImage(null)}
-                    >
-                        <Ionicons name="close" size={28} color="#fff" />
-                    </TouchableOpacity>
+            <Modal
+                visible={!!fullscreenImage}
+                transparent={false}
+                onRequestClose={() => setFullscreenImage(null)}
+            >
+                <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+                    <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
+                        <View
+                            style={{
+                                flex: 1,
+                                borderWidth: 2,
+                                borderColor: "#000",
+                                margin: 10,
+                                padding: 10,
+                                justifyContent: "center",
+                                alignItems: "center",
+                                backgroundColor: "#fff",
+                            }}
+                        >
+                            <Image
+                                source={{ uri: fullscreenImage }}
+                                style={{ width: "80%", height: "75%", resizeMode: "contain" }}
+                            />
+                            {selectedItem && (
+                                <View style={{ width: "90%", marginTop: 20, borderTopWidth: 1, borderColor: "#eee", paddingTop: 10 }}>
+                                    <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>SNo :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.sNo}</Text>
+                                        <Text style={styles.detailLabel1}>Weight :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.weight}</Text>
+                                    </View>
+                                    <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>Size :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.size}</Text>
+                                        <Text style={styles.detailLabel1}>Qty :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.qty}</Text>
+                                    </View>
+                                     <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>Design :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.design}</Text>
+                                        <Text style={styles.detailLabel1}>Order No :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.orderNo}</Text>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+                    </ViewShot>
 
-                    {/* Image Viewer */}
-                    <ImageViewer
-                        imageUrls={[{ url: fullscreenImage }]}
-                        enableSwipeDown
-                        onSwipeDown={() => setFullscreenImage(null)}
-                        onCancel={() => setFullscreenImage(null)}
-                        saveToLocalByLongPress={false}
-                    />
-                </View>
+                    {/* Bottom buttons */}
+                    <View style={styles.modalFooterButtons}>
+                       <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
+                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={shareToWhatsApp} style={styles.modalShareButton}>
+                            <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
+                        </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
             </Modal>
 
 
@@ -1418,7 +1513,10 @@ const AdminReports = ({ navigation }) => {
                                 <FallbackImage
                                     fileName={item.design}
                                     style={{ width: "100%", height: "100%" }}
-                                    onPress={(url) => setFullscreenImage(url)}
+                                    onPress={(url) => {
+                                        setFullscreenImage(url);
+                                        setSelectedItem(item);
+                                    }}
                                 />
                             </View>
                             <View style={styles.detailsBox}>
@@ -1538,25 +1636,65 @@ const AdminReports = ({ navigation }) => {
                 <Text style={styles.headerTitle}>Return</Text>
                 <View style={{ width: 30 }} />
             </View>
-            <Modal visible={!!fullscreenImage} transparent={true} onRequestClose={() => setFullscreenImage(null)}>
-                <View style={{ flex: 1, backgroundColor: "#000" }}>
-                    <TouchableOpacity
-                        style={{
-                            position: "absolute", top: 40, right: 20, zIndex: 10,
-                            backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 20, padding: 6,
-                        }}
-                        onPress={() => setFullscreenImage(null)}
-                    >
-                        <Ionicons name="close" size={28} color="#fff" />
-                    </TouchableOpacity>
-                    <ImageViewer
-                        imageUrls={[{ url: fullscreenImage }]}
-                        enableSwipeDown
-                        onSwipeDown={() => setFullscreenImage(null)}
-                        onCancel={() => setFullscreenImage(null)}
-                        saveToLocalByLongPress={false}
-                    />
-                </View>
+            <Modal
+                visible={!!fullscreenImage}
+                transparent={false}
+                onRequestClose={() => setFullscreenImage(null)}
+            >
+                <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+                    <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
+                        <View
+                            style={{
+                                flex: 1,
+                                borderWidth: 2,
+                                borderColor: "#000",
+                                margin: 10,
+                                padding: 10,
+                                justifyContent: "center",
+                                alignItems: "center",
+                                backgroundColor: "#fff",
+                            }}
+                        >
+                            <Image
+                                source={{ uri: fullscreenImage }}
+                                style={{ width: "80%", height: "75%", resizeMode: "contain" }}
+                            />
+                            {selectedItem && (
+                                <View style={{ width: "90%", marginTop: 20, borderTopWidth: 1, borderColor: "#eee", paddingTop: 10 }}>
+                                    <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>SNo :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.sNo}</Text>
+                                        <Text style={styles.detailLabel1}>Weight :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.weight}</Text>
+                                    </View>
+                                    <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>Size :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.size}</Text>
+                                        <Text style={styles.detailLabel1}>Qty :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.qty}</Text>
+                                    </View>
+                                     <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>Design :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.design}</Text>
+                                        <Text style={styles.detailLabel1}>Order No :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.orderNo}</Text>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+                    </ViewShot>
+
+                    {/* Bottom buttons */}
+                    <View style={styles.modalFooterButtons}>
+                        <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
+                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={shareToWhatsApp} style={styles.modalShareButton}>
+                            <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
+                        </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
             </Modal>
             <View style={{ padding: 12 }}>
                 <TouchableOpacity onPress={() => setReturnShowArtisanModal(true)}>
@@ -1703,7 +1841,10 @@ const AdminReports = ({ navigation }) => {
                                 <FallbackImage
                                     fileName={item.design}
                                     style={{ width: "100%", height: "100%" }}
-                                    onPress={(url) => setFullscreenImage(url)}
+                                    onPress={(url) => {
+                                        setFullscreenImage(url);
+                                        setSelectedItem(item);
+                                    }}
                                 />
                             </View>
                             <View style={styles.detailsBox}>
@@ -1925,7 +2066,7 @@ const AdminReports = ({ navigation }) => {
                 contentContainerStyle={styles.gridContainer}
                 renderItem={({ item }) => (
                     <TouchableOpacity
-                        style={styles.card}
+                        style={styles.cardDashboard}
                         onPress={() => setActiveSection(item.title)}
                     >
                         {item.icon && (
@@ -1972,21 +2113,31 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
     },
     row: {
-        justifyContent: "space-evenly",
+        justifyContent: "space-around", // Changed to space-around for better alignment
     },
-    card: {
+    cardDashboard: { // Renamed from card to avoid conflict
         backgroundColor: "#fff",
         borderRadius: 16,
         alignItems: "center",
         justifyContent: "center",
         padding: 15,
-        width: "44%",        // ✅ same as ArtisansReport
+        width: "44%",
         elevation: 10,
         shadowColor: "#2d531a",
         shadowOffset: { width: 0, height: 5 },
         shadowOpacity: 0.4,
         shadowRadius: 6,
         marginBottom: 20,
+    },
+    card: { // Styles for the list items
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        margin: 10,
+        padding: 12,
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 3,
     },
     cardImage: {
         width: 80,
@@ -2000,7 +2151,6 @@ const styles = StyleSheet.create({
         color: "#2d531a",
         textAlign: "center",
     },
-
     sectionContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
     sectionText: { fontSize: 22, fontWeight: "700", color: "#2d531a" },
     footer: {
@@ -2147,4 +2297,42 @@ const styles = StyleSheet.create({
         color: '#555',
         marginBottom: 10,
     },
+    // Styles for Modal with sharing
+    detailRowFix: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginVertical: 4,
+    },
+    detailLabel1: {
+        width: "20%",
+        textAlign: "left",
+        fontWeight: "bold",
+        fontSize: 12,
+        color: "#000",
+    },
+    detailValue1: {
+        width: "30%", // Adjusted for better fit
+        textAlign: "left",
+        fontSize: 12, // Increased for readability
+        color: "#000",
+    },
+    modalFooterButtons: {
+        flexDirection: "row",
+        justifyContent: "space-evenly",
+        marginVertical: 20,
+    },
+    modalCloseButton: {
+        backgroundColor: "rgba(120,3,3,1)",
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        borderRadius: 10,
+    },
+    modalShareButton: {
+        backgroundColor: "#25D366",
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        borderRadius: 10,
+        flexDirection: "row",
+        alignItems: "center",
+    }
 });
