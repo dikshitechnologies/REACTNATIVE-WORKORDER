@@ -66,7 +66,7 @@ const ArtisansReport = ({ navigation, route }) => {
       id: "3",
       title: "Overdue",
       icon: require("../asserts/overdue.png"),
-      screen: "DeliveredReports",
+      screen: "OverdueReports",
     },
   ];
 
