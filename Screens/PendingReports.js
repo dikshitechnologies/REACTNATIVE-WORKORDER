@@ -27,7 +27,7 @@ import ImageViewer from "react-native-image-zoom-viewer";
 import { BackHandler } from "react-native";
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
-import Share from 'react-native-share';
+
 
 const PendingReports = ({ navigation, route }) => {
   const user = route?.params?.user;

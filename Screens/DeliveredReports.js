@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRef } from "react";
 import ViewShot, { captureRef } from "react-native-view-shot";
-import Share from "react-native-share";
+
 import RNPrint from "react-native-print";
 
 import {
