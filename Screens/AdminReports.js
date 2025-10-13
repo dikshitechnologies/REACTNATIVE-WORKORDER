@@ -20,11 +20,14 @@ import { BackHandler } from "react-native";
 import axios from "axios";
 import { BASE_URL, IMG_URL } from "./Links";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
-import { Dimensions } from "react-native";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import Share from 'react-native-share';
 import DeviceInfo from "react-native-device-info";
+import ImageZoom from 'react-native-image-pan-zoom';
+import { Dimensions } from 'react-native';
 
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
 const { width, height } = Dimensions.get("window");
 
 const isTablet = DeviceInfo.isTablet();
@@ -43,7 +46,7 @@ const AdminReports = ({ navigation }) => {
     // Modal states
     const [showPartyModal, setShowPartyModal] = useState(false);
     const [partySearch, setPartySearch] = useState("");
-    
+
     // New state and ref for image sharing
     const viewRef = useRef();
     const [selectedItem, setSelectedItem] = useState(null);
@@ -153,11 +156,11 @@ const AdminReports = ({ navigation }) => {
         } catch (error) {
             console.log("❌ Error sharing:", error);
             if (error.message !== "User did not share") {
-               Alert.alert("Error", "An error occurred while sharing.");
+                Alert.alert("Error", "An error occurred while sharing.");
             }
         }
     };
-    
+
     // ✅ Fallback image component
     const renderUserCreation = () => {
         return (
@@ -824,12 +827,36 @@ const AdminReports = ({ navigation }) => {
                                 backgroundColor: "#fff",
                             }}
                         >
-                            <Image
-                                source={{ uri: fullscreenImage }}
-                                style={{ width: "80%", height: "75%", resizeMode: "contain" }}
-                            />
+                            <View
+                                style={{
+                                    width: '100%',
+                                    height: '75%',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <ImageZoom
+                                    cropWidth={screenWidth}
+                                    cropHeight={screenHeight * 0.75}
+                                    imageWidth={screenWidth * 0.8}
+                                    imageHeight={screenHeight * 0.75}
+                                    enableSwipeDown={false}
+                                    pinchToZoom={true}
+                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                                >
+                                    <Image
+                                        source={{ uri: fullscreenImage }}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            resizeMode: 'contain',
+                                            alignSelf: 'center',
+                                        }}
+                                    />
+                                </ImageZoom>
+                            </View>
                             {selectedItem && (
-                                <View style={{ width: "90%", marginTop: 20, borderTopWidth: 1, borderColor: "#eee", paddingTop: 10 }}>
+                                <View style={{ width: "90%", marginTop: 20, borderTopWidth: 1, borderColor: "#ffffffff", paddingTop: 10 }}>
                                     <View style={styles.detailRowFix}>
                                         <Text style={styles.detailLabel1}>SNo :</Text>
                                         <Text style={styles.detailValue1}>{selectedItem.sNo}</Text>
@@ -1227,12 +1254,36 @@ const AdminReports = ({ navigation }) => {
                                 backgroundColor: "#fff",
                             }}
                         >
-                            <Image
-                                source={{ uri: fullscreenImage }}
-                                style={{ width: "80%", height: "75%", resizeMode: "contain" }}
-                            />
+                            <View
+                                style={{
+                                    width: '100%',
+                                    height: '75%',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <ImageZoom
+                                    cropWidth={screenWidth}
+                                    cropHeight={screenHeight * 0.75}
+                                    imageWidth={screenWidth * 0.8}
+                                    imageHeight={screenHeight * 0.75}
+                                    enableSwipeDown={false}
+                                    pinchToZoom={true}
+                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                                >
+                                    <Image
+                                        source={{ uri: fullscreenImage }}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            resizeMode: 'contain',
+                                            alignSelf: 'center',
+                                        }}
+                                    />
+                                </ImageZoom>
+                            </View>
                             {selectedItem && (
-                                <View style={{ width: "90%", marginTop: 20, borderTopWidth: 1, borderColor: "#eee", paddingTop: 10 }}>
+                                <View style={{ width: "90%", marginTop: 20, borderTopWidth: 1, borderColor: "#ffffffff", paddingTop: 10 }}>
                                     <View style={styles.detailRowFix}>
                                         <Text style={styles.detailLabel1}>SNo :</Text>
                                         <Text style={styles.detailValue1}>{selectedItem.sNo}</Text>
@@ -1245,7 +1296,7 @@ const AdminReports = ({ navigation }) => {
                                         <Text style={styles.detailLabel1}>Qty :</Text>
                                         <Text style={styles.detailValue1}>{selectedItem.qty}</Text>
                                     </View>
-                                     <View style={styles.detailRowFix}>
+                                    <View style={styles.detailRowFix}>
                                         <Text style={styles.detailLabel1}>Design :</Text>
                                         <Text style={styles.detailValue1}>{selectedItem.design}</Text>
                                         <Text style={styles.detailLabel1}>Order No :</Text>
@@ -1258,7 +1309,7 @@ const AdminReports = ({ navigation }) => {
 
                     {/* Bottom buttons */}
                     <View style={styles.modalFooterButtons}>
-                       <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
+                        <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
                             <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={shareToWhatsApp} style={styles.modalShareButton}>
@@ -1655,12 +1706,36 @@ const AdminReports = ({ navigation }) => {
                                 backgroundColor: "#fff",
                             }}
                         >
-                            <Image
-                                source={{ uri: fullscreenImage }}
-                                style={{ width: "80%", height: "75%", resizeMode: "contain" }}
-                            />
+                            <View
+                                style={{
+                                    width: '100%',
+                                    height: '75%',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <ImageZoom
+                                    cropWidth={screenWidth}
+                                    cropHeight={screenHeight * 0.75}
+                                    imageWidth={screenWidth * 0.8}
+                                    imageHeight={screenHeight * 0.75}
+                                    enableSwipeDown={false}
+                                    pinchToZoom={true}
+                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                                >
+                                    <Image
+                                        source={{ uri: fullscreenImage }}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            resizeMode: 'contain',
+                                            alignSelf: 'center',
+                                        }}
+                                    />
+                                </ImageZoom>
+                            </View>
                             {selectedItem && (
-                                <View style={{ width: "90%", marginTop: 20, borderTopWidth: 1, borderColor: "#eee", paddingTop: 10 }}>
+                                <View style={{ width: "90%", marginTop: 20, borderTopWidth: 1, borderColor: "#ffffffff", paddingTop: 10 }}>
                                     <View style={styles.detailRowFix}>
                                         <Text style={styles.detailLabel1}>SNo :</Text>
                                         <Text style={styles.detailValue1}>{selectedItem.sNo}</Text>
@@ -1673,7 +1748,7 @@ const AdminReports = ({ navigation }) => {
                                         <Text style={styles.detailLabel1}>Qty :</Text>
                                         <Text style={styles.detailValue1}>{selectedItem.qty}</Text>
                                     </View>
-                                     <View style={styles.detailRowFix}>
+                                    <View style={styles.detailRowFix}>
                                         <Text style={styles.detailLabel1}>Design :</Text>
                                         <Text style={styles.detailValue1}>{selectedItem.design}</Text>
                                         <Text style={styles.detailLabel1}>Order No :</Text>

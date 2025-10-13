@@ -28,7 +28,11 @@ import { BackHandler } from "react-native";
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
+import ImageZoom from 'react-native-image-pan-zoom';
+import { Dimensions } from 'react-native';
 
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
 const DeliveredReports = ({ navigation, route }) => {
   const user = route?.params?.user;
   const [reports, setReports] = useState([]);
@@ -143,7 +147,7 @@ const DeliveredReports = ({ navigation, route }) => {
         "S.No": index + 1,
         "Issue No": item.issueNo || "N/A",
         "Order No": item.orderNo || "N/A",
-        "Order Date": item.orderDate ? 
+        "Order Date": item.orderDate ?
           new Date(item.orderDate).toLocaleDateString("en-GB", {
             day: "2-digit",
             month: "2-digit",
@@ -171,7 +175,7 @@ const DeliveredReports = ({ navigation, route }) => {
       // Generate file name with timestamp
       const timestamp = new Date().toISOString().split('T')[0];
       const fileName = `Delivered_Reports_${timestamp}.xlsx`;
-      
+
       // Generate file path
       let filePath = '';
       if (Platform.OS === 'android') {
@@ -185,7 +189,7 @@ const DeliveredReports = ({ navigation, route }) => {
 
       // Write file
       await RNFS.writeFile(filePath, wbout, 'ascii');
-      
+
       console.log("✅ Excel file saved at:", filePath);
       return { filePath, fileName };
 
@@ -235,13 +239,13 @@ const DeliveredReports = ({ navigation, route }) => {
           subject: 'Delivered Reports Export',
           message: `Delivered Reports Data (${reports.length} records)`,
         });
-        
+
         Alert.alert(
           "Success",
           `Excel file has been generated successfully!\n\nFile: ${fileName}\nRecords: ${reports.length}`,
           [{ text: "OK" }]
         );
-        
+
       } catch (shareError) {
         console.log('Share cancelled or failed:', shareError);
         // If share is cancelled, still show success message
@@ -255,7 +259,7 @@ const DeliveredReports = ({ navigation, route }) => {
     } catch (error) {
       console.log("❌ Error exporting to Excel:", error);
       Alert.alert(
-        "Export Failed", 
+        "Export Failed",
         "Failed to export data to Excel. Please try again.",
         [{ text: "OK" }]
       );
@@ -379,20 +383,20 @@ const DeliveredReports = ({ navigation, route }) => {
       </View>
     </View>
   );
-const printImage = async () => {
-  try {
-    if (!viewRef.current) return;
+  const printImage = async () => {
+    try {
+      if (!viewRef.current) return;
 
-    const uri = await captureRef(viewRef, {
-      format: "png",
-      quality: 1,
-    });
+      const uri = await captureRef(viewRef, {
+        format: "png",
+        quality: 1,
+      });
 
-    await RNPrint.print({ filePath: uri });
-  } catch (e) {
-    console.log("❌ Print error:", e);
-  }
-};
+      await RNPrint.print({ filePath: uri });
+    } catch (e) {
+      console.log("❌ Print error:", e);
+    }
+  };
 
   const shareToWhatsApp = async () => {
     try {
@@ -462,14 +466,34 @@ const printImage = async () => {
               }}
             >
               {/* Product Image */}
-              <Image
-                source={{ uri: fullscreenImage }}
+              <View
                 style={{
-                  width: "80%",
-                  height: "75%",
-                  resizeMode: "contain",
+                  width: '100%',
+                  height: '75%',
+                  justifyContent: 'center',
+                  alignItems: 'center',
                 }}
-              />
+              >
+                <ImageZoom
+                  cropWidth={screenWidth}
+                  cropHeight={screenHeight * 0.75}
+                  imageWidth={screenWidth * 0.8}
+                  imageHeight={screenHeight * 0.75}
+                  enableSwipeDown={false}
+                  pinchToZoom={true}
+                  centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                >
+                  <Image
+                    source={{ uri: fullscreenImage }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      resizeMode: 'contain',
+                      alignSelf: 'center',
+                    }}
+                  />
+                </ImageZoom>
+              </View>
 
               {/* SNo, Wt, Size, Qty details */}
               {selectedItem && (
@@ -516,54 +540,54 @@ const printImage = async () => {
 
           {/* Bottom buttons */}
           <View
-  style={{
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    marginVertical: 20,
-  }}
->
-  <TouchableOpacity
-    onPress={() => setFullscreenImage(null)}
-    style={{
-      backgroundColor: "rgba(120,3,3,1)",
-      paddingVertical: 10,
-      paddingHorizontal: 20,
-      borderRadius: 10,
-    }}
-  >
-    <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
-  </TouchableOpacity>
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-evenly",
+              marginVertical: 20,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => setFullscreenImage(null)}
+              style={{
+                backgroundColor: "rgba(120,3,3,1)",
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                borderRadius: 10,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
+            </TouchableOpacity>
 
-  <TouchableOpacity
-    onPress={shareToWhatsApp}
-    style={{
-      backgroundColor: "#25D366",
-      paddingVertical: 10,
-      paddingHorizontal: 20,
-      borderRadius: 10,
-      flexDirection: "row",
-      alignItems: "center",
-    }}
-  >
-    <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
-    <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
-  </TouchableOpacity>
+            <TouchableOpacity
+              onPress={shareToWhatsApp}
+              style={{
+                backgroundColor: "#25D366",
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                borderRadius: 10,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
+            </TouchableOpacity>
 
-  <TouchableOpacity
-    onPress={printImage}
-    style={{
-      backgroundColor: "#2d531a",
-      paddingVertical: 10,
-      paddingHorizontal: 20,
-      borderRadius: 10,
-      flexDirection: "row",
-      alignItems: "center",
-    }}
-  >
-    <Ionicons name="print" size={22} color="#fff" style={{ marginRight: 8 }} />
-    <Text style={{ color: "#fff", fontWeight: "bold" }}>Print</Text>
-  </TouchableOpacity>
-</View>
+            <TouchableOpacity
+              onPress={printImage}
+              style={{
+                backgroundColor: "#2d531a",
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                borderRadius: 10,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Ionicons name="print" size={22} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>Print</Text>
+            </TouchableOpacity>
+          </View>
 
         </SafeAreaView>
       </Modal>
@@ -916,7 +940,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#000",
   },
- detailLabel1: {
+  detailLabel1: {
     width: "20%",        // equal width columns
     textAlign: "left",
     fontWeight: "bold",

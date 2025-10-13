@@ -18,6 +18,9 @@ import {
 import { useRef } from "react";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import Share from "react-native-share";
+import ImageZoom from 'react-native-image-pan-zoom';
+import { Dimensions } from 'react-native';
+
 
 import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from "axios";
@@ -27,7 +30,8 @@ import ImageViewer from "react-native-image-zoom-viewer";
 import { BackHandler } from "react-native";
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
-
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
 
 const PendingReports = ({ navigation, route }) => {
   const user = route?.params?.user;
@@ -470,14 +474,34 @@ const PendingReports = ({ navigation, route }) => {
               }}
             >
               {/* Product image */}
-              <Image
-                source={{ uri: fullscreenImage }}
-                style={{
-                  width: "80%",
-                  height: "70%",
-                  resizeMode: "contain",
-                }}
-              />
+              <View
+               style={{
+                 width: '100%',
+                 height: '75%',
+                 justifyContent: 'center',
+                 alignItems: 'center',
+               }}
+             >
+               <ImageZoom
+                 cropWidth={screenWidth}
+                 cropHeight={screenHeight * 0.75}
+                 imageWidth={screenWidth * 0.8}
+                 imageHeight={screenHeight * 0.75}
+                 enableSwipeDown={false}
+                 pinchToZoom={true}
+                 centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+               >
+                 <Image
+                   source={{ uri: fullscreenImage }}
+                   style={{
+                     width: '100%',
+                     height: '100%',
+                     resizeMode: 'contain',
+                     alignSelf: 'center',
+                   }}
+                 />
+               </ImageZoom>
+             </View>
 
               {/* Details section */}
               {/* SNo, Wt, Size, Qty details */}
