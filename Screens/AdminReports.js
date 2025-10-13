@@ -751,6 +751,7 @@ const AdminReports = ({ navigation }) => {
         { id: "2", title: "Pending", icon: require("../asserts/undelivered.jpg") },
         { id: "3", title: "Delivered", icon: require("../asserts/delivered.jpg") },
         { id: "4", title: "Return", icon: require("../asserts/return.jpg") },
+        { id: "5", title: "Overdue", icon: require("../asserts/overdue.png") },
     ];
     const deliveredFilteredData = deliveredTableData.filter(
         (item) =>
@@ -1966,26 +1967,40 @@ const styles = StyleSheet.create({
         textAlign: "center",
         flex: 1,
     },
-    gridContainer: { paddingHorizontal: 12 },
-    row: { justifyContent: "space-between", marginBottom: 14 },
-    card: {
-        flex: 1,
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        margin: 10,
-        padding: 12,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 3,
+    gridContainer: {
+        paddingVertical: 20,
+        paddingHorizontal: 10,
     },
-    cardImage: { width: 80, height: 80, marginBottom: 8, alignSelf:'center' },
+    row: {
+        justifyContent: "space-evenly",
+    },
+    card: {
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 15,
+        width: "44%",        // ✅ same as ArtisansReport
+        elevation: 10,
+        shadowColor: "#2d531a",
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.4,
+        shadowRadius: 6,
+        marginBottom: 20,
+    },
+    cardImage: {
+        width: 80,
+        height: 80,
+        resizeMode: "contain",
+        marginBottom: 10,
+    },
     cardText: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: "600",
         color: "#2d531a",
         textAlign: "center",
     },
+
     sectionContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
     sectionText: { fontSize: 22, fontWeight: "700", color: "#2d531a" },
     footer: {

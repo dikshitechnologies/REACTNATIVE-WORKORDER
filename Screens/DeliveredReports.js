@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useRef } from "react";
+import ViewShot, { captureRef } from "react-native-view-shot";
+import Share from "react-native-share";
+import RNPrint from "react-native-print";
+
 import {
   View,
   Text,
@@ -28,6 +33,9 @@ const DeliveredReports = ({ navigation, route }) => {
   const user = route?.params?.user;
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null); // to hold the tapped image's data
+  const viewRef = useRef(); // to capture the fullscreen image with text
+
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -106,7 +114,7 @@ const DeliveredReports = ({ navigation, route }) => {
           product: item.fProduct,
           design: item.fDesign,
           weight: item.fWeight,
-          size: item.fSize|| "N/A",
+          size: item.fSize || "N/A",
           qty: item.fQty,
           purity: item.fPurity,
           theme: item.fTheme,
@@ -278,7 +286,11 @@ const DeliveredReports = ({ navigation, route }) => {
       <FallbackImage
         fileName={item.design}
         style={styles.imageWrapper}
-        onPress={(url) => setFullscreenImage(url)}
+        onPress={(url) => {
+          setSelectedItem(item);
+          setFullscreenImage(url);
+        }}
+
       />
 
       {/* Details - reordered */}
@@ -329,27 +341,26 @@ const DeliveredReports = ({ navigation, route }) => {
 
         {/* Order No + Qty */}
         <View style={styles.detailRow}>
-          <Text style={styles.label}>Product:</Text>
-          <Text style={styles.value}>{item.product}</Text>
-          <Text style={styles.label}>Qty:</Text>
-          <Text style={styles.value}>{item.qty}</Text>
-        </View>
-
-        {/* Order Date + Order Type */}
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Order Date:</Text>
+          {/* <Text style={styles.label}>Order Date:</Text>
           <Text style={styles.value}>
             {new Date(item.orderDate).toLocaleDateString("en-GB", {
               day: "2-digit",
               month: "2-digit",
               year: "numeric",
             })}
-          </Text>
+          </Text> */}
+          <Text style={styles.label}>Qty:</Text>
+          <Text style={styles.value}>{item.qty}</Text>
+        </View>
+
+
+        {/* <View style={styles.detailRow}>
+         
           <Text style={styles.label}>Order Type:</Text>
           <Text style={styles.value}>{item.orderType}</Text>
         </View>
 
-        {/* Purity + Theme */}
+       
         <View style={styles.detailRow}>
           <Text style={styles.label}>Purity:</Text>
           <Text style={styles.value}>{item.purity}</Text>
@@ -357,14 +368,54 @@ const DeliveredReports = ({ navigation, route }) => {
           <Text style={styles.value}>{item.theme}</Text>
         </View>
 
-        {/* Status */}
+       
         <View style={styles.detailRow}>
           <Text style={styles.label}>Status:</Text>
           <Text style={styles.value}>{item.status}</Text>
-        </View>
+        </View> */}
+
+        {/* Product */}
+
       </View>
     </View>
   );
+const printImage = async () => {
+  try {
+    if (!viewRef.current) return;
+
+    const uri = await captureRef(viewRef, {
+      format: "png",
+      quality: 1,
+    });
+
+    await RNPrint.print({ filePath: uri });
+  } catch (e) {
+    console.log("❌ Print error:", e);
+  }
+};
+
+  const shareToWhatsApp = async () => {
+    try {
+      if (!viewRef.current || !selectedItem) return;
+
+      // Capture screenshot of the fullscreen view (image + overlay text)
+      const uri = await captureRef(viewRef, {
+        format: "png",
+        quality: 0.9,
+      });
+
+      const shareOptions = {
+        title: "Share via WhatsApp",
+        message: `S.No: ${selectedItem.sNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}`,
+        url: uri,
+        social: Share.Social.WHATSAPP,
+      };
+
+      await Share.open(shareOptions);
+    } catch (error) {
+      console.log("❌ Error sharing:", error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -393,35 +444,130 @@ const DeliveredReports = ({ navigation, route }) => {
       {/* fullscreen image */}
       <Modal
         visible={!!fullscreenImage}
-        transparent
+        transparent={false}
         onRequestClose={() => setFullscreenImage(null)}
       >
-        <View style={{ flex: 1, backgroundColor: "#000" }}>
-          {/* Close Button */}
-          <TouchableOpacity
-            style={{
-              position: "absolute",
-              top: 40,
-              right: 20,
-              zIndex: 10,
-              backgroundColor: "rgba(0,0,0,0.6)",
-              borderRadius: 20,
-              padding: 6,
-            }}
-            onPress={() => setFullscreenImage(null)}
-          >
-            <Ionicons name="close" size={28} color="#fff" />
-          </TouchableOpacity>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+          <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
+            <View
+              style={{
+                flex: 1,
+                borderWidth: 2,
+                borderColor: "#000",
+                margin: 10,
+                padding: 10,
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: "#fff",
+              }}
+            >
+              {/* Product Image */}
+              <Image
+                source={{ uri: fullscreenImage }}
+                style={{
+                  width: "80%",
+                  height: "75%",
+                  resizeMode: "contain",
+                }}
+              />
 
-          <ImageViewer
-            imageUrls={[{ url: fullscreenImage }]}
-            enableSwipeDown
-            onSwipeDown={() => setFullscreenImage(null)}
-            onCancel={() => setFullscreenImage(null)}
-            saveToLocalByLongPress={false}
-          />
-        </View>
+              {/* SNo, Wt, Size, Qty details */}
+              {selectedItem && (
+                <View
+                  style={{
+                    width: "90%",
+                    marginTop: 20,
+                    backgroundColor: "#fff",
+                    borderTopWidth: 1,
+                    borderColor: "#fcfcfcff",
+                    paddingTop: 10,
+                  }}
+                >
+                  {/* Row 1 */}
+                  <View style={styles.detailRowFix}>
+                    <Text style={styles.detailLabel1}>SNo :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.sNo}</Text>
+
+                    <Text style={styles.detailLabel1}>Weight :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.weight}</Text>
+                  </View>
+
+                  {/* Row 2 */}
+                  <View style={styles.detailRowFix}>
+                    <Text style={styles.detailLabel1}>Size :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.size}</Text>
+
+                    <Text style={styles.detailLabel1}>Qty :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.qty}</Text>
+                  </View>
+
+                  <View style={styles.detailRowFix}>
+                    <Text style={styles.detailLabel1}>Design :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.design}</Text>
+
+                    <Text style={styles.detailLabel1}>Order No :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.orderNo}</Text>
+                  </View>
+                </View>
+              )}
+
+            </View>
+          </ViewShot>
+
+          {/* Bottom buttons */}
+          <View
+  style={{
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    marginVertical: 20,
+  }}
+>
+  <TouchableOpacity
+    onPress={() => setFullscreenImage(null)}
+    style={{
+      backgroundColor: "rgba(120,3,3,1)",
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+    }}
+  >
+    <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={shareToWhatsApp}
+    style={{
+      backgroundColor: "#25D366",
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+      flexDirection: "row",
+      alignItems: "center",
+    }}
+  >
+    <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
+    <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={printImage}
+    style={{
+      backgroundColor: "#2d531a",
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+      flexDirection: "row",
+      alignItems: "center",
+    }}
+  >
+    <Ionicons name="print" size={22} color="#fff" style={{ marginRight: 8 }} />
+    <Text style={{ color: "#fff", fontWeight: "bold" }}>Print</Text>
+  </TouchableOpacity>
+</View>
+
+        </SafeAreaView>
       </Modal>
+
 
       {/* Search bar */}
       <View style={{ padding: 12 }}>
@@ -588,9 +734,10 @@ const styles = StyleSheet.create({
     paddingRight: wp("3%"),
   },
   detailText: {
-    fontSize: 14,
-    marginVertical: 1,
+    fontSize: 16,
+    fontWeight: "600",
     color: "#000",
+    marginVertical: 3,
   },
   detailRow: {
     flexDirection: "row",
@@ -747,6 +894,40 @@ const styles = StyleSheet.create({
   },
   bold: {
     fontWeight: "bold",
+    color: "#000",
+  },
+  detailRowFix: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 4,
+  },
+
+  detailLabel: {
+    width: "25%",        // equal width columns
+    textAlign: "left",
+    fontWeight: "bold",
+    fontSize: 16,
+    color: "#000",
+  },
+
+  detailValue: {
+    width: "25%",        // equal width columns
+    textAlign: "left",
+    fontSize: 16,
+    color: "#000",
+  },
+ detailLabel1: {
+    width: "20%",        // equal width columns
+    textAlign: "left",
+    fontWeight: "bold",
+    fontSize: 12,
+    color: "#000",
+  },
+
+  detailValue1: {
+    width: "35%",        // equal width columns
+    textAlign: "left",
+    fontSize: 11,
     color: "#000",
   },
   highlightValue: {
