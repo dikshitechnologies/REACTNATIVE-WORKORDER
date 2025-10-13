@@ -9,6 +9,7 @@ import ArtisansReport from "./Screens/ArtisansReport";
 import PendingReports from "./Screens/PendingReports";
 import DeliveredReports from "./Screens/DeliveredReports";
 import AdminReports from "./Screens/AdminReports";
+import OverdeuReports from "./Screens/OverdueReports";
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +24,7 @@ export default function App() {
           <Stack.Screen name="PendingReports" component={PendingReports} />
           <Stack.Screen name="DeliveredReports" component={DeliveredReports} />
           <Stack.Screen name="AdminReports" component={AdminReports} />
+          <Stack.Screen name="OverdueReports" component={OverdeuReports} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
