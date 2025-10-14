@@ -14,13 +14,13 @@ import {
   Modal,
   Alert,
   Platform,
+  SectionList,
 } from "react-native";
 import { useRef } from "react";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import Share from "react-native-share";
 import ImageZoom from 'react-native-image-pan-zoom';
 import { Dimensions } from 'react-native';
-
 
 import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from "axios";
@@ -30,6 +30,7 @@ import ImageViewer from "react-native-image-zoom-viewer";
 import { BackHandler } from "react-native";
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
+
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
 
@@ -37,6 +38,7 @@ const PendingReports = ({ navigation, route }) => {
   const user = route?.params?.user;
 
   const [reports, setReports] = useState([]);
+  const [groupedReports, setGroupedReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const viewRef = useRef();
@@ -125,9 +127,51 @@ const PendingReports = ({ navigation, route }) => {
     }
   };
 
+  // ✅ Format date for grouping (YYYY-MM-DD format for consistent sorting)
+  const formatDateForGrouping = (dateString) => {
+    if (!dateString) return "Unknown Date";
+    
+    try {
+      if (dateString.includes('T')) {
+        // ISO format
+        return new Date(dateString).toISOString().split('T')[0]; // YYYY-MM-DD
+      } else {
+        // DD-MM-YYYY format
+        const [day, month, year] = dateString.split('-');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`; // YYYY-MM-DD
+      }
+    } catch (error) {
+      console.log("Date grouping error:", error);
+      return "Unknown Date";
+    }
+  };
+
+  // ✅ Get display date for section headers in dd/mm/yyyy format
+  const getDisplayDate = (dateString) => {
+    if (!dateString) return "Unknown Date";
+    
+    try {
+      if (dateString.includes('T')) {
+        // ISO format - convert to dd/mm/yyyy
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      } else {
+        // DD-MM-YYYY format - convert to dd/mm/yyyy
+        const [day, month, year] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+      }
+    } catch (error) {
+      console.log("Date display error:", error);
+      return dateString;
+    }
+  };
+
   // ✅ Get overdue status based on dueFlag and daysOverdue
   const getOverdueStatus = (dueFlag, daysOverdue) => {
-    if (dueFlag === "Y") {
+    if (dueFlag === "N") {
       return { 
         text: "Due Date Over", 
         color: "#d32f2f", // Red color for overdue
@@ -140,6 +184,29 @@ const PendingReports = ({ navigation, route }) => {
         days: 0
       };
     }
+  };
+
+  // ✅ Group reports by issue date
+  const groupReportsByDate = (reportsData) => {
+    const grouped = {};
+    
+    reportsData.forEach((item) => {
+      const issueDate = formatDateForGrouping(item.issueDate);
+      if (!grouped[issueDate]) {
+        grouped[issueDate] = [];
+      }
+      grouped[issueDate].push(item);
+    });
+
+    // Convert to array and sort by date (ascending)
+    const sortedGroups = Object.keys(grouped)
+      .sort() // This will sort dates in YYYY-MM-DD format correctly
+      .map(date => ({
+        title: date,
+        data: grouped[date]
+      }));
+
+    return sortedGroups;
   };
 
   // ✅ fetch reports with stable IDs
@@ -178,10 +245,20 @@ const PendingReports = ({ navigation, route }) => {
           issueDate: item.fIssueDate,
         }));
 
-        setReports((prev) => (append ? [...prev, ...mapped] : mapped));
+        const newReports = append ? [...reports, ...mapped] : mapped;
+        setReports(newReports);
+        
+        // Group the reports by issue date
+        const grouped = groupReportsByDate(newReports);
+        setGroupedReports(grouped);
+        
         setHasMore(res.data.data.length === 30);
       } else {
         setHasMore(false);
+        if (!append) {
+          setReports([]);
+          setGroupedReports([]);
+        }
       }
     } catch (err) {
       console.log("❌ Error fetching reports:", err);
@@ -200,6 +277,7 @@ const PendingReports = ({ navigation, route }) => {
         "Issue No": item.issueNo || "N/A",
         "Order No": item.orderNo || "N/A",
         "Order Date": formatDate(item.orderDate),
+        "Issue Date": formatDate(item.issueDate),
         "Due Date": formatDate(item.dueDate),
         "Days Overdue": item.daysOverdue || 0,
         "Status": item.status || "N/A",
@@ -214,7 +292,7 @@ const PendingReports = ({ navigation, route }) => {
         "Serial No": item.sNo || "N/A",
         "Transaction ID": item.transaId || "N/A",
         "Artisan": item.artisan || "N/A",
-        "Due Status": item.dueFlag === "Y" ? "Overdue" : "Pending",
+        "Due Status": item.dueFlag === "N" ? "Overdue" : "Pending",
       }));
 
       // Create worksheet
@@ -333,6 +411,16 @@ const PendingReports = ({ navigation, route }) => {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // ✅ Render section header
+  const renderSectionHeader = ({ section: { title } }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionHeaderText}>
+        Issue Date: {getDisplayDate(title)}
+      </Text>
+    </View>
+  );
+
+  // ✅ Render individual item
   const renderItem = ({ item }) => {
     const overdueStatus = getOverdueStatus(item.dueFlag, item.daysOverdue);
     
@@ -608,7 +696,7 @@ const PendingReports = ({ navigation, route }) => {
 
                     <Text style={styles.detailLabel1}>Days Overdue :</Text>
                     <Text style={[styles.detailValue1, { 
-                      color: selectedItem.dueFlag === "Y" ? '#d32f2f' : '#2d531a',
+                      color: selectedItem.dueFlag === "N" ? '#d32f2f' : '#2d531a',
                       fontWeight: 'bold' 
                     }]}>
                       {selectedItem.daysOverdue}
@@ -713,10 +801,11 @@ const PendingReports = ({ navigation, route }) => {
           style={{ marginTop: 20 }}
         />
       ) : (
-        <FlatList
-          data={reports}
-          renderItem={renderItem}
+        <SectionList
+          sections={groupedReports}
           keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
           contentContainerStyle={{ paddingBottom: 100 }}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -807,6 +896,26 @@ const styles = StyleSheet.create({
     width: wp("85%"),
     marginRight: 8,
     backgroundColor: '#fff',
+  },
+  // Section Header Styles
+  sectionHeader: {
+    backgroundColor: "#2d531a",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginHorizontal: 10,
+    marginTop: 10,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  sectionHeaderText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
   },
   // Overdue Badge Styles
   overdueBadge: {

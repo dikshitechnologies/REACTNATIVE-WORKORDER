@@ -63,7 +63,7 @@ const OverdueReports = ({ navigation, route }) => {
     fetchReports("", 1, false);
   };
 
-  // ✅ Group reports by issue date
+  // ✅ Group reports by issue date in ASCENDING order
   const groupReportsByIssueDate = (reportsData) => {
     const grouped = {};
     
@@ -75,9 +75,9 @@ const OverdueReports = ({ navigation, route }) => {
       grouped[issueDate].push(item);
     });
 
-    // Convert to array format for SectionList and sort dates in descending order
+    // Convert to array format for SectionList and sort dates in ASCENDING order
     const sections = Object.keys(grouped)
-      .sort((a, b) => new Date(b) - new Date(a)) // Sort dates descending (newest first)
+      .sort((a, b) => new Date(a) - new Date(b)) // Sort dates ascending (oldest first)
       .map(date => ({
         title: date,
         data: grouped[date]
@@ -132,11 +132,7 @@ const OverdueReports = ({ navigation, route }) => {
       } else {
         // DD-MM-YYYY format like "28-07-2025"
         const [day, month, year] = dateString.split('-');
-        return new Date(`${year}-${month}-${day}`).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        });
+        return `${day}/${month}/${year}`;
       }
     } catch (error) {
       console.log("Date formatting error:", error);
@@ -149,16 +145,10 @@ const OverdueReports = ({ navigation, route }) => {
     if (!issueDtString) return "Unknown Date";
     
     try {
-      // fIssueDt format: "28-07-2025 20:22:33"
-      const datePart = issueDtString.split(' ')[0]; // Get "28-07-2025"
+      // fIssueDt format: "18-07-2025 20:30:01"
+      const datePart = issueDtString.split(' ')[0]; // Get "18-07-2025"
       const [day, month, year] = datePart.split('-');
-      const date = new Date(`${year}-${month}-${day}`);
-      
-      return date.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+      return `${day}/${month}/${year}`; // Return in dd/mm/yyyy format
     } catch (error) {
       console.log("Issue date formatting error:", error);
       return "Unknown Date";
@@ -198,6 +188,8 @@ const OverdueReports = ({ navigation, route }) => {
           dueFlag: item.dueFlag,
           issueDate: formatIssueDate(item.fIssueDt), // Format issue date for grouping
           rawIssueDt: item.fIssueDt, // Keep original for display
+          artisan: item.fAcname || "N/A",
+          returnFlag: item.fReturnFlag,
         }));
 
         const newReports = append ? [...reports, ...mapped] : mapped;
@@ -259,6 +251,8 @@ const OverdueReports = ({ navigation, route }) => {
         "Serial No": item.sNo || "N/A",
         "Transaction ID": item.transaId || "N/A",
         "Issue Date": item.issueDate || "N/A",
+        "Artisan": item.artisan || "N/A",
+        "Return Flag": item.returnFlag || "N/A",
       }));
 
       // Create worksheet
@@ -530,10 +524,12 @@ const OverdueReports = ({ navigation, route }) => {
             <Text style={styles.value}>{item.theme}</Text>
           </View>
 
-          {/* Transaction ID */}
+          {/* Transaction ID + Artisan */}
           <View style={styles.detailRow}>
             <Text style={styles.label}>Transa ID:</Text>
             <Text style={styles.value}>{item.transaId}</Text>
+            <Text style={styles.label}>Artisan:</Text>
+            <Text style={styles.value}>{item.artisan}</Text>
           </View>
 
           {/* Issue Date Time */}
@@ -542,6 +538,8 @@ const OverdueReports = ({ navigation, route }) => {
             <Text style={styles.value}>
               {item.rawIssueDt ? item.rawIssueDt.split(' ')[1] : "N/A"}
             </Text>
+            <Text style={styles.label}>Return Flag:</Text>
+            <Text style={styles.value}>{item.returnFlag}</Text>
           </View>
 
         </View>
@@ -678,6 +676,9 @@ const OverdueReports = ({ navigation, route }) => {
                   <View style={styles.detailRowFix}>
                     <Text style={styles.detailLabel1}>Issue Date :</Text>
                     <Text style={styles.detailValue1}>{selectedItem.issueDate}</Text>
+
+                    <Text style={styles.detailLabel1}>Artisan :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.artisan}</Text>
                   </View>
                 </View>
               )}
@@ -952,7 +953,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     left: 8,
-  
     color: "#000000ff",
     paddingHorizontal: 8,
     paddingVertical: 4,
