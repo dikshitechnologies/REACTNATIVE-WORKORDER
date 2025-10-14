@@ -186,6 +186,18 @@ const PendingReports = ({ navigation, route }) => {
     }
   };
 
+  // ✅ Get return flag status based on fReturnFlag - Only show for "R"
+  const getReturnFlagStatus = (returnFlag) => {
+    if (returnFlag === "R") {
+      return { 
+        text: "Return", 
+        color: "#ff9800" // Orange color for return
+      };
+    } else {
+      return null; // Don't show anything for "P" or other values
+    }
+  };
+
   // ✅ Group reports by issue date
   const groupReportsByDate = (reportsData) => {
     const grouped = {};
@@ -243,6 +255,7 @@ const PendingReports = ({ navigation, route }) => {
           dueFlag: item.dueFlag,
           daysOverdue: item.daysOverdue || 0,
           issueDate: item.fIssueDate,
+          returnFlag: item.fReturnFlag || "P", // Default to P if not provided
         }));
 
         const newReports = append ? [...reports, ...mapped] : mapped;
@@ -293,6 +306,7 @@ const PendingReports = ({ navigation, route }) => {
         "Transaction ID": item.transaId || "N/A",
         "Artisan": item.artisan || "N/A",
         "Due Status": item.dueFlag === "N" ? "Overdue" : "Pending",
+        "Return Status": item.returnFlag === "P" ? "Pending" : "Return",
       }));
 
       // Create worksheet
@@ -420,20 +434,33 @@ const PendingReports = ({ navigation, route }) => {
     </View>
   );
 
-  // ✅ Render individual item - UPDATED with Delivered Reports style for Weight, Size, Qty
+  // ✅ Render individual item - UPDATED to only show Return badge for "R"
   const renderItem = ({ item }) => {
     const overdueStatus = getOverdueStatus(item.dueFlag, item.daysOverdue);
+    const returnFlagStatus = getReturnFlagStatus(item.returnFlag);
     
     return (
       <View style={styles.card}>
         {/* Card number */}
         <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
 
-        {/* Overdue Badge */}
-        <View style={[styles.overdueBadge, { backgroundColor: overdueStatus.color }]}>
-          <Text style={styles.overdueBadgeText}>
-            {overdueStatus.text} {overdueStatus.days > 0 ? `(${overdueStatus.days} days)` : ""}
-          </Text>
+        {/* Badges Container - Stacked vertically */}
+        <View style={styles.badgesContainer}>
+          {/* Overdue Badge */}
+          <View style={[styles.overdueBadge, { backgroundColor: overdueStatus.color }]}>
+            <Text style={styles.overdueBadgeText}>
+              {overdueStatus.text} {overdueStatus.days > 0 ? `(${overdueStatus.days} days)` : ""}
+            </Text>
+          </View>
+
+          {/* Return Flag Badge - Only show if returnFlag is "R" */}
+          {returnFlagStatus && (
+            <View style={[styles.returnFlagBadge, { backgroundColor: returnFlagStatus.color }]}>
+              <Text style={styles.returnFlagBadgeText}>
+                {returnFlagStatus.text}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Product Image */}
@@ -530,9 +557,11 @@ const PendingReports = ({ navigation, route }) => {
         quality: 0.9,
       });
 
+      const returnFlagStatus = getReturnFlagStatus(selectedItem.returnFlag);
+
       const shareOptions = {
         title: "Share via WhatsApp",
-        message: `S.No: ${selectedItem.sNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}\nDesign: ${selectedItem.design}\nOrder No: ${selectedItem.orderNo}\nDue Date: ${formatDate(selectedItem.dueDate)}\nDays Overdue: ${selectedItem.daysOverdue}`,
+        message: `S.No: ${selectedItem.sNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}\nDesign: ${selectedItem.design}\nOrder No: ${selectedItem.orderNo}\nDue Date: ${formatDate(selectedItem.dueDate)}\nDays Overdue: ${selectedItem.daysOverdue}${returnFlagStatus ? `\nStatus: ${returnFlagStatus.text}` : ''}`,
         url: uri,
         social: Share.Social.WHATSAPP,
       };
@@ -670,6 +699,19 @@ const PendingReports = ({ navigation, route }) => {
                       {selectedItem.daysOverdue}
                     </Text>
                   </View>
+
+                  {/* Row 5 - Return Flag Status - Only show if Return */}
+                  {selectedItem.returnFlag === "R" && (
+                    <View style={styles.detailRowFix}>
+                      <Text style={styles.detailLabel1}>Status :</Text>
+                      <Text style={[styles.detailValue1, { 
+                        color: '#ff9800',
+                        fontWeight: 'bold' 
+                      }]}>
+                        Return
+                      </Text>
+                    </View>
+                  )}
                 </View>
               )}
             </View>
@@ -885,17 +927,33 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
-  // Overdue Badge Styles
-  overdueBadge: {
+  // Badges Container
+  badgesContainer: {
     position: "absolute",
     top: 8,
     right: 8,
+    zIndex: 1,
+    alignItems: "flex-end",
+  },
+  // Overdue Badge Styles
+  overdueBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    zIndex: 1,
+    marginBottom: 4, // Space between badges
   },
   overdueBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  // Return Flag Badge Styles
+  returnFlagBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  returnFlagBadgeText: {
     color: "#fff",
     fontSize: 10,
     fontWeight: "bold",
