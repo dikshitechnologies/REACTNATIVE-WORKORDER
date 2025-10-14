@@ -95,7 +95,7 @@ const OverdueReports = ({ navigation, route }) => {
   const fetchReports = async (query = "", pageNum = 1, append = false) => {
     try {
       setLoading(true);
-      const url = `${BASE_URL}ItemTransaction/GetPendingOverdue?cusCode=${user?.fCode}&search=${query}&pageNumber=${pageNum}&pageSize=30`;
+      const url = `${BASE_URL}ItemTransaction/GetPendingOverdue?cusCodes=${user?.fCode}&search=${query}&pageNumber=${pageNum}&pageSize=30`;
       console.log("📡 Fetching overdue reports:", url);
 
       const res = await axios.get(url);
@@ -838,8 +838,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     left: 8,
-    backgroundColor: "#2d531a",
-    color: "#fff",
+  
+    color: "#000000ff",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,

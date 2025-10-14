@@ -96,6 +96,8 @@ const AdminReports = ({ navigation }) => {
     const [overdueHasMore, setOverdueHasMore] = useState(true);
     const [overdueArtisanSearch, setOverdueArtisanSearch] = useState("");
     const [showOverdueArtisanModal, setShowOverdueArtisanModal] = useState(false);
+    const [overdueTotalRecords, setOverdueTotalRecords] = useState(0);
+
 
     const clearForm = () => {
         setPartyName("");
@@ -696,6 +698,7 @@ const AdminReports = ({ navigation }) => {
     const fetchOverdueOrders = async (codes = [], page = 1, search = "") => {
         if (!codes || codes.length === 0) {
             setOverdueTableData([]);
+            setOverdueTotalRecords(0);
             return;
         }
         setOverdueLoading(true);
@@ -724,18 +727,26 @@ const AdminReports = ({ navigation }) => {
                     status: item.fconfirmStatus === "N" ? "Pending" : "Confirmed",
                     daysOverdue: item.daysOverdue || 0,
                 }));
-
-                setOverdueTableData(prev =>
-                    page === 1 ? mappedData : [...prev, ...mappedData]
-                );
-                setOverdueHasMore(mappedData.length === 30);
+    
+                const currentData = page === 1 ? mappedData : [...overdueTableData, ...mappedData];
+                setOverdueTableData(currentData);
+                
+                const total = res.data.totalRecords || 0;
+                setOverdueTotalRecords(total);
+                setOverdueHasMore(currentData.length < total);
             } else {
-                 if (page === 1) setOverdueTableData([]);
+                if (page === 1) {
+                    setOverdueTableData([]);
+                    setOverdueTotalRecords(0);
+                }
                 setOverdueHasMore(false);
             }
         } catch (error) {
             console.error("Error fetching overdue orders:", error);
-            if (page === 1) setOverdueTableData([]);
+            if (page === 1) {
+                setOverdueTableData([]);
+                setOverdueTotalRecords(0);
+            }
             setOverdueHasMore(false);
         } finally {
             setOverdueLoading(false);
@@ -752,6 +763,7 @@ const AdminReports = ({ navigation }) => {
                 fetchOverdueOrders(codes, 1, overdueSearch);
             } else {
                 setOverdueTableData([]);
+                setOverdueTotalRecords(0);
             }
         }, 500);
 
@@ -2235,6 +2247,16 @@ const AdminReports = ({ navigation }) => {
                 />
             </View>
 
+            {/* Total Overdue Count */}
+            {overdueTableData.length > 0 && (
+                <View style={styles.statsContainer}>
+                    <View style={styles.statItem}>
+                        <Text style={styles.statNumber}>{overdueTotalRecords}</Text>
+                        <Text style={styles.statLabel}>Total Overdue Orders</Text>
+                    </View>
+                </View>
+            )}
+
             {/* Artisan Modal for Overdue */}
             <Modal visible={showOverdueArtisanModal} transparent animationType="slide">
                 <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}>
@@ -2367,6 +2389,7 @@ const AdminReports = ({ navigation }) => {
                         setOverdueTableData([]);
                         setOverduePageNumber(1);
                         setOverdueHasMore(true);
+                        setOverdueTotalRecords(0);
                     }}
                 >
                     <Text style={styles.buttonText}>Clear</Text>
@@ -2685,8 +2708,7 @@ const styles = StyleSheet.create({
     cardNumber: {
         fontWeight: 'bold',
         fontSize: 14,
-        color: '#fff',
-        backgroundColor: '#2d531a',
+        color: '#000000ff',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 6,
@@ -2801,5 +2823,32 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderColor: "#eee",
         paddingTop: 10,
+    },
+    statsContainer: {
+        flexDirection: "row",
+        justifyContent: "center",
+        padding: 12,
+        backgroundColor: "#fff",
+        marginHorizontal: 10,
+        borderRadius: 10,
+        marginBottom: 10,
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    statItem: {
+        alignItems: "center",
+    },
+    statNumber: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "#d32f2f",
+    },
+    statLabel: {
+        fontSize: 14,
+        color: "#666",
+        marginTop: 4,
+        textAlign: "center",
     },
 });
