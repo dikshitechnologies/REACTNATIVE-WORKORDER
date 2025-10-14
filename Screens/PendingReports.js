@@ -420,7 +420,7 @@ const PendingReports = ({ navigation, route }) => {
     </View>
   );
 
-  // ✅ Render individual item
+  // ✅ Render individual item - UPDATED with Delivered Reports style for Weight, Size, Qty
   const renderItem = ({ item }) => {
     const overdueStatus = getOverdueStatus(item.dueFlag, item.daysOverdue);
     
@@ -457,44 +457,36 @@ const PendingReports = ({ navigation, route }) => {
               <Text style={[{
                 fontWeight: "bold",
                 width: wp("30%"),
-              }, styles.highlights]}>DESIGN:</Text>
+              }, styles.highlightLabel]}>DESIGN:</Text>
               <Text style={[{
                 width: wp("40%"),
                 marginRight: wp("5%"),
-              }, styles.highlight]}>{item.design}</Text>
+              }, styles.highlightValue]}>{item.design}</Text>
             </View>
 
             <View style={styles.detailRow}>
               <Text style={[{
                 fontWeight: "bold",
                 width: wp("30%"),
-              }, styles.highlights]}>SNO:</Text>
+              }, styles.highlightLabel]}>SNO:</Text>
               <Text style={[{
                 width: wp("40%"),
                 marginRight: wp("5%"),
-              }, styles.highlight]}>{item.sNo}</Text>
+              }, styles.highlightValue]}>{item.sNo}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={[{
                 fontWeight: "bold",
                 width: wp("30%")
-              }, styles.highlights]}>ORDER NO:</Text>
-              <Text style={[styles.highlight, {
+              }, styles.highlightLabel]}>ORDER NO:</Text>
+              <Text style={[styles.highlightValue, {
                 width: wp("40%"),
                 marginRight: wp("5%"),
               }]}>{item.orderNo}</Text>
             </View>
           </View>
 
-          {/* Order Dates */}
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Order Date:</Text>
-            <Text style={styles.value}>{formatDate(item.orderDate)}</Text>
-            <Text style={styles.label}>Due Date:</Text>
-            <Text style={styles.value}>{formatDate(item.dueDate)}</Text>
-          </View>
-
-          {/* Weight + Size */}
+          {/* Weight + Size - SAME STYLE AS DELIVERED REPORTS */}
           <View style={styles.detailRow}>
             <Text style={styles.label}>Weight:</Text>
             <Text style={styles.value}>{item.weight}</Text>
@@ -502,34 +494,10 @@ const PendingReports = ({ navigation, route }) => {
             <Text style={styles.value}>{item.size}</Text>
           </View>
 
-          {/* Product + Qty */}
+          {/* Qty - SAME STYLE AS DELIVERED REPORTS */}
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Product:</Text>
-            <Text style={styles.value}>{item.product}</Text>
             <Text style={styles.label}>Qty:</Text>
             <Text style={styles.value}>{item.qty}</Text>
-          </View>
-
-          {/* Order Type + Status */}
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Order Type:</Text>
-            <Text style={styles.value}>{item.orderType}</Text>
-            <Text style={styles.label}>Status:</Text>
-            <Text style={styles.value}>{item.status}</Text>
-          </View>
-
-          {/* Purity + Theme */}
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Purity:</Text>
-            <Text style={styles.value}>{item.purity}</Text>
-            <Text style={styles.label}>Theme:</Text>
-            <Text style={styles.value}>{item.theme}</Text>
-          </View>
-
-          {/* Transaction ID */}
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Transa ID:</Text>
-            <Text style={styles.value}>{item.transaId}</Text>
           </View>
 
         </View>
@@ -983,7 +951,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginVertical: 4,
   },
-
   detailLabel1: {
     width: "20%",
     textAlign: "left",
@@ -991,30 +958,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#000",
   },
-
   detailValue1: {
     width: "35%",
     textAlign: "left",
     fontSize: 11,
     color: "#000",
   },
-
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 4,
   },
-  label: {
+ label: {
     fontWeight: "bold",
     color: "#000",
     width: wp("20%"),
-    fontSize: 12,
   },
   value: {
     color: "#000",
     width: wp("25%"),
     marginRight: wp("5%"),
-    fontSize: 12,
   },
   detailsRightImage: {
     width: wp("45%"),
@@ -1160,12 +1123,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#000",
   },
-  highlight: {
+  highlightValue: {
     color: "#2d531a",
     fontWeight: "bold",
     fontSize: 15,
   },
-  highlights: {
+  highlightLabel: {
     color: "rgba(120, 3, 3, 1)",
     fontWeight: "bold",
     fontSize: 15,

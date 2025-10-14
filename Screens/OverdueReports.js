@@ -420,7 +420,7 @@ const OverdueReports = ({ navigation, route }) => {
     </View>
   );
 
-  // ✅ Render individual item
+  // ✅ Render individual item - SIMPLIFIED with only Due Date, Weight, Size, Product, Qty
   const renderItem = ({ item }) => {
     const overdueStatus = getOverdueStatus(item.daysOverdue);
     
@@ -446,7 +446,7 @@ const OverdueReports = ({ navigation, route }) => {
           }}
         />
 
-        {/* Details */}
+        {/* Details - SIMPLIFIED: Only Due Date, Weight, Size, Product, Qty */}
         <View style={styles.detailsBox}>
 
           {/* Design + S.No (highlighted) */}
@@ -484,10 +484,8 @@ const OverdueReports = ({ navigation, route }) => {
             </View>
           </View>
 
-          {/* Order Dates */}
+          {/* Due Date */}
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Order Date:</Text>
-            <Text style={styles.value}>{formatDate(item.orderDate)}</Text>
             <Text style={styles.label}>Due Date:</Text>
             <Text style={styles.value}>{formatDate(item.dueDate)}</Text>
           </View>
@@ -506,40 +504,6 @@ const OverdueReports = ({ navigation, route }) => {
             <Text style={styles.value}>{item.product}</Text>
             <Text style={styles.label}>Qty:</Text>
             <Text style={styles.value}>{item.qty}</Text>
-          </View>
-
-          {/* Order Type + Status */}
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Order Type:</Text>
-            <Text style={styles.value}>{item.orderType}</Text>
-            <Text style={styles.label}>Status:</Text>
-            <Text style={styles.value}>{item.status}</Text>
-          </View>
-
-          {/* Purity + Theme */}
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Purity:</Text>
-            <Text style={styles.value}>{item.purity}</Text>
-            <Text style={styles.label}>Theme:</Text>
-            <Text style={styles.value}>{item.theme}</Text>
-          </View>
-
-          {/* Transaction ID + Artisan */}
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Transa ID:</Text>
-            <Text style={styles.value}>{item.transaId}</Text>
-            <Text style={styles.label}>Artisan:</Text>
-            <Text style={styles.value}>{item.artisan}</Text>
-          </View>
-
-          {/* Issue Date Time */}
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Issue Time:</Text>
-            <Text style={styles.value}>
-              {item.rawIssueDt ? item.rawIssueDt.split(' ')[1] : "N/A"}
-            </Text>
-            <Text style={styles.label}>Return Flag:</Text>
-            <Text style={styles.value}>{item.returnFlag}</Text>
           </View>
 
         </View>
@@ -622,7 +586,7 @@ const OverdueReports = ({ navigation, route }) => {
                 </ImageZoom>
               </View>
 
-              {/* Details section */}
+              {/* Details section - SIMPLIFIED */}
               {selectedItem && (
                 <View
                   style={{
@@ -657,8 +621,8 @@ const OverdueReports = ({ navigation, route }) => {
                     <Text style={styles.detailLabel1}>Design :</Text>
                     <Text style={styles.detailValue1}>{selectedItem.design}</Text>
 
-                    <Text style={styles.detailLabel1}>Order No :</Text>
-                    <Text style={styles.detailValue1}>{selectedItem.orderNo}</Text>
+                    <Text style={styles.detailLabel1}>Product :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.product}</Text>
                   </View>
 
                   {/* Row 4 - Overdue specific */}
@@ -670,15 +634,6 @@ const OverdueReports = ({ navigation, route }) => {
 
                     <Text style={styles.detailLabel1}>Due Date :</Text>
                     <Text style={styles.detailValue1}>{formatDate(selectedItem.dueDate)}</Text>
-                  </View>
-
-                  {/* Row 5 - Issue Date */}
-                  <View style={styles.detailRowFix}>
-                    <Text style={styles.detailLabel1}>Issue Date :</Text>
-                    <Text style={styles.detailValue1}>{selectedItem.issueDate}</Text>
-
-                    <Text style={styles.detailLabel1}>Artisan :</Text>
-                    <Text style={styles.detailValue1}>{selectedItem.artisan}</Text>
                   </View>
                 </View>
               )}
@@ -778,10 +733,10 @@ const OverdueReports = ({ navigation, route }) => {
             <Text style={styles.statNumber}>{totalRecords}</Text>
             <Text style={styles.statLabel}>Total Overdue Orders</Text>
           </View>
-          <View style={styles.statItem}>
+          {/* <View style={styles.statItem}>
             <Text style={styles.statNumber}>{groupedReports.length}</Text>
             <Text style={styles.statLabel}>Issue Dates</Text>
-          </View>
+          </View> */}
         </View>
       )}
 
