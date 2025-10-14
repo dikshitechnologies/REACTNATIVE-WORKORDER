@@ -39,6 +39,7 @@ const AdminReports = ({ navigation }) => {
     const [phoneWarning, setPhoneWarning] = useState("");
     const [phone, setPhone] = useState("");
     const [selectedPartyCode, setSelectedPartyCode] = useState(null);
+    const [dueDays, setDueDays] = useState("");
 
     // Modal states
     const [showPartyModal, setShowPartyModal] = useState(false);
@@ -114,6 +115,7 @@ const AdminReports = ({ navigation }) => {
         setPartyName("");
         setPhoneWarning("");
         setPhone("");
+        setDueDays("");
     };
 
     const formatDate = (dateString) => {
@@ -153,25 +155,53 @@ const AdminReports = ({ navigation }) => {
             return;
         }
 
+        // Optional: validate dueDays if editable
+        if (dueDays && isNaN(dueDays)) {
+            Alert.alert("Validation", "Due Days must be a valid number");
+            return;
+        }
+
         try {
-            const res = await axios.put(
-                `${BASE_URL}Party/UpdatePhone?fCode=${selectedPartyCode}&phone=${phone}`
-            );
+            // ✅ Include fDueDays in the API call
+            const url = `${BASE_URL}Party/UpdatePhone?fCode=${selectedPartyCode}&phone=${phone}&fDueDays=${dueDays}`;
+            console.log("Updating party with URL:", url);
+            const res = await axios.put(url);
 
             if (res.status === 200) {
-                Alert.alert("Success", "Phone updated successfully!");
+                Alert.alert("Success", res.data?.message || "Party details updated successfully!");
+
+                // Clear input fields
                 setPartyName("");
                 setSelectedPartyCode(null);
                 setPhone("");
                 setPhoneWarning("");
+                setDueDays("");
             } else {
-                Alert.alert("Error", "Failed to update phone number");
+                // Handle unexpected HTTP statuses
+                Alert.alert(
+                    "Error",
+                    res.data?.message || `Failed to update party details. Status code: ${res.status}`
+                );
             }
         } catch (err) {
-            console.error("Update error:", err);
-            Alert.alert("Error", "Something went wrong");
+            // ---------- Detailed error handling ----------
+            console.error("Update error:", err.response?.data || err.message);
+
+            const status = err.response?.status;
+            const serverMessage = err.response?.data?.message;
+
+            if (status === 404) {
+                Alert.alert("Not Found", serverMessage || "The selected party was not found.");
+            } else if (status === 400) {
+                Alert.alert("Bad Request", serverMessage || "Invalid data sent to the server.");
+            } else if (status === 500) {
+                Alert.alert("Server Error", serverMessage || "Internal server error. Please try again.");
+            } else {
+                Alert.alert("Error", serverMessage || "Something went wrong while updating.");
+            }
         }
     };
+
 
     const shareToWhatsApp = async () => {
         try {
@@ -283,6 +313,19 @@ const AdminReports = ({ navigation }) => {
                             keyboardType="number-pad"
                             maxLength={10}  // 👈 ensures only 10 digits
                         />
+                        {/* ✅ Due Days Display */}
+                        {dueDays ? (
+                            <View style={{ marginTop: 16 }}>
+                                <Text style={{ fontWeight: "bold", color: "#2d531a", marginBottom: 6 }}>
+                                    Due Days
+                                </Text>
+                                <TextInput
+                                    style={[styles.input, { backgroundColor: "#f9f9f9" }]}
+                                    value={dueDays}
+                                    editable={false}
+                                />
+                            </View>
+                        ) : null}
 
                         {/* Buttons inside card */}
                         <View
@@ -359,6 +402,7 @@ const AdminReports = ({ navigation }) => {
                                         onPress={() => {
                                             setPartyName(item.name);
                                             setSelectedPartyCode(item.code);
+                                            setDueDays(item.dueDays || "0"); // ✅ show due days after select
 
                                             if (!item.phone || item.phone.trim() === "") {
                                                 setPhone("");
@@ -370,6 +414,7 @@ const AdminReports = ({ navigation }) => {
 
                                             setShowPartyModal(false);
                                         }}
+
 
 
                                     >
@@ -663,6 +708,7 @@ const AdminReports = ({ navigation }) => {
                     code: item.fCode,
                     name: item.fAcname,
                     phone: item.fphone,
+                    dueDays: item.fDueDays || "0",
                 }));
                 if (page === 1) {
                     setArtisans(mapped);
