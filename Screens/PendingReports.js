@@ -339,7 +339,7 @@ const PendingReports = ({ navigation, route }) => {
     // Show confirmation alert
     Alert.alert(
       "Export to Excel",
-      `Do you want to export ${reports.length} records to Excel?`,
+      `Do you want to export records to Excel?`,
       [
         {
           text: "Cancel",
@@ -354,49 +354,161 @@ const PendingReports = ({ navigation, route }) => {
   };
 
   // ✅ Actual export function
-  const exportToExcel = async () => {
-    try {
-      setExportLoading(true);
+  // const exportToExcel = async () => {
+  //   try {
+  //     setExportLoading(true);
 
-      const { filePath, fileName } = await generateExcelFile();
+  //     const { filePath, fileName } = await generateExcelFile();
 
-      // Open share dialog
-      try {
-        await Share.open({
-          url: `file://${filePath}`,
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          filename: fileName,
-          subject: 'Pending Reports Export',
-          message: `Pending Reports Data (${reports.length} records)`,
-        });
+  //     // Open share dialog
+  //     try {
+  //       await Share.open({
+  //         url: `file://${filePath}`,
+  //         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  //         filename: fileName,
+  //         subject: 'Pending Reports Export',
+  //         message: `Pending Reports Data (${reports.length} records)`,
+  //       });
         
-        Alert.alert(
-          "Success",
-          `Excel file has been generated successfully!\n\nFile: ${fileName}\nRecords: ${reports.length}`,
-          [{ text: "OK" }]
-        );
+  //       Alert.alert(
+  //         "Success",
+  //         `Excel file has been generated successfully!\n\nFile: ${fileName}\nRecords: ${reports.length}`,
+  //         [{ text: "OK" }]
+  //       );
         
-      } catch (shareError) {
-        console.log('Share cancelled or failed:', shareError);
-        // If share is cancelled, still show success message
-        Alert.alert(
-          "Success",
-          `Excel file has been generated successfully!\n\nFile: ${fileName}\nRecords: ${reports.length}\n\nFile saved at: ${filePath}`,
-          [{ text: "OK" }]
-        );
+  //     } catch (shareError) {
+  //       console.log('Share cancelled or failed:', shareError);
+  //       // If share is cancelled, still show success message
+  //       Alert.alert(
+  //         "Success",
+  //         `Excel file has been generated successfully!\n\nFile: ${fileName}\nRecords: ${reports.length}\n\nFile saved at: ${filePath}`,
+  //         [{ text: "OK" }]
+  //       );
+  //     }
+
+  //   } catch (error) {
+  //     console.log("❌ Error exporting to Excel:", error);
+  //     Alert.alert(
+  //       "Export Failed", 
+  //       "Failed to export data to Excel. Please try again.",
+  //       [{ text: "OK" }]
+  //     );
+  //   } finally {
+  //     setExportLoading(false);
+  //   }
+  // };
+
+  // ✅ Actual export function (fetches ALL pages before generating Excel)
+const exportToExcel = async () => {
+  try {
+    setExportLoading(true);
+    console.log("📡 Starting full data export for:", user?.fCode);
+
+    let allData = [];
+    let pageNumber = 1;
+    const pageSize = 100; // fetch 100 per page for faster export
+    let hasMore = true;
+
+    // 🔁 Fetch all pages until no more data
+    while (hasMore) {
+      const url = `${BASE_URL}ItemTransaction/GetPendingByCustomer?cusCode=${user?.fCode}&search=&pageNumber=${pageNumber}&pageSize=${pageSize}`;
+      console.log(`➡️ Fetching page ${pageNumber}:`, url);
+
+      const res = await axios.get(url);
+      const data = res.data?.data || [];
+
+      if (data.length > 0) {
+        allData = [...allData, ...data];
+        pageNumber++;
+        hasMore = data.length === pageSize; // continue if we got full page
+      } else {
+        hasMore = false;
       }
+    }
 
-    } catch (error) {
-      console.log("❌ Error exporting to Excel:", error);
+    console.log(`✅ Total records fetched for Excel: ${allData.length}`);
+
+    if (allData.length === 0) {
+      Alert.alert("No Data", "There is no data to export.");
+      return;
+    }
+
+    // 🧾 Format all fetched data for Excel
+    const excelData = allData.map((item, index) => ({
+      "S.No": index + 1,
+      "Issue No": item.fIssueNo || "N/A",
+      "Order No": item.fOrderNo || "N/A",
+      "Order Date": formatDate(item.fOrderDate),
+      "Issue Date": formatDate(item.fIssueDate),
+      "Due Date": formatDate(item.fDueDate),
+      "Days Overdue": item.daysOverdue || 0,
+      "Status": item.fStatus === "N" ? "Pending" : "Confirmed",
+      "Order Type": item.fOrderType || "N/A",
+      "Product": item.fProduct || "N/A",
+      "Design": item.fDesign || "N/A",
+      "Weight": item.fWeight || "N/A",
+      "Size": item.fSize || "N/A",
+      "Quantity": item.fQty || "N/A",
+      "Purity": item.fPurity || "N/A",
+      "Theme": item.fTheme || "N/A",
+      "Serial No": item.fSNo || "N/A",
+      "Transaction ID": item.fTransaId || "N/A",
+      "Artisan": user?.fAcname || "N/A",
+      "Due Status": item.dueFlag === "N" ? "Overdue" : "Pending",
+    }));
+
+    // 📘 Create Excel workbook
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pending Reports");
+
+    // 📁 Create file name + path
+    const timestamp = new Date().toISOString().split("T")[0];
+    const fileName = `Pending_Reports_${timestamp}.xlsx`;
+    const filePath =
+      Platform.OS === "android"
+        ? `${RNFS.DownloadDirectoryPath}/${fileName}`
+        : `${RNFS.DocumentDirectoryPath}/${fileName}`;
+
+    // 🧱 Write Excel file
+    const wbout = XLSX.write(wb, { type: "binary", bookType: "xlsx" });
+    await RNFS.writeFile(filePath, wbout, "ascii");
+    console.log("✅ Excel file saved at:", filePath);
+
+    // 📤 Share Excel file
+    try {
+      await Share.open({
+        url: `file://${filePath}`,
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename: fileName,
+        subject: "Pending Reports Export",
+        message: `Pending Reports for ${user?.fAcname} (${allData.length} records)`,
+      });
+
       Alert.alert(
-        "Export Failed", 
-        "Failed to export data to Excel. Please try again.",
+        "✅ Export Successful",
+        `Excel file exported successfully!\n\nFile: ${fileName}\nRecords: ${allData.length}`,
         [{ text: "OK" }]
       );
-    } finally {
-      setExportLoading(false);
+    } catch (shareError) {
+      console.log("⚠️ Share cancelled or failed:", shareError);
+      Alert.alert(
+        "✅ Export Successful",
+        `Excel file generated successfully!\n\nFile: ${fileName}\nRecords: ${allData.length}\nSaved at:\n${filePath}`,
+        [{ text: "OK" }]
+      );
     }
-  };
+  } catch (error) {
+    console.log("❌ Error exporting Excel:", error);
+    Alert.alert(
+      "Export Failed",
+      "Failed to export data to Excel. Please try again.",
+      [{ text: "OK" }]
+    );
+  } finally {
+    setExportLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchReports();
