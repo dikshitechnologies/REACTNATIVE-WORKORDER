@@ -13,6 +13,7 @@ import {
   Alert,
   Platform,
   Dimensions,
+  SectionList,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from "axios";
@@ -33,6 +34,7 @@ const screenHeight = Dimensions.get('window').height;
 const OverdueReports = ({ navigation, route }) => {
   const user = route?.params?.user;
   const [reports, setReports] = useState([]);
+  const [groupedReports, setGroupedReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [fullscreenImage, setFullscreenImage] = useState(null);
@@ -59,6 +61,29 @@ const OverdueReports = ({ navigation, route }) => {
     setSearch("");
     setPage(1);
     fetchReports("", 1, false);
+  };
+
+  // ✅ Group reports by issue date
+  const groupReportsByIssueDate = (reportsData) => {
+    const grouped = {};
+    
+    reportsData.forEach((item) => {
+      const issueDate = item.issueDate || "Unknown Date";
+      if (!grouped[issueDate]) {
+        grouped[issueDate] = [];
+      }
+      grouped[issueDate].push(item);
+    });
+
+    // Convert to array format for SectionList and sort dates in descending order
+    const sections = Object.keys(grouped)
+      .sort((a, b) => new Date(b) - new Date(a)) // Sort dates descending (newest first)
+      .map(date => ({
+        title: date,
+        data: grouped[date]
+      }));
+
+    return sections;
   };
 
   // ✅ fallback image that resolves its own URL
@@ -91,11 +116,64 @@ const OverdueReports = ({ navigation, route }) => {
     );
   };
 
+  // ✅ Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    
+    try {
+      // Handle different date formats from API
+      if (dateString.includes('T')) {
+        // ISO format like "2025-07-28T20:22:33.54"
+        return new Date(dateString).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+      } else {
+        // DD-MM-YYYY format like "28-07-2025"
+        const [day, month, year] = dateString.split('-');
+        return new Date(`${year}-${month}-${day}`).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+      }
+    } catch (error) {
+      console.log("Date formatting error:", error);
+      return dateString;
+    }
+  };
+
+  // ✅ Format issue date for grouping (extract date part from fIssueDt)
+  const formatIssueDate = (issueDtString) => {
+    if (!issueDtString) return "Unknown Date";
+    
+    try {
+      // fIssueDt format: "28-07-2025 20:22:33"
+      const datePart = issueDtString.split(' ')[0]; // Get "28-07-2025"
+      const [day, month, year] = datePart.split('-');
+      const date = new Date(`${year}-${month}-${day}`);
+      
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    } catch (error) {
+      console.log("Issue date formatting error:", error);
+      return "Unknown Date";
+    }
+  };
+
   // ✅ fetch overdue reports with search + paging
   const fetchReports = async (query = "", pageNum = 1, append = false) => {
     try {
       setLoading(true);
-      const url = `${BASE_URL}ItemTransaction/GetPendingOverdue?cusCode=${user?.fCode}&search=${query}&pageNumber=${pageNum}&pageSize=30`;
+      
+      // Build URL with customer code from user object and search
+      const customerCode = user?.fCode || "00106";
+      const url = `${BASE_URL}ItemTransaction/GetPendingOverdue?cusCodes=${customerCode}&search=${query}&pageNumber=${pageNum}&pageSize=30`;
+      
       console.log("📡 Fetching overdue reports:", url);
 
       const res = await axios.get(url);
@@ -122,17 +200,33 @@ const OverdueReports = ({ navigation, route }) => {
           transaId: item.fTransaId,
           daysOverdue: item.daysOverdue || 0,
           dueFlag: item.dueFlag,
+          issueDate: formatIssueDate(item.fIssueDt), // Format issue date for grouping
+          rawIssueDt: item.fIssueDt, // Keep original for display
         }));
 
-        setReports((prev) => (append ? [...prev, ...mapped] : mapped));
+        const newReports = append ? [...reports, ...mapped] : mapped;
+        setReports(newReports);
+        
+        // Group the reports by issue date
+        const grouped = groupReportsByIssueDate(newReports);
+        setGroupedReports(grouped);
+        
         setTotalRecords(res.data.totalRecords || 0);
         setHasMore(res.data.data.length === 30);
       } else {
         setHasMore(false);
+        if (!append) {
+          setReports([]);
+          setGroupedReports([]);
+        }
       }
     } catch (err) {
       console.log("❌ Error fetching overdue reports:", err);
       setHasMore(false);
+      if (!append) {
+        setReports([]);
+        setGroupedReports([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -144,34 +238,6 @@ const OverdueReports = ({ navigation, route }) => {
       text: "Overdue", 
       color: daysOverdue > 0 ? "#d32f2f" : "#2d531a" 
     };
-  };
-
-  // ✅ Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    
-    try {
-      // Handle different date formats from API
-      if (dateString.includes('T')) {
-        // ISO format like "2025-08-18T16:16:15.31"
-        return new Date(dateString).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        });
-      } else {
-        // DD-MM-YYYY format like "16-08-2025"
-        const [day, month, year] = dateString.split('-');
-        return new Date(`${year}-${month}-${day}`).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        });
-      }
-    } catch (error) {
-      console.log("Date formatting error:", error);
-      return dateString;
-    }
   };
 
   // ✅ Generate Excel file
@@ -195,7 +261,8 @@ const OverdueReports = ({ navigation, route }) => {
         "Purity": item.purity || "N/A",
         "Theme": item.theme || "N/A",
         "Serial No": item.sNo || "N/A",
-        "Transaction ID": item.transaId || "N/A"
+        "Transaction ID": item.transaId || "N/A",
+        "Issue Date": item.issueDate || "N/A",
       }));
 
       // Create worksheet
@@ -330,7 +397,7 @@ const OverdueReports = ({ navigation, route }) => {
 
       const shareOptions = {
         title: "Share via WhatsApp",
-        message: `S.No: ${selectedItem.sNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}\nDesign: ${selectedItem.design}\nOrder No: ${selectedItem.orderNo}\nDays Overdue: ${selectedItem.daysOverdue}`,
+        message: `S.No: ${selectedItem.sNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}\nDesign: ${selectedItem.design}\nOrder No: ${selectedItem.orderNo}\nDays Overdue: ${selectedItem.daysOverdue}\nIssue Date: ${selectedItem.issueDate}`,
         url: uri,
         social: Share.Social.WHATSAPP,
       };
@@ -354,6 +421,16 @@ const OverdueReports = ({ navigation, route }) => {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // ✅ Render section header (Issue Date)
+  const renderSectionHeader = ({ section: { title } }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionHeaderText}>
+        Issue Date: {title}
+      </Text>
+    </View>
+  );
+
+  // ✅ Render individual item
   const renderItem = ({ item }) => {
     const overdueStatus = getOverdueStatus(item.daysOverdue);
     
@@ -461,6 +538,14 @@ const OverdueReports = ({ navigation, route }) => {
           <View style={styles.detailRow}>
             <Text style={styles.label}>Transa ID:</Text>
             <Text style={styles.value}>{item.transaId}</Text>
+          </View>
+
+          {/* Issue Date Time */}
+          <View style={styles.detailRow}>
+            <Text style={styles.label}>Issue Time:</Text>
+            <Text style={styles.value}>
+              {item.rawIssueDt ? item.rawIssueDt.split(' ')[1] : "N/A"}
+            </Text>
           </View>
 
         </View>
@@ -592,6 +677,12 @@ const OverdueReports = ({ navigation, route }) => {
                     <Text style={styles.detailLabel1}>Due Date :</Text>
                     <Text style={styles.detailValue1}>{formatDate(selectedItem.dueDate)}</Text>
                   </View>
+
+                  {/* Row 5 - Issue Date */}
+                  <View style={styles.detailRowFix}>
+                    <Text style={styles.detailLabel1}>Issue Date :</Text>
+                    <Text style={styles.detailValue1}>{selectedItem.issueDate}</Text>
+                  </View>
                 </View>
               )}
             </View>
@@ -690,10 +781,14 @@ const OverdueReports = ({ navigation, route }) => {
             <Text style={styles.statNumber}>{totalRecords}</Text>
             <Text style={styles.statLabel}>Total Overdue Orders</Text>
           </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{groupedReports.length}</Text>
+            <Text style={styles.statLabel}>Issue Dates</Text>
+          </View>
         </View>
       )}
 
-      {/* Cards list */}
+      {/* Grouped Cards list using SectionList */}
       {loading && page === 1 ? (
         <ActivityIndicator
           size="large"
@@ -701,10 +796,11 @@ const OverdueReports = ({ navigation, route }) => {
           style={{ marginTop: 20 }}
         />
       ) : (
-        <FlatList
-          data={reports}
-          renderItem={renderItem}
+        <SectionList
+          sections={groupedReports}
           keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
           contentContainerStyle={{ paddingBottom: 100 }}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -712,7 +808,9 @@ const OverdueReports = ({ navigation, route }) => {
                 source={require("../asserts/Search.png")}
                 style={styles.emptyImage}
               />
-              <Text style={styles.emptyText}>No overdue reports found.</Text>
+              <Text style={styles.emptyText}>
+                {search ? `No overdue reports found for "${search}"` : "No overdue reports found."}
+              </Text>
             </View>
           }
           onEndReached={() => {
@@ -737,6 +835,7 @@ const OverdueReports = ({ navigation, route }) => {
           maxToRenderPerBatch={15}
           windowSize={7}
           removeClippedSubviews={true}
+          stickySectionHeadersEnabled={true}
         />
       )}
 
@@ -798,7 +897,7 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "space-around",
     padding: 12,
     backgroundColor: "#fff",
     marginHorizontal: 10,
@@ -813,20 +912,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#d32f2f",
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#666",
     marginTop: 4,
+    textAlign: "center",
+  },
+  // Section Header Styles
+  sectionHeader: {
+    backgroundColor: "#2d531a",
+    padding: 12,
+    marginHorizontal: 10,
+    marginTop: 10,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  sectionHeaderText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
     textAlign: "center",
   },
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
     margin: 10,
+    marginTop: 5,
     padding: 12,
     shadowColor: "#000",
     shadowOpacity: 0.1,

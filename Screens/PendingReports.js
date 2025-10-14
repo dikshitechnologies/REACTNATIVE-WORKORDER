@@ -97,6 +97,51 @@ const PendingReports = ({ navigation, route }) => {
     );
   };
 
+  // ✅ Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    
+    try {
+      // Handle different date formats from API
+      if (dateString.includes('T')) {
+        // ISO format like "2025-08-04T21:59:06.317"
+        return new Date(dateString).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+      } else {
+        // DD-MM-YYYY format like "01-08-2025"
+        const [day, month, year] = dateString.split('-');
+        return new Date(`${year}-${month}-${day}`).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+      }
+    } catch (error) {
+      console.log("Date formatting error:", error);
+      return dateString;
+    }
+  };
+
+  // ✅ Get overdue status based on dueFlag and daysOverdue
+  const getOverdueStatus = (dueFlag, daysOverdue) => {
+    if (dueFlag === "Y") {
+      return { 
+        text: "Due Date Over", 
+        color: "#d32f2f", // Red color for overdue
+        days: daysOverdue || 0
+      };
+    } else {
+      return { 
+        text: "Pending", 
+        color: "#2d531a", // Green color for pending
+        days: 0
+      };
+    }
+  };
+
   // ✅ fetch reports with stable IDs
   const fetchReports = async (query = "", pageNum = 1, append = false) => {
     try {
@@ -127,6 +172,10 @@ const PendingReports = ({ navigation, route }) => {
           status: item.fStatus === "N" ? "Pending" : "Confirmed",
           transaId: item.fTransaId,
           artisan: user?.fAcname || "",
+          dueDate: item.fDueDate,
+          dueFlag: item.dueFlag,
+          daysOverdue: item.daysOverdue || 0,
+          issueDate: item.fIssueDate,
         }));
 
         setReports((prev) => (append ? [...prev, ...mapped] : mapped));
@@ -150,7 +199,10 @@ const PendingReports = ({ navigation, route }) => {
         "S.No": index + 1,
         "Issue No": item.issueNo || "N/A",
         "Order No": item.orderNo || "N/A",
-        "Order Date": item.orderDate ? item.orderDate.replace(/-/g, "/") : "N/A",
+        "Order Date": formatDate(item.orderDate),
+        "Due Date": formatDate(item.dueDate),
+        "Days Overdue": item.daysOverdue || 0,
+        "Status": item.status || "N/A",
         "Order Type": item.orderType || "N/A",
         "Product": item.product || "N/A",
         "Design": item.design || "N/A",
@@ -160,9 +212,9 @@ const PendingReports = ({ navigation, route }) => {
         "Purity": item.purity || "N/A",
         "Theme": item.theme || "N/A",
         "Serial No": item.sNo || "N/A",
-        "Status": item.status || "N/A",
         "Transaction ID": item.transaId || "N/A",
         "Artisan": item.artisan || "N/A",
+        "Due Status": item.dueFlag === "Y" ? "Overdue" : "Pending",
       }));
 
       // Create worksheet
@@ -281,126 +333,136 @@ const PendingReports = ({ navigation, route }) => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      {/* Card number */}
-      <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
+  const renderItem = ({ item }) => {
+    const overdueStatus = getOverdueStatus(item.dueFlag, item.daysOverdue);
+    
+    return (
+      <View style={styles.card}>
+        {/* Card number */}
+        <Text style={styles.cardNumber}>#{item.globalIndex}</Text>
 
-      {/* Product Image */}
-      <View style={styles.imageWrapper}>
-        <FallbackImage
-          fileName={item.design}
-          style={{ width: "100%", height: "100%" }}
-          onPress={(url) => {
-            setSelectedItem(item);
-            setFullscreenImage(url);
-          }}
+        {/* Overdue Badge */}
+        <View style={[styles.overdueBadge, { backgroundColor: overdueStatus.color }]}>
+          <Text style={styles.overdueBadgeText}>
+            {overdueStatus.text} {overdueStatus.days > 0 ? `(${overdueStatus.days} days)` : ""}
+          </Text>
+        </View>
 
-        />
+        {/* Product Image */}
+        <View style={styles.imageWrapper}>
+          <FallbackImage
+            fileName={item.design}
+            style={{ width: "100%", height: "100%" }}
+            onPress={(url) => {
+              setSelectedItem(item);
+              setFullscreenImage(url);
+            }}
+          />
+        </View>
+
+        {/* Details in new order */}
+        <View style={styles.detailsBox}>
+
+          {/* Design + S.No (highlighted) */}
+          <View style={styles.detailContainer}>
+            <View style={styles.detailRow}>
+              <Text style={[{
+                fontWeight: "bold",
+                width: wp("30%"),
+              }, styles.highlights]}>DESIGN:</Text>
+              <Text style={[{
+                width: wp("40%"),
+                marginRight: wp("5%"),
+              }, styles.highlight]}>{item.design}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={[{
+                fontWeight: "bold",
+                width: wp("30%"),
+              }, styles.highlights]}>SNO:</Text>
+              <Text style={[{
+                width: wp("40%"),
+                marginRight: wp("5%"),
+              }, styles.highlight]}>{item.sNo}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={[{
+                fontWeight: "bold",
+                width: wp("30%")
+              }, styles.highlights]}>ORDER NO:</Text>
+              <Text style={[styles.highlight, {
+                width: wp("40%"),
+                marginRight: wp("5%"),
+              }]}>{item.orderNo}</Text>
+            </View>
+          </View>
+
+          {/* Order Dates */}
+          <View style={styles.detailRow}>
+            <Text style={styles.label}>Order Date:</Text>
+            <Text style={styles.value}>{formatDate(item.orderDate)}</Text>
+            <Text style={styles.label}>Due Date:</Text>
+            <Text style={styles.value}>{formatDate(item.dueDate)}</Text>
+          </View>
+
+          {/* Weight + Size */}
+          <View style={styles.detailRow}>
+            <Text style={styles.label}>Weight:</Text>
+            <Text style={styles.value}>{item.weight}</Text>
+            <Text style={styles.label}>Size:</Text>
+            <Text style={styles.value}>{item.size}</Text>
+          </View>
+
+          {/* Product + Qty */}
+          <View style={styles.detailRow}>
+            <Text style={styles.label}>Product:</Text>
+            <Text style={styles.value}>{item.product}</Text>
+            <Text style={styles.label}>Qty:</Text>
+            <Text style={styles.value}>{item.qty}</Text>
+          </View>
+
+          {/* Order Type + Status */}
+          <View style={styles.detailRow}>
+            <Text style={styles.label}>Order Type:</Text>
+            <Text style={styles.value}>{item.orderType}</Text>
+            <Text style={styles.label}>Status:</Text>
+            <Text style={styles.value}>{item.status}</Text>
+          </View>
+
+          {/* Purity + Theme */}
+          <View style={styles.detailRow}>
+            <Text style={styles.label}>Purity:</Text>
+            <Text style={styles.value}>{item.purity}</Text>
+            <Text style={styles.label}>Theme:</Text>
+            <Text style={styles.value}>{item.theme}</Text>
+          </View>
+
+          {/* Transaction ID */}
+          <View style={styles.detailRow}>
+            <Text style={styles.label}>Transa ID:</Text>
+            <Text style={styles.value}>{item.transaId}</Text>
+          </View>
+
+        </View>
       </View>
+    );
+  };
 
-      {/* Details in new order */}
-      <View style={styles.detailsBox}>
-
-        {/* S.No + Design (highlighted) */}
-        <View style={styles.detailContainer}>
-          <View style={styles.detailRow}>
-            <Text style={[{
-              fontWeight: "bold",
-              width: wp("30%"),
-            }, styles.highlights]}>DESIGN:</Text>
-            <Text style={[{
-              width: wp("40%"),
-              marginRight: wp("5%"),
-            }, styles.highlight]}>{item.design}</Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={[{
-              fontWeight: "bold",
-              width: wp("30%"),
-            }, styles.highlights]}>SNO:</Text>
-            <Text style={[{
-              width: wp("40%"),
-              marginRight: wp("5%"),
-            }, styles.highlight]}>{item.sNo}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={[{
-              fontWeight: "bold",
-              width: wp("30%")
-            }, styles.highlights]}>ORDER NO:</Text>
-            <Text style={[styles.highlight, {
-              width: wp("40%"),
-              marginRight: wp("5%"),
-            }]}>{item.orderNo}</Text>
-          </View>
-        </View>
-
-        {/* Weight + Size */}
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Weight:</Text>
-          <Text style={styles.value}>{item.weight}</Text>
-          <Text style={styles.label}>Size:</Text>
-          <Text style={styles.value}>{item.size}</Text>
-        </View>
-
-        {/* Order No + Qty */}
-        <View style={styles.detailRow}>
-          {/* <Text style={styles.label}>Product:</Text>
-          <Text style={styles.value}>{item.product}</Text> */}
-          <Text style={styles.label}>Qty:</Text>
-          <Text style={styles.value}>{item.qty}</Text>
-        </View>
-
-        {/* Order Date + Order Type */}
-        {/* <View style={styles.detailRow}>
-          <Text style={styles.label}>Order Date:</Text>
-          <Text style={styles.value}>  {item.orderDate ? item.orderDate.replace(/-/g, "/") : ""}</Text>
-          <Text style={styles.label}>Order Type:</Text>
-          <Text style={styles.value}>{item.orderType}</Text>
-        </View> */}
-
-        {/* Purity + Theme */}
-        {/* <View style={styles.detailRow}>
-          <Text style={styles.label}>Purity:</Text>
-          <Text style={styles.value}>{item.purity}</Text>
-          <Text style={styles.label}>Theme:</Text>
-          <Text style={styles.value}>{item.theme}</Text>
-        </View> */}
-
-        {/* Status + Transa Id */}
-        {/* <View style={styles.detailRow}>
-          <Text style={styles.label}>Status:</Text>
-          <Text style={styles.value}>{item.status}</Text>
-          <Text style={styles.label}>Transa Id:</Text>
-          <Text style={styles.value}>{item.transaId}</Text>
-        </View> */}
-
-        {/* Product + Artisan */}
-        {/* <View style={styles.detailRow}>
-
-          <Text style={styles.label}>Artisan:</Text>
-          <Text style={styles.value}>{item.artisan}</Text>
-        </View> */}
-
-      </View>
-    </View>
-  );
   const printImage = async () => {
-  try {
-    if (!viewRef.current) return;
+    try {
+      if (!viewRef.current) return;
 
-    const uri = await captureRef(viewRef, {
-      format: "png",
-      quality: 1,
-    });
+      const uri = await captureRef(viewRef, {
+        format: "png",
+        quality: 1,
+      });
 
-    await RNPrint.print({ filePath: uri });
-  } catch (e) {
-    console.log("❌ Print error:", e);
-  }
-};
+      await RNPrint.print({ filePath: uri });
+    } catch (e) {
+      console.log("❌ Print error:", e);
+    }
+  };
 
   const shareToWhatsApp = async () => {
     try {
@@ -414,7 +476,7 @@ const PendingReports = ({ navigation, route }) => {
 
       const shareOptions = {
         title: "Share via WhatsApp",
-        message: `S.No: ${selectedItem.sNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}`,
+        message: `S.No: ${selectedItem.sNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}\nDesign: ${selectedItem.design}\nOrder No: ${selectedItem.orderNo}\nDue Date: ${formatDate(selectedItem.dueDate)}\nDays Overdue: ${selectedItem.daysOverdue}`,
         url: uri,
         social: Share.Social.WHATSAPP,
       };
@@ -456,9 +518,6 @@ const PendingReports = ({ navigation, route }) => {
         onRequestClose={() => setFullscreenImage(null)}
       >
         <View style={{ flex: 1, backgroundColor: "#000" }}>
-          {/* Close Button */}
-
-
           {/* Image Viewer */}
           <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
             <View
@@ -489,7 +548,7 @@ const PendingReports = ({ navigation, route }) => {
                  imageHeight={screenHeight * 0.75}
                  enableSwipeDown={false}
                  pinchToZoom={true}
-                 centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                 centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }}
                >
                  <Image
                    source={{ uri: fullscreenImage }}
@@ -504,7 +563,6 @@ const PendingReports = ({ navigation, route }) => {
              </View>
 
               {/* Details section */}
-              {/* SNo, Wt, Size, Qty details */}
               {selectedItem && (
                 <View
                   style={{
@@ -533,6 +591,8 @@ const PendingReports = ({ navigation, route }) => {
                     <Text style={styles.detailLabel1}>Qty :</Text>
                     <Text style={styles.detailValue1}>{selectedItem.qty}</Text>
                   </View>
+
+                  {/* Row 3 */}
                   <View style={styles.detailRowFix}>
                     <Text style={styles.detailLabel1}>Design :</Text>
                     <Text style={styles.detailValue1}>{selectedItem.design}</Text>
@@ -540,64 +600,75 @@ const PendingReports = ({ navigation, route }) => {
                     <Text style={styles.detailLabel1}>Order No :</Text>
                     <Text style={styles.detailValue1}>{selectedItem.orderNo}</Text>
                   </View>
+
+                  {/* Row 4 - Due Date Info */}
+                  <View style={styles.detailRowFix}>
+                    <Text style={styles.detailLabel1}>Due Date :</Text>
+                    <Text style={styles.detailValue1}>{formatDate(selectedItem.dueDate)}</Text>
+
+                    <Text style={styles.detailLabel1}>Days Overdue :</Text>
+                    <Text style={[styles.detailValue1, { 
+                      color: selectedItem.dueFlag === "Y" ? '#d32f2f' : '#2d531a',
+                      fontWeight: 'bold' 
+                    }]}>
+                      {selectedItem.daysOverdue}
+                    </Text>
+                  </View>
                 </View>
               )}
-
             </View>
           </ViewShot>
 
           {/* Buttons below */}
           <View
-  style={{
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    marginVertical: 20,
-  }}
->
-  <TouchableOpacity
-    onPress={() => setFullscreenImage(null)}
-    style={{
-      backgroundColor: "rgba(120,3,3,1)",
-      paddingVertical: 10,
-      paddingHorizontal: 20,
-      borderRadius: 10,
-    }}
-  >
-    <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
-  </TouchableOpacity>
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-evenly",
+              marginVertical: 20,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => setFullscreenImage(null)}
+              style={{
+                backgroundColor: "rgba(120,3,3,1)",
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                borderRadius: 10,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
+            </TouchableOpacity>
 
-  <TouchableOpacity
-    onPress={shareToWhatsApp}
-    style={{
-      backgroundColor: "#25D366",
-      paddingVertical: 10,
-      paddingHorizontal: 20,
-      borderRadius: 10,
-      flexDirection: "row",
-      alignItems: "center",
-    }}
-  >
-    <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
-    <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
-  </TouchableOpacity>
+            <TouchableOpacity
+              onPress={shareToWhatsApp}
+              style={{
+                backgroundColor: "#25D366",
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                borderRadius: 10,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
+            </TouchableOpacity>
 
-  <TouchableOpacity
-    onPress={printImage}
-    style={{
-      backgroundColor: "#2d531a",
-      paddingVertical: 10,
-      paddingHorizontal: 20,
-      borderRadius: 10,
-      flexDirection: "row",
-      alignItems: "center",
-    }}
-  >
-    <Ionicons name="print" size={22} color="#fff" style={{ marginRight: 8 }} />
-    <Text style={{ color: "#fff", fontWeight: "bold" }}>Print</Text>
-  </TouchableOpacity>
-</View>
-
-
+            <TouchableOpacity
+              onPress={printImage}
+              style={{
+                backgroundColor: "#2d531a",
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                borderRadius: 10,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Ionicons name="print" size={22} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>Print</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
 
@@ -737,6 +808,34 @@ const styles = StyleSheet.create({
     marginRight: 8,
     backgroundColor: '#fff',
   },
+  // Overdue Badge Styles
+  overdueBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    zIndex: 1,
+  },
+  overdueBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  cardNumber: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: "#2d531a",
+    color: "#fff",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: "bold",
+    zIndex: 1,
+  },
   // ... rest of your existing styles remain the same
   selectAllContainer: {
     flexDirection: "row",
@@ -777,7 +876,7 @@ const styles = StyleSheet.create({
   },
 
   detailLabel1: {
-    width: "20%",        // equal width columns
+    width: "20%",
     textAlign: "left",
     fontWeight: "bold",
     fontSize: 12,
@@ -785,7 +884,7 @@ const styles = StyleSheet.create({
   },
 
   detailValue1: {
-    width: "35%",        // equal width columns
+    width: "35%",
     textAlign: "left",
     fontSize: 11,
     color: "#000",
@@ -800,11 +899,13 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#000",
     width: wp("20%"),
+    fontSize: 12,
   },
   value: {
     color: "#000",
     width: wp("25%"),
     marginRight: wp("5%"),
+    fontSize: 12,
   },
   detailsRightImage: {
     width: wp("45%"),
@@ -933,6 +1034,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
+    position: "relative",
   },
   imageWrapper: {
     width: "100%",
@@ -940,6 +1042,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: "hidden",
     marginBottom: 12,
+    marginTop: 8,
   },
   detailsBox: {
     marginTop: 8,
