@@ -273,7 +273,7 @@ const AdminReports = ({ navigation }) => {
 
                         {/* Party Name with search icon */}
                         <Text style={{ marginBottom: 6, fontWeight: 'bold', color: "#2d531a" }}>Party Name</Text>
-                        <TouchableOpacity onPress={() => setShowPartyModal(true)}>
+                        <TouchableOpacity onPress={() => {fetchArtisans() ,setShowPartyModal(true)}}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <TextInput
                                     style={[styles.input, { flex: 1, marginRight: 8 }]}
@@ -322,7 +322,8 @@ const AdminReports = ({ navigation }) => {
                                 <TextInput
                                     style={[styles.input, { backgroundColor: "#f9f9f9" }]}
                                     value={dueDays}
-                                    editable={false}
+                                    onChangeText={setDueDays}
+                                   
                                 />
                             </View>
                         ) : null}
