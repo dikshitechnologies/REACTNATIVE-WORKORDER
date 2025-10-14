@@ -36,11 +36,7 @@ const isTablet = DeviceInfo.isTablet();
 const AdminReports = ({ navigation }) => {
     const [partyName, setPartyName] = useState("");
     const [phoneWarning, setPhoneWarning] = useState("");
-
-
     const [phone, setPhone] = useState("");
-
-
     const [selectedPartyCode, setSelectedPartyCode] = useState(null);
 
     // Modal states
@@ -50,50 +46,6 @@ const AdminReports = ({ navigation }) => {
     // New state and ref for image sharing
     const viewRef = useRef();
     const [selectedItem, setSelectedItem] = useState(null);
-
-    const clearForm = () => {
-        setPartyName("");
-        setPhoneWarning("");
-        setPhone("");
-
-    };
-
-    const updateForm = async () => {
-        if (!selectedPartyCode) {
-            Alert.alert("Validation", "Please select a Party first");
-            return;
-        }
-        if (!phone) {
-            Alert.alert("Validation", "Please enter a phone number");
-            return;
-        }
-        if (phone.length !== 10) {
-            Alert.alert("Validation", "Phone number must be exactly 10 digits");
-            return;
-        }
-
-        try {
-            const res = await axios.put(
-                `${BASE_URL}Party/UpdatePhone?fCode=${selectedPartyCode}&phone=${phone}`
-            );
-
-            if (res.status === 200) {
-                Alert.alert("Success", "Phone updated successfully!");
-
-                // ✅ Clear form after success
-                setPartyName("");
-                setSelectedPartyCode(null);
-                setPhone("");
-                setPhoneWarning("");
-            } else {
-                Alert.alert("Error", "Failed to update phone number");
-            }
-        } catch (err) {
-            console.error("Update error:", err);
-            Alert.alert("Error", "Something went wrong");
-        }
-    };
-
 
     const [activeSection, setActiveSection] = useState(null);
     const [showArtisanModal, setShowArtisanModal] = useState(false);
@@ -122,6 +74,7 @@ const AdminReports = ({ navigation }) => {
     const [returnLoading, setReturnLoading] = useState(false);
     const [returnHasMore, setReturnHasMore] = useState(true);
     const [returnArtisanSearch, setReturnArtisanSearch] = useState("");
+    // States for Delivered
     const [deliveredShowArtisanModal, setDeliveredShowArtisanModal] = useState(false);
     const [deliveredSelectedArtisans, setDeliveredSelectedArtisans] = useState([]);
     const [deliveredSearchSNo, setDeliveredSearchSNo] = useState("");
@@ -131,23 +84,103 @@ const AdminReports = ({ navigation }) => {
     const [deliveredPageNumber, setDeliveredPageNumber] = useState(1);
     const [deliveredLoading, setDeliveredLoading] = useState(false); // ✅ FIX: Dedicated loading state
     const [fullscreenImage, setFullscreenImage] = useState(null); // holds the fileName (design)
-
     const [deliveredHasMore, setDeliveredHasMore] = useState(true);
     const [deliveredArtisanSearch, setDeliveredArtisanSearch] = useState("");
+
+    // States for Overdue Section
+    const [overdueTableData, setOverdueTableData] = useState([]);
+    const [overdueSelectedArtisans, setOverdueSelectedArtisans] = useState([]);
+    const [overdueSearch, setOverdueSearch] = useState("");
+    const [overduePageNumber, setOverduePageNumber] = useState(1);
+    const [overdueLoading, setOverdueLoading] = useState(false);
+    const [overdueHasMore, setOverdueHasMore] = useState(true);
+    const [overdueArtisanSearch, setOverdueArtisanSearch] = useState("");
+    const [showOverdueArtisanModal, setShowOverdueArtisanModal] = useState(false);
+    const [overdueTotalRecords, setOverdueTotalRecords] = useState(0);
+
+
+    const clearForm = () => {
+        setPartyName("");
+        setPhoneWarning("");
+        setPhone("");
+    };
+    
+    const formatDate = (dateString) => {
+        if (!dateString) return "N/A";
+        try {
+            // Handle ISO format like "2025-08-18T16:16:15.31"
+            if (dateString.includes('T')) {
+                return new Date(dateString).toLocaleDateString("en-GB");
+            }
+             // Handle "DD-MM-YYYY" format
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                const [day, month, year] = parts;
+                if(day && month && year && day.length === 2 && month.length === 2 && year.length === 4) {
+                   return `${day}/${month}/${year}`;
+                }
+            }
+            // Return original if format is unexpected
+            return dateString;
+        } catch (error) {
+            console.log("Date formatting error:", error);
+            return dateString; // Fallback
+        }
+    };
+
+    const updateForm = async () => {
+        if (!selectedPartyCode) {
+            Alert.alert("Validation", "Please select a Party first");
+            return;
+        }
+        if (!phone) {
+            Alert.alert("Validation", "Please enter a phone number");
+            return;
+        }
+        if (phone.length !== 10) {
+            Alert.alert("Validation", "Phone number must be exactly 10 digits");
+            return;
+        }
+
+        try {
+            const res = await axios.put(
+                `${BASE_URL}Party/UpdatePhone?fCode=${selectedPartyCode}&phone=${phone}`
+            );
+
+            if (res.status === 200) {
+                Alert.alert("Success", "Phone updated successfully!");
+                setPartyName("");
+                setSelectedPartyCode(null);
+                setPhone("");
+                setPhoneWarning("");
+            } else {
+                Alert.alert("Error", "Failed to update phone number");
+            }
+        } catch (err) {
+            console.error("Update error:", err);
+            Alert.alert("Error", "Something went wrong");
+        }
+    };
 
     const shareToWhatsApp = async () => {
         try {
             if (!viewRef.current || !selectedItem) return;
 
-            // Capture screenshot of the fullscreen view (image + overlay text)
             const uri = await captureRef(viewRef, {
                 format: "png",
                 quality: 0.9,
             });
 
+            let message = `S.No: ${selectedItem.sNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}\nDesign: ${selectedItem.design}\nOrder No: ${selectedItem.orderNo}`;
+
+            // Conditionally add overdue details
+            if (selectedItem.daysOverdue !== undefined) {
+                message += `\nDays Overdue: ${selectedItem.daysOverdue}\nDue Date: ${formatDate(selectedItem.dueDate)}`;
+            }
+
             const shareOptions = {
                 title: "Share via WhatsApp",
-                message: `Design: ${selectedItem.design}\nS.No: ${selectedItem.sNo}\nOrder No: ${selectedItem.orderNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}`,
+                message: message,
                 url: uri,
                 social: Share.Social.WHATSAPP,
             };
@@ -161,7 +194,6 @@ const AdminReports = ({ navigation }) => {
         }
     };
 
-    // ✅ Fallback image component
     const renderUserCreation = () => {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
@@ -215,9 +247,6 @@ const AdminReports = ({ navigation }) => {
                         </TouchableOpacity>
 
                         {/* Phone Number */}
-
-
-
                         {phoneWarning ? (
                             <Text
                                 style={{
@@ -346,7 +375,6 @@ const AdminReports = ({ navigation }) => {
         );
     };
 
-
     const returnUpdateData = async () => {
         if (returnSelectedRows.length === 0) {
             Alert.alert("Validation", "Please select at least one row to update");
@@ -430,6 +458,7 @@ const AdminReports = ({ navigation }) => {
             setReturnLoading(false);
         }
     };
+
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
             if (returnSelectedArtisans.length > 0) {
@@ -480,11 +509,10 @@ const AdminReports = ({ navigation }) => {
         );
     };
 
-
-    // ✅ Fetch artisan list
     useEffect(() => {
         fetchArtisans(1);
     }, []);
+
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
             if (selectedArtisans.length > 0) {   // ✅ only fetch when artisan(s) selected
@@ -501,7 +529,6 @@ const AdminReports = ({ navigation }) => {
         return () => clearTimeout(delayDebounce);
     }, [searchSNo, selectedArtisans]);
 
-    // ✅ FIX: useEffects to allow searching for artisans in each modal
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
             setArtisanPage(1);
@@ -525,6 +552,14 @@ const AdminReports = ({ navigation }) => {
         }, 500);
         return () => clearTimeout(delayDebounce);
     }, [returnArtisanSearch]);
+
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+            setArtisanPage(1);
+            fetchArtisans(1, overdueArtisanSearch);
+        }, 500);
+        return () => clearTimeout(delayDebounce);
+    }, [overdueArtisanSearch]);
 
 
     const fetchArtisans = async (page = 1, search = "") => {
@@ -561,7 +596,6 @@ const AdminReports = ({ navigation }) => {
         }
     };
 
-    // ✅ Fetch pending orders for artisans
     const fetchPendingOrders = async (selectedCodes, page = 1, search = "") => {
         if (!selectedCodes || selectedCodes.length === 0) return;
         setLoadings(true);
@@ -570,46 +604,57 @@ const AdminReports = ({ navigation }) => {
             const res = await axios.get(
                 `${BASE_URL}ItemTransaction/GetPendingAdmin?${cusCodes}&search=${search}&pageNumber=${page}&pageSize=30`
             );
-
+    
             if (res.data) {
-                const mapped = res.data.map((item, index) => ({
-                    id: `${page}-${index}`,
-                    issueNo: item.fIssueNo,
-                    transaId: item.fTransaId,
-                    product: item.fProduct,
-                    design: item.fDesign,
-                    orderNo: item.fOrderNo,
-                    orderType: item.fOrderType,
-                    orderDate: item.fOrderDate,
-                    weight: item.fWeight,
-                    size: item.fSize,
-                    qty: item.fQty,
-                    purity: item.fPurity,
-                    theme: item.fTheme,
-                    sNo: item.fSNo,
-                    status: item.fconfirmStatus === "N" ? "Undelivered" : "Delivered",
-                }));
-
-                if (page === 1) {
-                    setTableData(mapped);
+                // The API response seems to have a `data` property which is the array
+                const responseData = res.data.data || res.data;
+    
+                if (Array.isArray(responseData)) {
+                    const mapped = responseData.map((item, index) => ({
+                        id: `${page}-${index}`,
+                        issueNo: item.fIssueNo,
+                        transaId: item.fTransaId,
+                        product: item.fProduct,
+                        design: item.fDesign,
+                        orderNo: item.fOrderNo,
+                        orderType: item.fOrderType,
+                        orderDate: item.fOrderDate,
+                        weight: item.fWeight,
+                        size: item.fSize,
+                        qty: item.fQty,
+                        purity: item.fPurity,
+                        theme: item.fTheme,
+                        sNo: item.fSNo,
+                        status: item.fconfirmStatus === "N" ? "Undelivered" : "Delivered",
+                        returnFlag: item.fReturnFlag,
+                        dueFlag: item.dueFlag, // Capture dueFlag
+                        daysOverdue: item.daysOverdue, // Capture daysOverdue
+                    }));
+        
+                    if (page === 1) {
+                        setTableData(mapped);
+                    } else {
+                        setTableData((prev) => [...prev, ...mapped]);
+                    }
+        
+                    setHasMore(mapped.length === 30);
                 } else {
-                    setTableData((prev) => [...prev, ...mapped]);
+                    console.error("API response is not an array:", res.data);
+                    if (page === 1) setTableData([]);
+                    setHasMore(false);
                 }
-
-                // if less than 30 → no more pages
-                setHasMore(mapped.length === 30);
             }
         } catch (err) {
             console.error("Error fetching pending orders:", err);
-        }
-        finally {
-            setLoadings(false); // ✅ FIX: Was 'setLoading(false)', now correctly sets 'setLoadings(false)'
+            Alert.alert("Error", "Failed to fetch pending orders. Please try again.");
+        } finally {
+            setLoadings(false);
         }
     };
-    const fetchDeliveredOrders = async (selectedCodes, page = 1, search = "") => {
 
+    const fetchDeliveredOrders = async (selectedCodes, page = 1, search = "") => {
         if (!selectedCodes || selectedCodes.length === 0) return;
-        setDeliveredLoading(true); // ✅ FIX: Use dedicated loading state 'deliveredLoading'
+        setDeliveredLoading(true);
         try {
             const cusCodes = selectedCodes.map((c) => `cusCodes=${c}`).join("&");
             const res = await axios.get(
@@ -635,9 +680,9 @@ const AdminReports = ({ navigation }) => {
                 }));
 
                 if (page === 1) {
-                    setDeliveredTableData(mapped);   // 👈 FIXED
+                    setDeliveredTableData(mapped);
                 } else {
-                    setDeliveredTableData((prev) => [...prev, ...mapped]); // 👈 FIXED
+                    setDeliveredTableData((prev) => [...prev, ...mapped]);
                 }
 
                 setDeliveredHasMore(mapped.length === 30);
@@ -646,40 +691,104 @@ const AdminReports = ({ navigation }) => {
             console.error("Error fetching delivered orders:", err);
         }
         finally {
-            setDeliveredLoading(false); // ✅ FIX: Use dedicated loading state 'deliveredLoading'
+            setDeliveredLoading(false);
         }
     };
 
+    const fetchOverdueOrders = async (codes = [], page = 1, search = "") => {
+        if (!codes || codes.length === 0) {
+            setOverdueTableData([]);
+            setOverdueTotalRecords(0);
+            return;
+        }
+        setOverdueLoading(true);
+        try {
+            const cusCodesQuery = codes.map(code => `cusCodes=${code}`).join("&");
+            const url = `${BASE_URL}ItemTransaction/GetPendingOverdue?${cusCodesQuery}&search=${search}&pageNumber=${page}&pageSize=30`;
+            
+            const res = await axios.get(url);
 
+            if (res.data && Array.isArray(res.data.data)) {
+                const mappedData = res.data.data.map((item, index) => ({
+                    id: item.fTransaId?.toString() || `${page}-${index}`,
+                    issueNo: item.fIssueNo,
+                    orderNo: item.fOrderNo,
+                    orderDate: item.fOrderDate,
+                    dueDate: item.fDueDate,
+                    orderType: item.fOrderType,
+                    product: item.fProduct,
+                    design: item.fDesign,
+                    weight: item.fWeight,
+                    size: item.fSize || "N/A",
+                    qty: item.fQty,
+                    purity: item.fPurity,
+                    theme: item.fTheme,
+                    sNo: item.fSNo,
+                    status: item.fconfirmStatus === "N" ? "Pending" : "Confirmed",
+                    daysOverdue: item.daysOverdue || 0,
+                }));
+    
+                const currentData = page === 1 ? mappedData : [...overdueTableData, ...mappedData];
+                setOverdueTableData(currentData);
+                
+                const total = res.data.totalRecords || 0;
+                setOverdueTotalRecords(total);
+                setOverdueHasMore(currentData.length < total);
+            } else {
+                if (page === 1) {
+                    setOverdueTableData([]);
+                    setOverdueTotalRecords(0);
+                }
+                setOverdueHasMore(false);
+            }
+        } catch (error) {
+            console.error("Error fetching overdue orders:", error);
+            if (page === 1) {
+                setOverdueTableData([]);
+                setOverdueTotalRecords(0);
+            }
+            setOverdueHasMore(false);
+        } finally {
+            setOverdueLoading(false);
+        }
+    };
+    
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+            if (overdueSelectedArtisans.length > 0) {
+                setOverduePageNumber(1);
+                const codes = artisans
+                    .filter((a) => overdueSelectedArtisans.includes(a.id))
+                    .map((a) => a.code);
+                fetchOverdueOrders(codes, 1, overdueSearch);
+            } else {
+                setOverdueTableData([]);
+                setOverdueTotalRecords(0);
+            }
+        }, 500);
 
-    // ✅ Hardware back button
+        return () => clearTimeout(delayDebounce);
+    }, [overdueSearch, overdueSelectedArtisans]);
+
     useEffect(() => {
         const backAction = () => {
             if (activeSection) {
-                // If inside a section, go back to main instead of exit
                 setActiveSection(null);
                 return true;
             } else {
-                // Show confirmation alert
                 Alert.alert(
                     "Exit App",
                     "Are you sure you want to exit the app?",
                     [
-                        {
-                            text: "Cancel",
-                            onPress: () => null,
-                            style: "cancel",
-                        },
-                        {
-                            text: "Yes",
-                            onPress: () => {
-                                navigation.replace("Login"); // Navigate to Login
-                                BackHandler.exitApp();       // Exit app
-                            },
+                        { text: "Cancel", onPress: () => null, style: "cancel" },
+                        { text: "Yes", onPress: () => {
+                                navigation.replace("Login");
+                                BackHandler.exitApp();
+                            }
                         },
                     ]
                 );
-                return true; // prevent default behavior
+                return true;
             }
         };
 
@@ -691,35 +800,14 @@ const AdminReports = ({ navigation }) => {
         return () => backHandler.remove();
     }, [activeSection, navigation]);
 
-    // ✅ Table selection
     const toggleRow = (id) => {
         if (selectedRows.includes(id)) {
-            const newRows = selectedRows.filter((i) => i !== id);
-            setSelectedRows(newRows);
-            setSelectAll(newRows.length === tableData.length);
+            setSelectedRows(selectedRows.filter((i) => i !== id));
         } else {
-            const newRows = [...selectedRows, id];
-            setSelectedRows(newRows);
-            setSelectAll(newRows.length === tableData.length);
+            setSelectedRows([...selectedRows, id]);
         }
     };
 
-    const toggleSelectAll = () => {
-        if (selectAll) {
-            setSelectedRows([]);
-            setSelectAll(false);
-        } else {
-            const filteredIds = filteredData.map((item) => item.id);
-            setSelectedRows(filteredIds);
-            setSelectAll(true);
-        }
-    };
-
-    // ✅ Only filter by S.No / Design
-
-
-    // ✅ Update payload will use hidden fields
-    // ✅ Update payload will use hidden fields
     const updateData = async () => {
         if (selectedRows.length === 0) {
             alert("Please select at least one row.");
@@ -729,9 +817,9 @@ const AdminReports = ({ navigation }) => {
         const payload = selectedRows.map((id) => {
             const row = tableData.find((r) => r.id === id);
             return {
-                issueNo: row.issueNo,   // from API
-                sno: row.sNo,           // from API
-                transId: row.transaId   // from API
+                issueNo: row.issueNo,
+                sno: row.sNo,
+                transId: row.transaId
             };
         });
 
@@ -741,23 +829,16 @@ const AdminReports = ({ navigation }) => {
             const res = await axios.put(
                 `${BASE_URL}ItemTransaction/UpdateConfirmStatus`,
                 payload,
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
+                { headers: { "Content-Type": "application/json" } }
             );
 
             if (res.status === 200) {
                 alert("Update successful!");
                 clearSelection();
-                // Optionally refresh table
                 const codes = artisans
                     .filter((a) => selectedArtisans.includes(a.id))
                     .map((a) => a.code);
                 fetchPendingOrders(codes, 1, searchSNo);
-
-
             } else {
                 alert("Update failed. Please try again.");
             }
@@ -766,7 +847,6 @@ const AdminReports = ({ navigation }) => {
             alert("Error while updating data.");
         }
     };
-
 
     const clearSelection = () => {
         setSelectedRows([]);
@@ -780,7 +860,6 @@ const AdminReports = ({ navigation }) => {
         setLoadings(false);
     };
 
-
     const sections = [
         { id: "1", title: "User Creation", icon: require("../asserts/user.jpg") },
         { id: "2", title: "Pending", icon: require("../asserts/undelivered.jpg") },
@@ -789,6 +868,7 @@ const AdminReports = ({ navigation }) => {
         { id: "5", title: "Return List", icon: require("../asserts/returnlist.jpg") },
         { id: "6", title: "Overdue", icon: require("../asserts/overdue.png") },
     ];
+    
     const deliveredFilteredData = deliveredTableData.filter(
         (item) =>
             deliveredSearchSNo === "" ||
@@ -797,6 +877,7 @@ const AdminReports = ({ navigation }) => {
             item.product?.toLowerCase().includes(deliveredSearchSNo.toLowerCase()) ||
             item.orderNo?.toLowerCase().includes(deliveredSearchSNo.toLowerCase())
     );
+
     const renderDelivered = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
             {/* Header */}
@@ -1041,7 +1122,6 @@ const AdminReports = ({ navigation }) => {
                                 </TouchableOpacity>
                             )}
                             onEndReached={() => {
-                                // ✅ FIX: Use correct artisan pagination logic
                                 if (!loading && hasMore) {
                                     const nextPage = artisanPage + 1;
                                     setArtisanPage(nextPage);
@@ -1050,7 +1130,6 @@ const AdminReports = ({ navigation }) => {
                             }}
                             onEndReachedThreshold={0.5}
                             ListFooterComponent={
-                                // ✅ FIX: Use correct artisan loading state
                                 loading ? (
                                     <Text style={{ textAlign: "center", padding: 10 }}>
                                         Loading...
@@ -1161,7 +1240,6 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     )}
                     onEndReached={() => {
-                        // ✅ FIX: Use correct loading state check
                         if (!deliveredLoading && deliveredHasMore) {
                             const nextPage = deliveredPageNumber + 1;
                             setDeliveredPageNumber(nextPage);
@@ -1173,7 +1251,6 @@ const AdminReports = ({ navigation }) => {
                     }}
                     onEndReachedThreshold={0.5}
                     ListFooterComponent={
-                        // ✅ FIX: Improved footer with "No more data"
                         deliveredLoading ? (
                             <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text>
                         ) : !deliveredHasMore && deliveredTableData.length > 0 ? (
@@ -1181,7 +1258,7 @@ const AdminReports = ({ navigation }) => {
                         ) : null
                     }
                 />
-            ) : deliveredLoading ? ( // ✅ FIX: Use correct loading state
+            ) : deliveredLoading ? (
                 <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>Loading...</Text>
                 </View>
@@ -1216,7 +1293,7 @@ const AdminReports = ({ navigation }) => {
                         setDeliveredTableData([]);
                         setDeliveredPageNumber(1);
                         setDeliveredHasMore(true);
-                        setDeliveredLoading(false); // ✅ FIX: Reset correct loading state
+                        setDeliveredLoading(false);
                     }}
                 >
                     <Text style={styles.buttonText}>Clear</Text>
@@ -1225,8 +1302,6 @@ const AdminReports = ({ navigation }) => {
         </SafeAreaView>
     );
 
-
-    // ✅ Render Undelivered Section
     const renderUndelivered = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
             <View style={styles.header}>
@@ -1551,8 +1626,22 @@ const AdminReports = ({ navigation }) => {
                     contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
                     renderItem={({ item, index }) => (
                         <View style={styles.card}>
+                            {item.dueFlag === 'N' && (
+                                <View style={styles.undeliveredOverdueBadge}>
+                                    <Text style={styles.undeliveredOverdueBadgeText}>
+                                        Overdue ({item.daysOverdue} days)
+                                    </Text>
+                                </View>
+                            )}
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                <Text style={styles.cardNumber}>#{index + 1}</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 50 }}>
+                                    <Text style={styles.cardNumber}>#{index + 1}</Text>
+                                    {item.returnFlag === 'R' && (
+                                        <View style={styles.returnBadge}>
+                                            <Text style={styles.returnBadgeText}>Returned</Text>
+                                        </View>
+                                    )}
+                                </View>
                                 <TouchableOpacity onPress={() => toggleRow(item.id)}>
                                     <Ionicons
                                         name={selectedRows.includes(item.id) ? "checkbox" : "square-outline"}
@@ -1618,7 +1707,6 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     )}
                     onEndReached={() => {
-                        // ✅ FIX: Check 'loadings' instead of 'loading'
                         if (!loadings && hasMore) {
                             const nextPage = pageNumber + 1;
                             setPageNumber(nextPage);
@@ -1630,7 +1718,6 @@ const AdminReports = ({ navigation }) => {
                     }}
                     onEndReachedThreshold={0.5}
                     ListFooterComponent={
-                        // ✅ FIX: Improved footer with "No more data"
                         loadings ? (
                             <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text>
                         ) : !hasMore && tableData.length > 0 ? (
@@ -1679,6 +1766,7 @@ const AdminReports = ({ navigation }) => {
             </View>
         </SafeAreaView>
     );
+
     const renderReturn = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
             <View style={styles.header}>
@@ -1849,7 +1937,6 @@ const AdminReports = ({ navigation }) => {
                                 </TouchableOpacity>
                             )}
                             onEndReached={() => {
-                                // ✅ FIX: Use correct artisan pagination logic
                                 if (!loading && hasMore) {
                                     const nextPage = artisanPage + 1;
                                     setArtisanPage(nextPage);
@@ -1858,7 +1945,6 @@ const AdminReports = ({ navigation }) => {
                             }}
                             onEndReachedThreshold={0.5}
                             ListFooterComponent={
-                                // ✅ FIX: Use correct artisan loading state
                                 loading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null
                             }
                         />
@@ -1876,7 +1962,7 @@ const AdminReports = ({ navigation }) => {
                                 style={styles.updateButton}
                                 onPress={() => {
                                     setReturnShowArtisanModal(false);
-                                    setReturnPageNumber(1); // Reset data page number
+                                    setReturnPageNumber(1);
                                     const codes = artisans
                                         .filter((a) => returnSelectedArtisans.includes(a.id))
                                         .map((a) => a.code);
@@ -1981,7 +2067,6 @@ const AdminReports = ({ navigation }) => {
                     }}
                     onEndReachedThreshold={0.5}
                     ListFooterComponent={
-                        // ✅ FIX: Improved footer with "No more data"
                         returnLoading ? (
                             <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text>
                         ) : !returnHasMore && returnTableData.length > 0 ? (
@@ -2033,9 +2118,7 @@ const AdminReports = ({ navigation }) => {
                 <TouchableOpacity
                     style={styles.updateButton}
                     onPress={() => {
-                        returnUpdateData(); // first call your API update
-
-                        // then clear states
+                        returnUpdateData();
                         setReturnSelectedRows([]);
                         setReturnSelectedArtisans([]);
                         setReturnSearchSNo("");
@@ -2051,12 +2134,276 @@ const AdminReports = ({ navigation }) => {
             </View>
         </SafeAreaView>
     );
+    
+    const renderOverdue = () => (
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
+            {/* Header */}
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => setActiveSection(null)}>
+                    <Ionicons name="arrow-undo" size={30} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Overdue</Text>
+                <View style={{ width: 30 }} />
+            </View>
+
+            {/* Fullscreen Image Viewer with Sharing */}
+            <Modal
+                visible={!!fullscreenImage}
+                transparent={false}
+                onRequestClose={() => setFullscreenImage(null)}
+            >
+                <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+                    <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalImageContainer}>
+                                <ImageZoom
+                                    cropWidth={screenWidth}
+                                    cropHeight={screenHeight * 0.75}
+                                    imageWidth={screenWidth * 0.9}
+                                    imageHeight={screenHeight * 0.7}
+                                >
+                                    <Image
+                                        source={{ uri: fullscreenImage }}
+                                        style={styles.fullscreenImageStyle}
+                                    />
+                                </ImageZoom>
+                            </View>
+                            {selectedItem && (
+                                <View style={styles.modalDetailsContainer}>
+                                    <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>SNo :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.sNo}</Text>
+                                        <Text style={styles.detailLabel1}>Weight :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.weight}</Text>
+                                    </View>
+                                    <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>Size :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.size}</Text>
+                                        <Text style={styles.detailLabel1}>Qty :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.qty}</Text>
+                                    </View>
+                                    <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>Design :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.design}</Text>
+                                        <Text style={styles.detailLabel1}>Order No :</Text>
+                                        <Text style={styles.detailValue1}>{selectedItem.orderNo}</Text>
+                                    </View>
+                                     <View style={styles.detailRowFix}>
+                                        <Text style={styles.detailLabel1}>Days Overdue:</Text>
+                                        <Text style={[styles.detailValue1, { color: '#d32f2f', fontWeight: 'bold' }]}>{selectedItem.daysOverdue}</Text>
+                                        <Text style={styles.detailLabel1}>Due Date:</Text>
+                                        <Text style={styles.detailValue1}>{formatDate(selectedItem.dueDate)}</Text>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+                    </ViewShot>
+
+                    {/* Bottom buttons */}
+                    <View style={styles.modalFooterButtons}>
+                        <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
+                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={shareToWhatsApp} style={styles.modalShareButton}>
+                            <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
+                        </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
+            </Modal>
+
+            {/* Artisan Selection */}
+            <View style={{ padding: 12 }}>
+                <TouchableOpacity onPress={() => setShowOverdueArtisanModal(true)}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <TextInput
+                            style={[styles.input, { flex: 1, marginRight: 8}]}
+                            placeholder="Select Artisan"
+                            placeholderTextColor="#7c7c7c"
+                            value={
+                                overdueSelectedArtisans
+                                    .map(id => {
+                                        const artisan = artisans.find(a => a.id === id);
+                                        return artisan ? `${artisan.name} (${artisan.code})` : "";
+                                    })
+                                    .join(", ")
+                            }
+                            editable={false}
+                            pointerEvents="none"
+                        />
+                        <Ionicons name="search" size={26} color="#7c7c7c" />
+                    </View>
+                </TouchableOpacity>
+            </View>
+
+            {/* Search Bar */}
+            <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Search Design / S.No / Order No..."
+                    placeholderTextColor="#7c7c7c"
+                    value={overdueSearch}
+                    onChangeText={setOverdueSearch}
+                />
+            </View>
+
+            {/* Total Overdue Count */}
+            {overdueTableData.length > 0 && (
+                <View style={styles.statsContainer}>
+                    <View style={styles.statItem}>
+                        <Text style={styles.statNumber}>{overdueTotalRecords}</Text>
+                        <Text style={styles.statLabel}>Total Overdue Orders</Text>
+                    </View>
+                </View>
+            )}
+
+            {/* Artisan Modal for Overdue */}
+            <Modal visible={showOverdueArtisanModal} transparent animationType="slide">
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}>
+                    <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, maxHeight: "80%" }}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                            <Text style={{ fontSize: 18, fontWeight: "700" }}>Select Artisan</Text>
+                            <TouchableOpacity onPress={() => setShowOverdueArtisanModal(false)}>
+                                <Ionicons name="close" size={28} />
+                            </TouchableOpacity>
+                        </View>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Search Artisan"
+                            value={overdueArtisanSearch}
+                            onChangeText={setOverdueArtisanSearch}
+                        />
+                        <FlatList
+                            data={artisans}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item: artisan }) => (
+                                <TouchableOpacity
+                                    style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10 }}
+                                    onPress={() => {
+                                        if (overdueSelectedArtisans.includes(artisan.id)) {
+                                            setOverdueSelectedArtisans(overdueSelectedArtisans.filter((id) => id !== artisan.id));
+                                        } else {
+                                            setOverdueSelectedArtisans([...overdueSelectedArtisans, artisan.id]);
+                                        }
+                                    }}
+                                >
+                                    <Ionicons
+                                        name={overdueSelectedArtisans.includes(artisan.id) ? "checkbox" : "square-outline"}
+                                        size={22}
+                                        color="#2d531a"
+                                    />
+                                    <Text style={{ fontSize: 16, marginLeft: 8, color: "#2d531a" }}>{artisan.name} ({artisan.code})</Text>
+                                </TouchableOpacity>
+                            )}
+                            onEndReached={() => {
+                                if (!loading && hasMore) {
+                                    const nextPage = artisanPage + 1;
+                                    setArtisanPage(nextPage);
+                                    fetchArtisans(nextPage, overdueArtisanSearch);
+                                }
+                            }}
+                            onEndReachedThreshold={0.5}
+                            ListFooterComponent={loading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null}
+                        />
+                        <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 10 }}>
+                            <TouchableOpacity style={styles.clearButton} onPress={() => { setOverdueSelectedArtisans([]); setOverdueArtisanSearch(""); }}>
+                                <Text style={{ color: "#fff", fontWeight: "600" }}>Clear</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.updateButton} onPress={() => setShowOverdueArtisanModal(false)}>
+                                <Text style={{ color: "#fff", fontWeight: "600" }}>Apply</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Table */}
+            {overdueTableData.length > 0 ? (
+                <FlatList
+                    data={overdueTableData}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
+                    renderItem={({ item, index }) => (
+                        <View style={styles.card}>
+                            <Text style={styles.cardNumber}>#{index + 1}</Text>
+                            <View style={styles.overdueBadge}>
+                                <Text style={styles.overdueBadgeText}>
+                                    Overdue ({item.daysOverdue} days)
+                                </Text>
+                            </View>
+                            <View style={styles.imageWrapper}>
+                                <FallbackImage
+                                    fileName={item.design}
+                                    style={{ width: "100%", height: "100%" }}
+                                    onPress={(url) => {
+                                        setFullscreenImage(url);
+                                        setSelectedItem(item);
+                                    }}
+                                />
+                            </View>
+                            <View style={styles.detailsBox}>
+                                <View style={styles.detailContainer}>
+                                    <View style={styles.detailRow}><Text style={[styles.highlights, {width: wp("30%")}]}>DESIGN:</Text><Text style={[styles.highlight, {width: wp("40%"), marginRight: wp("5%")}]}>{item.design}</Text></View>
+                                    <View style={styles.detailRow}><Text style={[styles.highlights, {width: wp("30%")}]}>SNO:</Text><Text style={[styles.highlight, {width: wp("40%"), marginRight: wp("5%")}]}>{item.sNo}</Text></View>
+                                    <View style={styles.detailRow}><Text style={[styles.highlights, {width: wp("30%")}]}>ORDER NO:</Text><Text style={[styles.highlight, {width: wp("40%"), marginRight: wp("5%")}]}>{item.orderNo}</Text></View>
+                                </View>
+                                <View style={styles.detailRow}><Text style={styles.label}>Weight:</Text><Text style={styles.value}>{item.weight}</Text><Text style={styles.label}>Size:</Text><Text style={styles.value}>{item.size}</Text></View>
+                                <View style={styles.detailRow}><Text style={styles.label}>Product:</Text><Text style={styles.value}>{item.product}</Text><Text style={styles.label}>Qty:</Text><Text style={styles.value}>{item.qty}</Text></View>
+                                <View style={styles.detailRow}><Text style={styles.label}>Order Date:</Text><Text style={styles.value}>{formatDate(item.orderDate)}</Text><Text style={styles.label}>Due Date:</Text><Text style={styles.value}>{formatDate(item.dueDate)}</Text></View>
+                            </View>
+                        </View>
+                    )}
+                    onEndReached={() => {
+                        if (!overdueLoading && overdueHasMore) {
+                            const nextPage = overduePageNumber + 1;
+                            setOverduePageNumber(nextPage);
+                            const codes = artisans.filter(a => overdueSelectedArtisans.includes(a.id)).map(a => a.code);
+                            fetchOverdueOrders(codes, nextPage, overdueSearch);
+                        }
+                    }}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={overdueLoading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : !overdueHasMore && overdueTableData.length > 0 ? <Text style={{textAlign: 'center', padding: 10}}>No more data</Text> : null}
+                />
+            ) : overdueLoading ? (
+                <View style={styles.emptyContainer}><Text style={styles.emptyText}>Loading...</Text></View>
+            ) : overdueSelectedArtisans.length > 0 ? (
+                <View style={styles.emptyContainer}>
+                    <Image source={require("../asserts/Search.png")} style={styles.emptyImage} />
+                    <Text style={styles.emptyText}>No data found.</Text>
+                </View>
+            ) : (
+                <View style={styles.emptyContainer}>
+                    <Image source={require("../asserts/Search.png")} style={styles.emptyImage} />
+                    <Text style={styles.emptyText}>Select an artisan to view overdue items.</Text>
+                </View>
+            )}
+
+            {/* Footer */}
+            <View style={styles.footer}>
+                <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={() => {
+                        setOverdueSelectedArtisans([]);
+                        setOverdueSearch("");
+                        setOverdueArtisanSearch("");
+                        setOverdueTableData([]);
+                        setOverduePageNumber(1);
+                        setOverdueHasMore(true);
+                        setOverdueTotalRecords(0);
+                    }}
+                >
+                    <Text style={styles.buttonText}>Clear</Text>
+                </TouchableOpacity>
+            </View>
+        </SafeAreaView>
+    );
 
     const renderSectionScreen = () => {
         if (activeSection === "User Creation") return renderUserCreation();
         if (activeSection === "Pending") return renderUndelivered();
         if (activeSection === "Delivered") return renderDelivered();
         if (activeSection === "Return") return renderReturn();
+        if (activeSection === "Overdue") return renderOverdue();
         return (
             <View style={styles.sectionContainer}>
                 <View style={styles.header}>
@@ -2093,14 +2440,8 @@ const AdminReports = ({ navigation }) => {
                             "Logout",
                             "Are you sure you want to logout?",
                             [
-                                {
-                                    text: "Cancel",
-                                    style: "cancel",
-                                },
-                                {
-                                    text: "Yes",
-                                    onPress: () => navigation.navigate("Login"),
-                                },
+                                { text: "Cancel", style: "cancel" },
+                                { text: "Yes", onPress: () => navigation.navigate("Login") },
                             ],
                             { cancelable: true }
                         )
@@ -2118,7 +2459,6 @@ const AdminReports = ({ navigation }) => {
                 <View style={{ width: 30 }} />
             </View>
 
-            {/* 👇 MODIFIED BANNER JSX */}
             <View style={styles.bannerWrapper}>
                 <Image
                     source={require("../asserts/name.jpg")}
@@ -2165,7 +2505,6 @@ export default AdminReports;
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#f8f9f5" },
     header: {
-
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#2d531a",
@@ -2189,9 +2528,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
     },
     row: {
-        justifyContent: "space-around", // Changed to space-around for better alignment
+        justifyContent: "space-around",
     },
-    cardDashboard: { // Renamed from card to avoid conflict
+    cardDashboard: {
         backgroundColor: "#fff",
         borderRadius: 16,
         alignItems: "center",
@@ -2205,7 +2544,7 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         marginBottom: 20,
     },
-    card: { // Styles for the list items
+    card: {
         backgroundColor: "#fff",
         borderRadius: 12,
         margin: 10,
@@ -2237,6 +2576,8 @@ const styles = StyleSheet.create({
         right: 0,
         padding: 16,
         backgroundColor: "#f8f9f5",
+        borderTopWidth: 1,
+        borderColor: '#eee'
     },
     clearButton: {
         backgroundColor: "rgba(120, 3, 3, 1)",
@@ -2264,8 +2605,6 @@ const styles = StyleSheet.create({
         color: "#000",
         backgroundColor: "#fff",
     },
-
-    // 👇 NEW AND UPDATED BANNER STYLES
     bannerWrapper: {
         height: hp("25%"),
         width: "90%",
@@ -2304,7 +2643,6 @@ const styles = StyleSheet.create({
         textShadowRadius: 4,
         zIndex: 1,
     },
-    // Styles from PendingReports
     emptyContainer: {
         flex: 1,
         alignItems: "center",
@@ -2364,32 +2702,34 @@ const styles = StyleSheet.create({
     },
     value: {
         color: "#000",
-        width: wp("25%"),
+        width: wp("20%"),
         marginRight: wp("5%"),
     },
     cardNumber: {
         fontWeight: 'bold',
-        fontSize: 16,
-        color: '#555',
-        marginBottom: 10,
+        fontSize: 14,
+        color: '#000000ff',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        zIndex: 1,
     },
-    // Styles for Modal with sharing
     detailRowFix: {
         flexDirection: "row",
         justifyContent: "space-between",
         marginVertical: 4,
     },
     detailLabel1: {
-        width: "20%",
+        width: "22%",
         textAlign: "left",
         fontWeight: "bold",
         fontSize: 12,
         color: "#000",
     },
     detailValue1: {
-        width: "30%", // Adjusted for better fit
+        width: "28%",
         textAlign: "left",
-        fontSize: 12, // Increased for readability
+        fontSize: 12,
         color: "#000",
     },
     modalFooterButtons: {
@@ -2410,5 +2750,105 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         flexDirection: "row",
         alignItems: "center",
-    }
+    },
+    returnBadge: {
+        backgroundColor: '#ff9800', // Orange color
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 6,
+        marginLeft: 10,
+    },
+    returnBadgeText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    // Styles for Overdue Section
+    overdueBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: '#d32f2f',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        zIndex: 1,
+    },
+    overdueBadgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    // New styles for Overdue badge in Undelivered section
+    undeliveredOverdueBadge: {
+        position: 'absolute',
+        top: 15,
+        right: 50,
+        backgroundColor: '#d32f2f', // Red color
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        zIndex: 2, // Ensure it's on top
+    },
+    undeliveredOverdueBadgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    modalContent: {
+        flex: 1,
+        borderWidth: 2,
+        borderColor: "#000",
+        margin: 10,
+        padding: 10,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#fff",
+    },
+    modalImageContainer: {
+        width: '100%',
+        height: '75%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fullscreenImageStyle: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'contain',
+        alignSelf: 'center',
+    },
+    modalDetailsContainer: {
+        width: "95%",
+        marginTop: 20,
+        borderTopWidth: 1,
+        borderColor: "#eee",
+        paddingTop: 10,
+    },
+    statsContainer: {
+        flexDirection: "row",
+        justifyContent: "center",
+        padding: 12,
+        backgroundColor: "#fff",
+        marginHorizontal: 10,
+        borderRadius: 10,
+        marginBottom: 10,
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    statItem: {
+        alignItems: "center",
+    },
+    statNumber: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "#d32f2f",
+    },
+    statLabel: {
+        fontSize: 14,
+        color: "#666",
+        marginTop: 4,
+        textAlign: "center",
+    },
 });
