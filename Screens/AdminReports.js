@@ -1,3 +1,4 @@
+
 import {
     StyleSheet,
     Text,
@@ -98,13 +99,23 @@ const AdminReports = ({ navigation }) => {
     const [showOverdueArtisanModal, setShowOverdueArtisanModal] = useState(false);
     const [overdueTotalRecords, setOverdueTotalRecords] = useState(0);
 
+    // States for Return List Section
+    const [returnListTableData, setReturnListTableData] = useState([]);
+    const [returnListSelectedArtisans, setReturnListSelectedArtisans] = useState([]);
+    const [returnListSearch, setReturnListSearch] = useState("");
+    const [returnListPageNumber, setReturnListPageNumber] = useState(1);
+    const [returnListLoading, setReturnListLoading] = useState(false);
+    const [returnListHasMore, setReturnListHasMore] = useState(true);
+    const [returnListArtisanSearch, setReturnListArtisanSearch] = useState("");
+    const [showReturnListArtisanModal, setShowReturnListArtisanModal] = useState(false);
+
 
     const clearForm = () => {
         setPartyName("");
         setPhoneWarning("");
         setPhone("");
     };
-    
+
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         try {
@@ -112,12 +123,12 @@ const AdminReports = ({ navigation }) => {
             if (dateString.includes('T')) {
                 return new Date(dateString).toLocaleDateString("en-GB");
             }
-             // Handle "DD-MM-YYYY" format
+            // Handle "DD-MM-YYYY" format
             const parts = dateString.split('-');
             if (parts.length === 3) {
                 const [day, month, year] = parts;
-                if(day && month && year && day.length === 2 && month.length === 2 && year.length === 4) {
-                   return `${day}/${month}/${year}`;
+                if (day && month && year && day.length === 2 && month.length === 2 && year.length === 4) {
+                    return `${day}/${month}/${year}`;
                 }
             }
             // Return original if format is unexpected
@@ -459,6 +470,57 @@ const AdminReports = ({ navigation }) => {
         }
     };
 
+    const fetchReturnListOrders = async (codes = [], page = 1, search = "") => {
+        if (!codes || codes.length === 0) {
+            setReturnListTableData([]);
+            return;
+        }
+        setReturnListLoading(true);
+        try {
+            const cusCodesQuery = codes.map(code => `cusCodes=${code}`).join("&");
+            const url = `${BASE_URL}ItemTransaction/GetReturnList?${cusCodesQuery}&search=${search}&pageNumber=${page}&pageSize=30`;
+
+            const res = await axios.get(url);
+
+            if (res.data && Array.isArray(res.data.data)) {
+                const mappedData = res.data.data.map((item, index) => ({
+                    id: item.fTransaId?.toString() || `${page}-${index}`,
+                    issueNo: item.fIssueNo,
+                    orderNo: item.fOrderNo,
+                    orderDate: item.fOrderDate,
+                    dueDate: item.fDueDate,
+                    returnFlag: item.fReturnFlag,
+                    product: item.fProduct,
+                    design: item.fDesign,
+                    weight: item.fWeight,
+                    size: item.fSize || "N/A",
+                    qty: item.fQty,
+                    purity: item.fPurity,
+                    theme: item.fTheme,
+                    sNo: item.fSNo,
+                    status: item.fconfirmStatus === "N" ? "Pending" : "Confirmed",
+                    daysOverdue: item.daysOverdue || 0,
+                }));
+
+                const currentData = page === 1 ? mappedData : [...returnListTableData, ...mappedData];
+                setReturnListTableData(currentData);
+
+                const total = res.data.totalRecords || 0;
+                setReturnListHasMore(currentData.length < total);
+            } else {
+                if (page === 1) setReturnListTableData([]);
+                setReturnListHasMore(false);
+            }
+        } catch (error) {
+            console.error("Error fetching return list orders:", error);
+            if (page === 1) setReturnListTableData([]);
+            setReturnListHasMore(false);
+        } finally {
+            setReturnListLoading(false);
+        }
+    };
+
+
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
             if (returnSelectedArtisans.length > 0) {
@@ -531,6 +593,23 @@ const AdminReports = ({ navigation }) => {
 
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
+            if (returnListSelectedArtisans.length > 0) {
+                setReturnListPageNumber(1);
+                const codes = artisans
+                    .filter((a) => returnListSelectedArtisans.includes(a.id))
+                    .map((a) => a.code);
+                fetchReturnListOrders(codes, 1, returnListSearch);
+            } else {
+                setReturnListTableData([]);
+            }
+        }, 500);
+
+        return () => clearTimeout(delayDebounce);
+    }, [returnListSearch, returnListSelectedArtisans]);
+
+
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
             setArtisanPage(1);
             fetchArtisans(1, artisanSearch);
         }, 500);
@@ -552,6 +631,14 @@ const AdminReports = ({ navigation }) => {
         }, 500);
         return () => clearTimeout(delayDebounce);
     }, [returnArtisanSearch]);
+
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+            setArtisanPage(1);
+            fetchArtisans(1, returnListArtisanSearch);
+        }, 500);
+        return () => clearTimeout(delayDebounce);
+    }, [returnListArtisanSearch]);
 
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
@@ -604,11 +691,11 @@ const AdminReports = ({ navigation }) => {
             const res = await axios.get(
                 `${BASE_URL}ItemTransaction/GetPendingAdmin?${cusCodes}&search=${search}&pageNumber=${page}&pageSize=30`
             );
-    
+
             if (res.data) {
                 // The API response seems to have a `data` property which is the array
                 const responseData = res.data.data || res.data;
-    
+
                 if (Array.isArray(responseData)) {
                     const mapped = responseData.map((item, index) => ({
                         id: `${page}-${index}`,
@@ -630,13 +717,13 @@ const AdminReports = ({ navigation }) => {
                         dueFlag: item.dueFlag, // Capture dueFlag
                         daysOverdue: item.daysOverdue, // Capture daysOverdue
                     }));
-        
+
                     if (page === 1) {
                         setTableData(mapped);
                     } else {
                         setTableData((prev) => [...prev, ...mapped]);
                     }
-        
+
                     setHasMore(mapped.length === 30);
                 } else {
                     console.error("API response is not an array:", res.data);
@@ -705,7 +792,7 @@ const AdminReports = ({ navigation }) => {
         try {
             const cusCodesQuery = codes.map(code => `cusCodes=${code}`).join("&");
             const url = `${BASE_URL}ItemTransaction/GetPendingOverdue?${cusCodesQuery}&search=${search}&pageNumber=${page}&pageSize=30`;
-            
+
             const res = await axios.get(url);
 
             if (res.data && Array.isArray(res.data.data)) {
@@ -727,10 +814,10 @@ const AdminReports = ({ navigation }) => {
                     status: item.fconfirmStatus === "N" ? "Pending" : "Confirmed",
                     daysOverdue: item.daysOverdue || 0,
                 }));
-    
+
                 const currentData = page === 1 ? mappedData : [...overdueTableData, ...mappedData];
                 setOverdueTableData(currentData);
-                
+
                 const total = res.data.totalRecords || 0;
                 setOverdueTotalRecords(total);
                 setOverdueHasMore(currentData.length < total);
@@ -742,17 +829,20 @@ const AdminReports = ({ navigation }) => {
                 setOverdueHasMore(false);
             }
         } catch (error) {
-            console.error("Error fetching overdue orders:", error);
-            if (page === 1) {
+            if (error.response && error.response.status === 404) {
+                console.log("No overdue transactions found");
                 setOverdueTableData([]);
                 setOverdueTotalRecords(0);
+                setOverdueHasMore(false);
+            } else {
+                console.error("Error fetching overdue orders:", error);
             }
-            setOverdueHasMore(false);
         } finally {
             setOverdueLoading(false);
         }
+
     };
-    
+
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
             if (overdueSelectedArtisans.length > 0) {
@@ -781,7 +871,8 @@ const AdminReports = ({ navigation }) => {
                     "Are you sure you want to exit the app?",
                     [
                         { text: "Cancel", onPress: () => null, style: "cancel" },
-                        { text: "Yes", onPress: () => {
+                        {
+                            text: "Yes", onPress: () => {
                                 navigation.replace("Login");
                                 BackHandler.exitApp();
                             }
@@ -868,7 +959,7 @@ const AdminReports = ({ navigation }) => {
         { id: "5", title: "Return List", icon: require("../asserts/returnlist.jpg") },
         { id: "6", title: "Overdue", icon: require("../asserts/overdue.png") },
     ];
-    
+
     const deliveredFilteredData = deliveredTableData.filter(
         (item) =>
             deliveredSearchSNo === "" ||
@@ -1301,7 +1392,14 @@ const AdminReports = ({ navigation }) => {
             </View>
         </SafeAreaView>
     );
-
+    const groupByIssueDate = (data) => {
+        return data.reduce((groups, item) => {
+            const date = new Date(item.issueNoDate || item.orderDate).toLocaleDateString("en-GB");
+            if (!groups[date]) groups[date] = [];
+            groups[date].push(item);
+            return groups;
+        }, {});
+    };
     const renderUndelivered = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
             <View style={styles.header}>
@@ -1621,109 +1719,157 @@ const AdminReports = ({ navigation }) => {
             {/* Table */}
             {tableData.length > 0 ? (
                 <FlatList
-                    data={tableData}
-                    keyExtractor={(item) => item.id.toString()}
+                    data={Object.entries(groupByIssueDate(tableData))}
+                    keyExtractor={([date]) => date}
                     contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
-                    renderItem={({ item, index }) => (
-                        <View style={styles.card}>
-                            {item.dueFlag === 'N' && (
-                                <View style={styles.undeliveredOverdueBadge}>
-                                    <Text style={styles.undeliveredOverdueBadgeText}>
-                                        Overdue ({item.daysOverdue} days)
-                                    </Text>
-                                </View>
-                            )}
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 50 }}>
-                                    <Text style={styles.cardNumber}>#{index + 1}</Text>
-                                    {item.returnFlag === 'R' && (
-                                        <View style={styles.returnBadge}>
-                                            <Text style={styles.returnBadgeText}>Returned</Text>
+                    renderItem={({ item: [date, items] }) => (
+                        <View style={{ marginBottom: 25 }}>
+                            {/* 🗓️ Date Heading */}
+                            <View style={styles.dateHeaderContainer}>
+                                <Text style={styles.dateHeaderText}>Issue Date: {date}</Text>
+                            </View>
+
+
+                            {/* 🧾 Cards for this date */}
+                            {items.map((item, index) => (
+                                <View key={item.id} style={styles.card}>
+                                    {item.dueFlag === "N" && (
+                                        <View style={styles.undeliveredOverdueBadge}>
+                                            <Text style={styles.undeliveredOverdueBadgeText}>
+                                                Overdue ({item.daysOverdue} days)
+                                            </Text>
                                         </View>
                                     )}
-                                </View>
-                                <TouchableOpacity onPress={() => toggleRow(item.id)}>
-                                    <Ionicons
-                                        name={selectedRows.includes(item.id) ? "checkbox" : "square-outline"}
-                                        size={28}
-                                        color="#2d531a"
-                                    />
-                                </TouchableOpacity>
-                            </View>
-                            <View style={styles.imageWrapper}>
-                                <FallbackImage
-                                    fileName={item.design}
-                                    style={{ width: "100%", height: "100%" }}
-                                    onPress={(url) => {
-                                        setFullscreenImage(url);
-                                        setSelectedItem(item);
-                                    }}
-                                />
-                            </View>
-                            <View style={styles.detailsBox}>
-                                <View style={styles.detailContainer}>
-                                    <View style={styles.detailRow}>
-                                        <Text style={[styles.highlights, { width: wp("30%") }]}>DESIGN:</Text>
-                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.design}</Text>
+
+                                    <View
+                                        style={{
+                                            flexDirection: "row",
+                                            justifyContent: "space-between",
+                                            alignItems: "center",
+                                            marginBottom: 10,
+                                        }}
+                                    >
+                                        <View
+                                            style={{
+                                                flexDirection: "row",
+                                                alignItems: "center",
+                                                flex: 1,
+                                                marginRight: 50,
+                                            }}
+                                        >
+                                            <Text style={styles.cardNumber}>#{index + 1}</Text>
+                                            {item.returnFlag === "R" && (
+                                                <View style={styles.returnBadge}>
+                                                    <Text style={styles.returnBadgeText}>Returned</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                        <TouchableOpacity onPress={() => toggleRow(item.id)}>
+                                            <Ionicons
+                                                name={
+                                                    selectedRows.includes(item.id)
+                                                        ? "checkbox"
+                                                        : "square-outline"
+                                                }
+                                                size={28}
+                                                color="#2d531a"
+                                            />
+                                        </TouchableOpacity>
                                     </View>
-                                    <View style={styles.detailRow}>
-                                        <Text style={[styles.highlights, { width: wp("30%") }]}>SNO:</Text>
-                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.sNo}</Text>
+
+                                    <View style={styles.imageWrapper}>
+                                        <FallbackImage
+                                            fileName={item.design}
+                                            style={{ width: "100%", height: "100%" }}
+                                            onPress={(url) => {
+                                                setFullscreenImage(url);
+                                                setSelectedItem(item);
+                                            }}
+                                        />
                                     </View>
-                                    <View style={styles.detailRow}>
-                                        <Text style={[styles.highlights, { width: wp("30%") }]}>ORDER NO:</Text>
-                                        <Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.orderNo}</Text>
+
+                                    <View style={styles.detailsBox}>
+                                        <View style={styles.detailContainer}>
+                                            <View style={styles.detailRow}>
+                                                <Text style={[styles.highlights, { width: wp("30%") }]}>
+                                                    DESIGN:
+                                                </Text>
+                                                <Text
+                                                    style={[
+                                                        styles.highlight,
+                                                        { width: wp("40%"), marginRight: wp("5%") },
+                                                    ]}
+                                                >
+                                                    {item.design}
+                                                </Text>
+                                            </View>
+                                            <View style={styles.detailRow}>
+                                                <Text style={[styles.highlights, { width: wp("30%") }]}>
+                                                    SNO:
+                                                </Text>
+                                                <Text
+                                                    style={[
+                                                        styles.highlight,
+                                                        { width: wp("40%"), marginRight: wp("5%") },
+                                                    ]}
+                                                >
+                                                    {item.sNo}
+                                                </Text>
+                                            </View>
+                                            <View style={styles.detailRow}>
+                                                <Text style={[styles.highlights, { width: wp("30%") }]}>
+                                                    ORDER NO:
+                                                </Text>
+                                                <Text
+                                                    style={[
+                                                        styles.highlight,
+                                                        { width: wp("40%"), marginRight: wp("5%") },
+                                                    ]}
+                                                >
+                                                    {item.orderNo}
+                                                </Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.label}>Weight:</Text>
+                                            <Text style={styles.value}>{item.weight}</Text>
+                                            <Text style={styles.label}>Size:</Text>
+                                            <Text style={styles.value}>{item.size}</Text>
+                                        </View>
+
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.label}>Product:</Text>
+                                            <Text style={styles.value}>{item.product}</Text>
+                                            <Text style={styles.label}>Qty:</Text>
+                                            <Text style={styles.value}>{item.qty}</Text>
+                                        </View>
+
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.label}>Order Date:</Text>
+                                            <Text style={styles.value}>
+                                                {new Date(item.orderDate).toLocaleDateString("en-GB")}
+                                            </Text>
+                                            <Text style={styles.label}>Order Type:</Text>
+                                            <Text style={styles.value}>{item.orderType}</Text>
+                                        </View>
+
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.label}>Purity:</Text>
+                                            <Text style={styles.value}>{item.purity}</Text>
+                                            <Text style={styles.label}>Theme:</Text>
+                                            <Text style={styles.value}>{item.theme}</Text>
+                                        </View>
+
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.label}>Status:</Text>
+                                            <Text style={styles.value}>{item.status}</Text>
+                                        </View>
                                     </View>
                                 </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.label}>Weight:</Text>
-                                    <Text style={styles.value}>{item.weight}</Text>
-                                    <Text style={styles.label}>Size:</Text>
-                                    <Text style={styles.value}>{item.size}</Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.label}>Product:</Text>
-                                    <Text style={styles.value}>{item.product}</Text>
-                                    <Text style={styles.label}>Qty:</Text>
-                                    <Text style={styles.value}>{item.qty}</Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.label}>Order Date:</Text>
-                                    <Text style={styles.value}>{new Date(item.orderDate).toLocaleDateString("en-GB")}</Text>
-                                    <Text style={styles.label}>Order Type:</Text>
-                                    <Text style={styles.value}>{item.orderType}</Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.label}>Purity:</Text>
-                                    <Text style={styles.value}>{item.purity}</Text>
-                                    <Text style={styles.label}>Theme:</Text>
-                                    <Text style={styles.value}>{item.theme}</Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.label}>Status:</Text>
-                                    <Text style={styles.value}>{item.status}</Text>
-                                </View>
-                            </View>
+                            ))}
                         </View>
                     )}
-                    onEndReached={() => {
-                        if (!loadings && hasMore) {
-                            const nextPage = pageNumber + 1;
-                            setPageNumber(nextPage);
-                            const codes = artisans
-                                .filter((a) => selectedArtisans.includes(a.id))
-                                .map((a) => a.code);
-                            fetchPendingOrders(codes, nextPage, searchSNo);
-                        }
-                    }}
-                    onEndReachedThreshold={0.5}
-                    ListFooterComponent={
-                        loadings ? (
-                            <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text>
-                        ) : !hasMore && tableData.length > 0 ? (
-                            <Text style={{ textAlign: "center", padding: 10 }}>No more data</Text>
-                        ) : null
-                    }
                 />
             ) : loadings ? (
                 <View style={styles.emptyContainer}>
@@ -2134,7 +2280,194 @@ const AdminReports = ({ navigation }) => {
             </View>
         </SafeAreaView>
     );
-    
+
+    const renderReturnList = () => (
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
+            {/* Header */}
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => setActiveSection(null)}>
+                    <Ionicons name="arrow-undo" size={30} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Return List</Text>
+                <View style={{ width: 30 }} />
+            </View>
+
+            {/* Fullscreen Image Viewer */}
+            <Modal visible={!!fullscreenImage} transparent={false} onRequestClose={() => setFullscreenImage(null)}>
+                <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+                    <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalImageContainer}>
+                                <ImageZoom
+                                    cropWidth={screenWidth}
+                                    cropHeight={screenHeight * 0.75}
+                                    imageWidth={screenWidth * 0.9}
+                                    imageHeight={screenHeight * 0.7}
+                                >
+                                    <Image source={{ uri: fullscreenImage }} style={styles.fullscreenImageStyle} />
+                                </ImageZoom>
+                            </View>
+                            {selectedItem && (
+                                <View style={styles.modalDetailsContainer}>
+                                    <View style={styles.detailRowFix}><Text style={styles.detailLabel1}>SNo :</Text><Text style={styles.detailValue1}>{selectedItem.sNo}</Text><Text style={styles.detailLabel1}>Weight :</Text><Text style={styles.detailValue1}>{selectedItem.weight}</Text></View>
+                                    <View style={styles.detailRowFix}><Text style={styles.detailLabel1}>Size :</Text><Text style={styles.detailValue1}>{selectedItem.size}</Text><Text style={styles.detailLabel1}>Qty :</Text><Text style={styles.detailValue1}>{selectedItem.qty}</Text></View>
+                                    <View style={styles.detailRowFix}><Text style={styles.detailLabel1}>Design :</Text><Text style={styles.detailValue1}>{selectedItem.design}</Text><Text style={styles.detailLabel1}>Order No :</Text><Text style={styles.detailValue1}>{selectedItem.orderNo}</Text></View>
+                                </View>
+                            )}
+                        </View>
+                    </ViewShot>
+                    <View style={styles.modalFooterButtons}>
+                        <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}><Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={shareToWhatsApp} style={styles.modalShareButton}><Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} /><Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text></TouchableOpacity>
+                    </View>
+                </SafeAreaView>
+            </Modal>
+
+            {/* Artisan Selection */}
+            <View style={{ padding: 12 }}>
+                <TouchableOpacity onPress={() => setShowReturnListArtisanModal(true)}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <TextInput
+                            style={[styles.input, { flex: 1, marginRight: 8 }]}
+                            placeholder="Select Artisan"
+                            placeholderTextColor="#7c7c7c"
+                            value={returnListSelectedArtisans.map(id => { const artisan = artisans.find(a => a.id === id); return artisan ? `${artisan.name} (${artisan.code})` : ""; }).join(", ")}
+                            editable={false}
+                            pointerEvents="none"
+                        />
+                        <Ionicons name="search" size={26} color="#7c7c7c" />
+                    </View>
+                </TouchableOpacity>
+            </View>
+
+            {/* Search Bar */}
+            <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Search Design / S.No / Order No..."
+                    placeholderTextColor="#7c7c7c"
+                    value={returnListSearch}
+                    onChangeText={setReturnListSearch}
+                />
+            </View>
+
+            {/* Artisan Modal */}
+            <Modal visible={showReturnListArtisanModal} transparent animationType="slide">
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}>
+                    <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, maxHeight: "80%" }}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                            <Text style={{ fontSize: 18, fontWeight: "700" }}>Select Artisan</Text>
+                            <TouchableOpacity onPress={() => setShowReturnListArtisanModal(false)}><Ionicons name="close" size={28} /></TouchableOpacity>
+                        </View>
+                        <TextInput style={styles.input} placeholder="Search Artisan" value={returnListArtisanSearch} onChangeText={setReturnListArtisanSearch} />
+                        <FlatList
+                            data={artisans}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item: artisan }) => (
+                                <TouchableOpacity
+                                    style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10 }}
+                                    onPress={() => {
+                                        if (returnListSelectedArtisans.includes(artisan.id)) {
+                                            setReturnListSelectedArtisans(returnListSelectedArtisans.filter((id) => id !== artisan.id));
+                                        } else {
+                                            setReturnListSelectedArtisans([...returnListSelectedArtisans, artisan.id]);
+                                        }
+                                    }}
+                                >
+                                    <Ionicons name={returnListSelectedArtisans.includes(artisan.id) ? "checkbox" : "square-outline"} size={22} color="#2d531a" />
+                                    <Text style={{ fontSize: 16, marginLeft: 8, color: "#2d531a" }}>{artisan.name} ({artisan.code})</Text>
+                                </TouchableOpacity>
+                            )}
+                            onEndReached={() => {
+                                if (!loading && hasMore) {
+                                    const nextPage = artisanPage + 1;
+                                    setArtisanPage(nextPage);
+                                    fetchArtisans(nextPage, returnListArtisanSearch);
+                                }
+                            }}
+                            onEndReachedThreshold={0.5}
+                            ListFooterComponent={loading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : null}
+                        />
+                        <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 10 }}>
+                            <TouchableOpacity style={styles.clearButton} onPress={() => { setReturnListSelectedArtisans([]); setReturnListArtisanSearch(""); }}><Text style={{ color: "#fff", fontWeight: "600" }}>Clear</Text></TouchableOpacity>
+                            <TouchableOpacity style={styles.updateButton} onPress={() => setShowReturnListArtisanModal(false)}><Text style={{ color: "#fff", fontWeight: "600" }}>Apply</Text></TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Table */}
+            {returnListTableData.length > 0 ? (
+                <FlatList
+                    data={returnListTableData}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
+                    renderItem={({ item, index }) => (
+                        <View style={styles.card}>
+                            <Text style={styles.cardNumber}>#{index + 1}</Text>
+                            {item.returnFlag === "R" && (
+                                <View style={[styles.returnBadge, { position: 'absolute', top: 8, right: 8, zIndex: 1 }]}>
+                                    <Text style={styles.returnBadgeText}>Returned</Text>
+                                </View>
+                            )}
+                            <View style={styles.imageWrapper}>
+                                <FallbackImage
+                                    fileName={item.design}
+                                    style={{ width: "100%", height: "100%" }}
+                                    onPress={(url) => { setFullscreenImage(url); setSelectedItem(item); }}
+                                />
+                            </View>
+                            <View style={styles.detailsBox}>
+                                <View style={styles.detailContainer}>
+                                    <View style={styles.detailRow}><Text style={[styles.highlights, { width: wp("30%") }]}>DESIGN:</Text><Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.design}</Text></View>
+                                    <View style={styles.detailRow}><Text style={[styles.highlights, { width: wp("30%") }]}>SNO:</Text><Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.sNo}</Text></View>
+                                    <View style={styles.detailRow}><Text style={[styles.highlights, { width: wp("30%") }]}>ORDER NO:</Text><Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.orderNo}</Text></View>
+                                </View>
+                                <View style={styles.detailRow}><Text style={styles.label}>Weight:</Text><Text style={styles.value}>{item.weight}</Text><Text style={styles.label}>Size:</Text><Text style={styles.value}>{item.size}</Text></View>
+                                <View style={styles.detailRow}><Text style={styles.label}>Product:</Text><Text style={styles.value}>{item.product}</Text><Text style={styles.label}>Qty:</Text><Text style={styles.value}>{item.qty}</Text></View>
+                                <View style={styles.detailRow}><Text style={styles.label}>Order Date:</Text><Text style={styles.value}>{formatDate(item.orderDate)}</Text><Text style={styles.label}>Due Date:</Text><Text style={styles.value}>{formatDate(item.dueDate)}</Text></View>
+                            </View>
+                        </View>
+                    )}
+                    onEndReached={() => {
+                        if (!returnListLoading && returnListHasMore) {
+                            const nextPage = returnListPageNumber + 1;
+                            setReturnListPageNumber(nextPage);
+                            const codes = artisans.filter(a => returnListSelectedArtisans.includes(a.id)).map(a => a.code);
+                            fetchReturnListOrders(codes, nextPage, returnListSearch);
+                        }
+                    }}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={returnListLoading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : !returnListHasMore && returnListTableData.length > 0 ? <Text style={{ textAlign: 'center', padding: 10 }}>No more data</Text> : null}
+                />
+            ) : returnListLoading ? (
+                <View style={styles.emptyContainer}><Text style={styles.emptyText}>Loading...</Text></View>
+            ) : returnListSelectedArtisans.length > 0 ? (
+                <View style={styles.emptyContainer}><Image source={require("../asserts/Search.png")} style={styles.emptyImage} /><Text style={styles.emptyText}>No data found.</Text></View>
+            ) : (
+                <View style={styles.emptyContainer}><Image source={require("../asserts/Search.png")} style={styles.emptyImage} /><Text style={styles.emptyText}>Select an artisan to view the return list.</Text></View>
+            )}
+
+            {/* Footer */}
+            <View style={styles.footer}>
+                <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={() => {
+                        setReturnListSelectedArtisans([]);
+                        setReturnListSearch("");
+                        setReturnListArtisanSearch("");
+                        setReturnListTableData([]);
+                        setReturnListPageNumber(1);
+                        setReturnListHasMore(true);
+                    }}
+                >
+                    <Text style={styles.buttonText}>Clear</Text>
+                </TouchableOpacity>
+            </View>
+        </SafeAreaView>
+    );
+
+
     const renderOverdue = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
             {/* Header */}
@@ -2188,7 +2521,7 @@ const AdminReports = ({ navigation }) => {
                                         <Text style={styles.detailLabel1}>Order No :</Text>
                                         <Text style={styles.detailValue1}>{selectedItem.orderNo}</Text>
                                     </View>
-                                     <View style={styles.detailRowFix}>
+                                    <View style={styles.detailRowFix}>
                                         <Text style={styles.detailLabel1}>Days Overdue:</Text>
                                         <Text style={[styles.detailValue1, { color: '#d32f2f', fontWeight: 'bold' }]}>{selectedItem.daysOverdue}</Text>
                                         <Text style={styles.detailLabel1}>Due Date:</Text>
@@ -2217,7 +2550,7 @@ const AdminReports = ({ navigation }) => {
                 <TouchableOpacity onPress={() => setShowOverdueArtisanModal(true)}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <TextInput
-                            style={[styles.input, { flex: 1, marginRight: 8}]}
+                            style={[styles.input, { flex: 1, marginRight: 8 }]}
                             placeholder="Select Artisan"
                             placeholderTextColor="#7c7c7c"
                             value={
@@ -2240,7 +2573,7 @@ const AdminReports = ({ navigation }) => {
             <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
                 <TextInput
                     style={styles.input}
-                    placeholder="Search Design / S.No / Order No..."
+                    placeholder="Search Design / Product / Size / Weight..."
                     placeholderTextColor="#7c7c7c"
                     value={overdueSearch}
                     onChangeText={setOverdueSearch}
@@ -2343,9 +2676,9 @@ const AdminReports = ({ navigation }) => {
                             </View>
                             <View style={styles.detailsBox}>
                                 <View style={styles.detailContainer}>
-                                    <View style={styles.detailRow}><Text style={[styles.highlights, {width: wp("30%")}]}>DESIGN:</Text><Text style={[styles.highlight, {width: wp("40%"), marginRight: wp("5%")}]}>{item.design}</Text></View>
-                                    <View style={styles.detailRow}><Text style={[styles.highlights, {width: wp("30%")}]}>SNO:</Text><Text style={[styles.highlight, {width: wp("40%"), marginRight: wp("5%")}]}>{item.sNo}</Text></View>
-                                    <View style={styles.detailRow}><Text style={[styles.highlights, {width: wp("30%")}]}>ORDER NO:</Text><Text style={[styles.highlight, {width: wp("40%"), marginRight: wp("5%")}]}>{item.orderNo}</Text></View>
+                                    <View style={styles.detailRow}><Text style={[styles.highlights, { width: wp("30%") }]}>DESIGN:</Text><Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.design}</Text></View>
+                                    <View style={styles.detailRow}><Text style={[styles.highlights, { width: wp("30%") }]}>SNO:</Text><Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.sNo}</Text></View>
+                                    <View style={styles.detailRow}><Text style={[styles.highlights, { width: wp("30%") }]}>ORDER NO:</Text><Text style={[styles.highlight, { width: wp("40%"), marginRight: wp("5%") }]}>{item.orderNo}</Text></View>
                                 </View>
                                 <View style={styles.detailRow}><Text style={styles.label}>Weight:</Text><Text style={styles.value}>{item.weight}</Text><Text style={styles.label}>Size:</Text><Text style={styles.value}>{item.size}</Text></View>
                                 <View style={styles.detailRow}><Text style={styles.label}>Product:</Text><Text style={styles.value}>{item.product}</Text><Text style={styles.label}>Qty:</Text><Text style={styles.value}>{item.qty}</Text></View>
@@ -2362,7 +2695,7 @@ const AdminReports = ({ navigation }) => {
                         }
                     }}
                     onEndReachedThreshold={0.5}
-                    ListFooterComponent={overdueLoading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : !overdueHasMore && overdueTableData.length > 0 ? <Text style={{textAlign: 'center', padding: 10}}>No more data</Text> : null}
+                    ListFooterComponent={overdueLoading ? <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text> : !overdueHasMore && overdueTableData.length > 0 ? <Text style={{ textAlign: 'center', padding: 10 }}>No more data</Text> : null}
                 />
             ) : overdueLoading ? (
                 <View style={styles.emptyContainer}><Text style={styles.emptyText}>Loading...</Text></View>
@@ -2403,6 +2736,7 @@ const AdminReports = ({ navigation }) => {
         if (activeSection === "Pending") return renderUndelivered();
         if (activeSection === "Delivered") return renderDelivered();
         if (activeSection === "Return") return renderReturn();
+        if (activeSection === "Return List") return renderReturnList();
         if (activeSection === "Overdue") return renderOverdue();
         return (
             <View style={styles.sectionContainer}>
@@ -2851,4 +3185,26 @@ const styles = StyleSheet.create({
         marginTop: 4,
         textAlign: "center",
     },
+    dateHeaderContainer: {
+        backgroundColor: "#e5f0db",     // soft greenish background
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 10,
+        marginVertical: 10,
+        marginHorizontal: 5,
+        alignSelf: "flex-start",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+
+    dateHeaderText: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#2d531a",
+        letterSpacing: 0.5,
+    },
+
 });
