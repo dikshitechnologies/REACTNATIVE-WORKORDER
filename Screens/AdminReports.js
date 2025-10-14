@@ -602,38 +602,50 @@ const AdminReports = ({ navigation }) => {
             const res = await axios.get(
                 `${BASE_URL}ItemTransaction/GetPendingAdmin?${cusCodes}&search=${search}&pageNumber=${page}&pageSize=30`
             );
-
+    
             if (res.data) {
-                const mapped = res.data.map((item, index) => ({
-                    id: `${page}-${index}`,
-                    issueNo: item.fIssueNo,
-                    transaId: item.fTransaId,
-                    product: item.fProduct,
-                    design: item.fDesign,
-                    orderNo: item.fOrderNo,
-                    orderType: item.fOrderType,
-                    orderDate: item.fOrderDate,
-                    weight: item.fWeight,
-                    size: item.fSize,
-                    qty: item.fQty,
-                    purity: item.fPurity,
-                    theme: item.fTheme,
-                    sNo: item.fSNo,
-                    status: item.fconfirmStatus === "N" ? "Undelivered" : "Delivered",
-                }));
-
-                if (page === 1) {
-                    setTableData(mapped);
+                // The API response seems to have a `data` property which is the array
+                const responseData = res.data.data || res.data;
+    
+                if (Array.isArray(responseData)) {
+                    const mapped = responseData.map((item, index) => ({
+                        id: `${page}-${index}`,
+                        issueNo: item.fIssueNo,
+                        transaId: item.fTransaId,
+                        product: item.fProduct,
+                        design: item.fDesign,
+                        orderNo: item.fOrderNo,
+                        orderType: item.fOrderType,
+                        orderDate: item.fOrderDate,
+                        weight: item.fWeight,
+                        size: item.fSize,
+                        qty: item.fQty,
+                        purity: item.fPurity,
+                        theme: item.fTheme,
+                        sNo: item.fSNo,
+                        status: item.fconfirmStatus === "N" ? "Undelivered" : "Delivered",
+                        returnFlag: item.fReturnFlag,
+                        dueFlag: item.dueFlag, // Capture dueFlag
+                        daysOverdue: item.daysOverdue, // Capture daysOverdue
+                    }));
+        
+                    if (page === 1) {
+                        setTableData(mapped);
+                    } else {
+                        setTableData((prev) => [...prev, ...mapped]);
+                    }
+        
+                    setHasMore(mapped.length === 30);
                 } else {
-                    setTableData((prev) => [...prev, ...mapped]);
+                    console.error("API response is not an array:", res.data);
+                    if (page === 1) setTableData([]);
+                    setHasMore(false);
                 }
-
-                setHasMore(mapped.length === 30);
             }
         } catch (err) {
             console.error("Error fetching pending orders:", err);
-        }
-        finally {
+            Alert.alert("Error", "Failed to fetch pending orders. Please try again.");
+        } finally {
             setLoadings(false);
         }
     };
@@ -1602,8 +1614,22 @@ const AdminReports = ({ navigation }) => {
                     contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
                     renderItem={({ item, index }) => (
                         <View style={styles.card}>
+                            {item.dueFlag === 'N' && (
+                                <View style={styles.undeliveredOverdueBadge}>
+                                    <Text style={styles.undeliveredOverdueBadgeText}>
+                                        Overdue ({item.daysOverdue} days)
+                                    </Text>
+                                </View>
+                            )}
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                <Text style={styles.cardNumber}>#{index + 1}</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 50 }}>
+                                    <Text style={styles.cardNumber}>#{index + 1}</Text>
+                                    {item.returnFlag === 'R' && (
+                                        <View style={styles.returnBadge}>
+                                            <Text style={styles.returnBadgeText}>Returned</Text>
+                                        </View>
+                                    )}
+                                </View>
                                 <TouchableOpacity onPress={() => toggleRow(item.id)}>
                                     <Ionicons
                                         name={selectedRows.includes(item.id) ? "checkbox" : "square-outline"}
@@ -2653,16 +2679,13 @@ const styles = StyleSheet.create({
     },
     value: {
         color: "#000",
-        width: wp("25%"),
+        width: wp("20%"),
         marginRight: wp("5%"),
     },
     cardNumber: {
         fontWeight: 'bold',
         fontSize: 14,
         color: '#fff',
-        position: 'absolute',
-        top: 8,
-        left: 8,
         backgroundColor: '#2d531a',
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -2706,6 +2729,18 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
+    returnBadge: {
+        backgroundColor: '#ff9800', // Orange color
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 6,
+        marginLeft: 10,
+    },
+    returnBadgeText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
     // Styles for Overdue Section
     overdueBadge: {
         position: 'absolute',
@@ -2718,6 +2753,22 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     overdueBadgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    // New styles for Overdue badge in Undelivered section
+    undeliveredOverdueBadge: {
+        position: 'absolute',
+        top: 15,
+        right: 50,
+        backgroundColor: '#d32f2f', // Red color
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        zIndex: 2, // Ensure it's on top
+    },
+    undeliveredOverdueBadgeText: {
         color: '#fff',
         fontSize: 10,
         fontWeight: 'bold',
