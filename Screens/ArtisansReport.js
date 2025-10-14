@@ -16,6 +16,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import axios from "axios";
 import { BASE_URL } from "./Links";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ArtisansReport = ({ navigation, route }) => {
   const user = route?.params?.user;
@@ -54,10 +55,36 @@ const ArtisansReport = ({ navigation, route }) => {
     return () => backHandler.remove();
   }, [navigation]);
 
-  // Fetch overdue data when component mounts
+  // Check if popup has been shown before and fetch overdue data
   useEffect(() => {
-    fetchOverdueData();
+    checkAndShowOverduePopup();
   }, []);
+
+  const checkAndShowOverduePopup = async () => {
+    try {
+      // Check if popup has been shown in this session
+      const popupShown = await AsyncStorage.getItem('overduePopupShown');
+      
+      if (!popupShown) {
+        // Popup hasn't been shown yet, fetch data and show it
+        await fetchOverdueData();
+        // Mark popup as shown for this session
+        await AsyncStorage.setItem('overduePopupShown', 'true');
+      }
+    } catch (error) {
+      console.log("❌ Error checking popup status:", error);
+    }
+  };
+
+  // Reset popup status when user logs out (optional - if you want to show again on next login)
+  // You can call this function when user logs out
+  const resetPopupStatus = async () => {
+    try {
+      await AsyncStorage.removeItem('overduePopupShown');
+    } catch (error) {
+      console.log("❌ Error resetting popup status:", error);
+    }
+  };
 
   const fetchOverdueData = async () => {
     try {
@@ -94,18 +121,6 @@ const ArtisansReport = ({ navigation, route }) => {
       }
     } catch (error) {
       return dateString;
-    }
-  };
-
-  const formatIssueDate = (issueDtString) => {
-    if (!issueDtString) return "Unknown Date";
-    
-    try {
-      const datePart = issueDtString.split(' ')[0];
-      const [day, month, year] = datePart.split('-');
-      return `${day}/${month}/${year}`;
-    } catch (error) {
-      return "Unknown Date";
     }
   };
 
@@ -147,7 +162,10 @@ const ArtisansReport = ({ navigation, route }) => {
                 },
                 {
                   text: "Yes",
-                  onPress: () => navigation.navigate("Login"),
+                  onPress: () => {
+                    resetPopupStatus(); // Reset popup status on logout
+                    navigation.navigate("Login");
+                  },
                 },
               ],
               { cancelable: true }
@@ -234,20 +252,30 @@ const ArtisansReport = ({ navigation, route }) => {
               {overdueData.map((item, index) => (
                 <View key={index} style={styles.overdueItem}>
                   <View style={styles.overdueItemHeader}>
-                    <Text style={styles.orderNo}>{item.fOrderNo}</Text>
-                    <Text style={styles.daysOverdue}>
-                      {item.daysOverdue || 0} days overdue
+                    <View style={styles.orderNoContainer}>
+                      <Text style={styles.orderNo} numberOfLines={1}>
+                        {item.fOrderNo}
+                      </Text>
+                    </View>
+                    <Text style={styles.daysOverdue} numberOfLines={1}>
+                      {item.daysOverdue || 0} days
                     </Text>
                   </View>
                   
                   <View style={styles.overdueDetails}>
-                    <Text style={styles.designText}>Design: {item.fDesign}</Text>
-                    <Text style={styles.snoText}>S.No: {item.fSNo}</Text>
+                    <Text style={styles.designText} numberOfLines={1}>
+                      Design: {item.fDesign}
+                    </Text>
+                    <Text style={styles.snoText} numberOfLines={1}>
+                      S.No: {item.fSNo}
+                    </Text>
                   </View>
 
                   <View style={styles.dateRow}>
                     <Text style={styles.dateLabel}>Due Date: </Text>
-                    <Text style={styles.dateValue}>{formatDate(item.fDueDate)}</Text>
+                    <Text style={styles.dateValue} numberOfLines={1}>
+                      {formatDate(item.fDueDate)}
+                    </Text>
                   </View>
 
                   {index < overdueData.length - 1 && (
@@ -446,60 +474,65 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: "#d32f2f",
   },
- 
   overdueItemHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start", // Changed from center to flex-start
+    alignItems: "flex-start",
     marginBottom: 8,
   },
+  orderNoContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
   orderNo: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "bold",
     color: "#2d531a",
-    flex: 1, // Added flex to allow wrapping
-    marginRight: 8, // Added spacing
   },
   daysOverdue: {
-    fontSize: 12, // Reduced font size
+    fontSize: 12,
     fontWeight: "bold",
     color: "#d32f2f",
     backgroundColor: "#ffebee",
-    paddingHorizontal: 6, // Reduced padding
-    paddingVertical: 3, // Reduced padding
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 6,
     textAlign: "center",
-    minWidth: 70, // Minimum width to maintain appearance
-    flexShrink: 0, // Prevent shrinking
+    minWidth: 80,
+    flexShrink: 0,
   },
- overdueDetails: {
+  overdueDetails: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 8,
   },
   designText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#555",
     fontWeight: "500",
+    flex: 1,
+    marginRight: 8,
   },
   snoText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#555",
     fontWeight: "500",
+    flexShrink: 0,
   },
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   dateLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#666",
     fontWeight: "500",
   },
   dateValue: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#d32f2f",
     fontWeight: "bold",
+    flex: 1,
   },
   separator: {
     height: 1,
