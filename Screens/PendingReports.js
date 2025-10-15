@@ -102,7 +102,7 @@ const PendingReports = ({ navigation, route }) => {
   // ✅ Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
-    
+
     try {
       // Handle different date formats from API
       if (dateString.includes('T')) {
@@ -130,7 +130,7 @@ const PendingReports = ({ navigation, route }) => {
   // ✅ Format date for grouping (YYYY-MM-DD format for consistent sorting)
   const formatDateForGrouping = (dateString) => {
     if (!dateString) return "Unknown Date";
-    
+
     try {
       if (dateString.includes('T')) {
         // ISO format
@@ -149,7 +149,7 @@ const PendingReports = ({ navigation, route }) => {
   // ✅ Get display date for section headers in dd/mm/yyyy format
   const getDisplayDate = (dateString) => {
     if (!dateString) return "Unknown Date";
-    
+
     try {
       if (dateString.includes('T')) {
         // ISO format - convert to dd/mm/yyyy
@@ -172,14 +172,14 @@ const PendingReports = ({ navigation, route }) => {
   // ✅ Get overdue status based on dueFlag and daysOverdue
   const getOverdueStatus = (dueFlag, daysOverdue) => {
     if (dueFlag === "N") {
-      return { 
-        text: "Due Date Over", 
+      return {
+        text: "Due Date Over",
         color: "#d32f2f", // Red color for overdue
         days: daysOverdue || 0
       };
     } else {
-      return { 
-        text: "Pending", 
+      return {
+        text: "Pending",
         color: "#2d531a", // Green color for pending
         days: 0
       };
@@ -189,8 +189,8 @@ const PendingReports = ({ navigation, route }) => {
   // ✅ Get return flag status based on fReturnFlag - Only show for "R"
   const getReturnFlagStatus = (returnFlag) => {
     if (returnFlag === "R") {
-      return { 
-        text: "Returned", 
+      return {
+        text: "Returned",
         color: "#ff9800" // Orange color for return
       };
     } else {
@@ -201,7 +201,7 @@ const PendingReports = ({ navigation, route }) => {
   // ✅ Group reports by issue date
   const groupReportsByDate = (reportsData) => {
     const grouped = {};
-    
+
     reportsData.forEach((item) => {
       const issueDate = formatDateForGrouping(item.issueDate);
       if (!grouped[issueDate]) {
@@ -260,11 +260,11 @@ const PendingReports = ({ navigation, route }) => {
 
         const newReports = append ? [...reports, ...mapped] : mapped;
         setReports(newReports);
-        
+
         // Group the reports by issue date
         const grouped = groupReportsByDate(newReports);
         setGroupedReports(grouped);
-        
+
         setHasMore(res.data.data.length === 30);
       } else {
         setHasMore(false);
@@ -319,7 +319,7 @@ const PendingReports = ({ navigation, route }) => {
       // Generate file name with timestamp
       const timestamp = new Date().toISOString().split('T')[0];
       const fileName = `Pending_Reports_${timestamp}.xlsx`;
-      
+
       // Generate file path
       let filePath = '';
       if (Platform.OS === 'android') {
@@ -333,7 +333,7 @@ const PendingReports = ({ navigation, route }) => {
 
       // Write file
       await RNFS.writeFile(filePath, wbout, 'ascii');
-      
+
       console.log("✅ Excel file saved at:", filePath);
       return { filePath, fileName };
 
@@ -383,13 +383,13 @@ const PendingReports = ({ navigation, route }) => {
   //         subject: 'Pending Reports Export',
   //         message: `Pending Reports Data (${reports.length} records)`,
   //       });
-        
+
   //       Alert.alert(
   //         "Success",
   //         `Excel file has been generated successfully!\n\nFile: ${fileName}\nRecords: ${reports.length}`,
   //         [{ text: "OK" }]
   //       );
-        
+
   //     } catch (shareError) {
   //       console.log('Share cancelled or failed:', shareError);
   //       // If share is cancelled, still show success message
@@ -413,116 +413,116 @@ const PendingReports = ({ navigation, route }) => {
   // };
 
   // ✅ Actual export function (fetches ALL pages before generating Excel)
-const exportToExcel = async () => {
-  try {
-    setExportLoading(true);
-    console.log("📡 Starting full data export for:", user?.fCode);
-
-    let allData = [];
-    let pageNumber = 1;
-    const pageSize = 100; // fetch 100 per page for faster export
-    let hasMore = true;
-
-    // 🔁 Fetch all pages until no more data
-    while (hasMore) {
-      const url = `${BASE_URL}ItemTransaction/GetPendingByCustomer?cusCode=${user?.fCode}&search=&pageNumber=${pageNumber}&pageSize=${pageSize}`;
-      console.log(`➡️ Fetching page ${pageNumber}:`, url);
-
-      const res = await axios.get(url);
-      const data = res.data?.data || [];
-
-      if (data.length > 0) {
-        allData = [...allData, ...data];
-        pageNumber++;
-        hasMore = data.length === pageSize; // continue if we got full page
-      } else {
-        hasMore = false;
-      }
-    }
-
-    console.log(`✅ Total records fetched for Excel: ${allData.length}`);
-
-    if (allData.length === 0) {
-      Alert.alert("No Data", "There is no data to export.");
-      return;
-    }
-
-    // 🧾 Format all fetched data for Excel
-    const excelData = allData.map((item, index) => ({
-      "S.No": index + 1,
-      "Issue No": item.fIssueNo || "N/A",
-      "Order No": item.fOrderNo || "N/A",
-      "Order Date": formatDate(item.fOrderDate),
-      "Issue Date": formatDate(item.fIssueDate),
-      "Due Date": formatDate(item.fDueDate),
-      "Days Overdue": item.daysOverdue || 0,
-      "Status": item.fStatus === "N" ? "Pending" : "Confirmed",
-      "Order Type": item.fOrderType || "N/A",
-      "Product": item.fProduct || "N/A",
-      "Design": item.fDesign || "N/A",
-      "Weight": item.fWeight || "N/A",
-      "Size": item.fSize || "N/A",
-      "Quantity": item.fQty || "N/A",
-      "Purity": item.fPurity || "N/A",
-      "Theme": item.fTheme || "N/A",
-      "Serial No": item.fSNo || "N/A",
-      "Transaction ID": item.fTransaId || "N/A",
-      "Artisan": user?.fAcname || "N/A",
-      "Due Status": item.dueFlag === "N" ? "Overdue" : "Pending",
-    }));
-
-    // 📘 Create Excel workbook
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Pending Reports");
-
-    // 📁 Create file name + path
-    const timestamp = new Date().toISOString().split("T")[0];
-    const fileName = `Pending_Reports_${timestamp}.xlsx`;
-    const filePath =
-      Platform.OS === "android"
-        ? `${RNFS.DownloadDirectoryPath}/${fileName}`
-        : `${RNFS.DocumentDirectoryPath}/${fileName}`;
-
-    // 🧱 Write Excel file
-    const wbout = XLSX.write(wb, { type: "binary", bookType: "xlsx" });
-    await RNFS.writeFile(filePath, wbout, "ascii");
-    console.log("✅ Excel file saved at:", filePath);
-
-    // 📤 Share Excel file
+  const exportToExcel = async () => {
     try {
-      await Share.open({
-        url: `file://${filePath}`,
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        filename: fileName,
-        subject: "Pending Reports Export",
-        message: `Pending Reports for ${user?.fAcname} (${allData.length} records)`,
-      });
+      setExportLoading(true);
+      console.log("📡 Starting full data export for:", user?.fCode);
 
+      let allData = [];
+      let pageNumber = 1;
+      const pageSize = 100; // fetch 100 per page for faster export
+      let hasMore = true;
+
+      // 🔁 Fetch all pages until no more data
+      while (hasMore) {
+        const url = `${BASE_URL}ItemTransaction/GetPendingByCustomer?cusCode=${user?.fCode}&search=&pageNumber=${pageNumber}&pageSize=${pageSize}`;
+        console.log(`➡️ Fetching page ${pageNumber}:`, url);
+
+        const res = await axios.get(url);
+        const data = res.data?.data || [];
+
+        if (data.length > 0) {
+          allData = [...allData, ...data];
+          pageNumber++;
+          hasMore = data.length === pageSize; // continue if we got full page
+        } else {
+          hasMore = false;
+        }
+      }
+
+      console.log(`✅ Total records fetched for Excel: ${allData.length}`);
+
+      if (allData.length === 0) {
+        Alert.alert("No Data", "There is no data to export.");
+        return;
+      }
+
+      // 🧾 Format all fetched data for Excel
+      const excelData = allData.map((item, index) => ({
+        "S.No": index + 1,
+        "Issue No": item.fIssueNo || "N/A",
+        "Order No": item.fOrderNo || "N/A",
+        "Order Date": formatDate(item.fOrderDate),
+        "Issue Date": formatDate(item.fIssueDate),
+        "Due Date": formatDate(item.fDueDate),
+        "Days Overdue": item.daysOverdue || 0,
+        "Status": item.fStatus === "N" ? "Pending" : "Confirmed",
+        "Order Type": item.fOrderType || "N/A",
+        "Product": item.fProduct || "N/A",
+        "Design": item.fDesign || "N/A",
+        "Weight": item.fWeight || "N/A",
+        "Size": item.fSize || "N/A",
+        "Quantity": item.fQty || "N/A",
+        "Purity": item.fPurity || "N/A",
+        "Theme": item.fTheme || "N/A",
+        "Serial No": item.fSNo || "N/A",
+        "Transaction ID": item.fTransaId || "N/A",
+        "Artisan": user?.fAcname || "N/A",
+        "Due Status": item.dueFlag === "N" ? "Overdue" : "Pending",
+      }));
+
+      // 📘 Create Excel workbook
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Pending Reports");
+
+      // 📁 Create file name + path
+      const timestamp = new Date().toISOString().split("T")[0];
+      const fileName = `Pending_Reports_${timestamp}.xlsx`;
+      const filePath =
+        Platform.OS === "android"
+          ? `${RNFS.DownloadDirectoryPath}/${fileName}`
+          : `${RNFS.DocumentDirectoryPath}/${fileName}`;
+
+      // 🧱 Write Excel file
+      const wbout = XLSX.write(wb, { type: "binary", bookType: "xlsx" });
+      await RNFS.writeFile(filePath, wbout, "ascii");
+      console.log("✅ Excel file saved at:", filePath);
+
+      // 📤 Share Excel file
+      try {
+        await Share.open({
+          url: `file://${filePath}`,
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          filename: fileName,
+          subject: "Pending Reports Export",
+          message: `Pending Reports for ${user?.fAcname} (${allData.length} records)`,
+        });
+
+        Alert.alert(
+          "✅ Export Successful",
+          `Excel file exported successfully!\n\nFile: ${fileName}\nRecords: ${allData.length}`,
+          [{ text: "OK" }]
+        );
+      } catch (shareError) {
+        console.log("⚠️ Share cancelled or failed:", shareError);
+        Alert.alert(
+          "✅ Export Successful",
+          `Excel file generated successfully!\n\nFile: ${fileName}\nRecords: ${allData.length}\nSaved at:\n${filePath}`,
+          [{ text: "OK" }]
+        );
+      }
+    } catch (error) {
+      console.log("❌ Error exporting Excel:", error);
       Alert.alert(
-        "✅ Export Successful",
-        `Excel file exported successfully!\n\nFile: ${fileName}\nRecords: ${allData.length}`,
+        "Export Failed",
+        "Failed to export data to Excel. Please try again.",
         [{ text: "OK" }]
       );
-    } catch (shareError) {
-      console.log("⚠️ Share cancelled or failed:", shareError);
-      Alert.alert(
-        "✅ Export Successful",
-        `Excel file generated successfully!\n\nFile: ${fileName}\nRecords: ${allData.length}\nSaved at:\n${filePath}`,
-        [{ text: "OK" }]
-      );
+    } finally {
+      setExportLoading(false);
     }
-  } catch (error) {
-    console.log("❌ Error exporting Excel:", error);
-    Alert.alert(
-      "Export Failed",
-      "Failed to export data to Excel. Please try again.",
-      [{ text: "OK" }]
-    );
-  } finally {
-    setExportLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     fetchReports();
@@ -550,7 +550,7 @@ const exportToExcel = async () => {
   const renderItem = ({ item }) => {
     const overdueStatus = getOverdueStatus(item.dueFlag, item.daysOverdue);
     const returnFlagStatus = getReturnFlagStatus(item.returnFlag);
-    
+
     return (
       <View style={styles.card}>
         {/* Card number */}
@@ -644,20 +644,38 @@ const exportToExcel = async () => {
     );
   };
 
-  const printImage = async () => {
-    try {
-      if (!viewRef.current) return;
+const printImage = async () => {
+  try {
+    if (!viewRef.current) return;
 
-      const uri = await captureRef(viewRef, {
-        format: "png",
-        quality: 1,
-      });
+    // 1️⃣ Capture the view as base64
+    const base64Data = await captureRef(viewRef, {
+      format: "png",
+      quality: 1,
+      result: "base64",
+    });
 
-      await RNPrint.print({ filePath: uri });
-    } catch (e) {
-      console.log("❌ Print error:", e);
-    }
-  };
+    // 2️⃣ Build HTML wrapper so Android print service can render it
+    const htmlContent = `
+      <html>
+        <body style="margin:0;padding:0;text-align:center;background-color:white;">
+          <img src="data:image/png;base64,${base64Data}" 
+               style="width:100%;max-width:100%;height:auto;" />
+        </body>
+      </html>
+    `;
+
+    // 3️⃣ Print using HTML (works on all Android & iOS)
+    await RNPrint.print({ html: htmlContent });
+
+    console.log("✅ Print started successfully");
+
+  } catch (e) {
+    console.log("❌ Print error:", e);
+    Alert.alert("Print Failed", "Unable to start print preview.");
+  }
+};
+
 
   const shareToWhatsApp = async () => {
     try {
@@ -731,33 +749,33 @@ const exportToExcel = async () => {
             >
               {/* Product image */}
               <View
-               style={{
-                 width: '100%',
-                 height: '75%',
-                 justifyContent: 'center',
-                 alignItems: 'center',
-               }}
-             >
-               <ImageZoom
-                 cropWidth={screenWidth}
-                 cropHeight={screenHeight * 0.75}
-                 imageWidth={screenWidth * 0.8}
-                 imageHeight={screenHeight * 0.75}
-                 enableSwipeDown={false}
-                 pinchToZoom={true}
-                 centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }}
-               >
-                 <Image
-                   source={{ uri: fullscreenImage }}
-                   style={{
-                     width: '100%',
-                     height: '100%',
-                     resizeMode: 'contain',
-                     alignSelf: 'center',
-                   }}
-                 />
-               </ImageZoom>
-             </View>
+                style={{
+                  width: '100%',
+                  height: '75%',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <ImageZoom
+                  cropWidth={screenWidth}
+                  cropHeight={screenHeight * 0.75}
+                  imageWidth={screenWidth * 0.8}
+                  imageHeight={screenHeight * 0.75}
+                  enableSwipeDown={false}
+                  pinchToZoom={true}
+                  centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }}
+                >
+                  <Image
+                    source={{ uri: fullscreenImage }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      resizeMode: 'contain',
+                      alignSelf: 'center',
+                    }}
+                  />
+                </ImageZoom>
+              </View>
 
               {/* Details section */}
               {selectedItem && (
@@ -804,9 +822,9 @@ const exportToExcel = async () => {
                     <Text style={styles.detailValue1}>{formatDate(selectedItem.dueDate)}</Text>
 
                     <Text style={styles.detailLabel1}>Days Overdue :</Text>
-                    <Text style={[styles.detailValue1, { 
+                    <Text style={[styles.detailValue1, {
                       color: selectedItem.dueFlag === "N" ? '#d32f2f' : '#2d531a',
-                      fontWeight: 'bold' 
+                      fontWeight: 'bold'
                     }]}>
                       {selectedItem.daysOverdue}
                     </Text>
@@ -816,9 +834,9 @@ const exportToExcel = async () => {
                   {selectedItem.returnFlag === "R" && (
                     <View style={styles.detailRowFix}>
                       <Text style={styles.detailLabel1}>Status :</Text>
-                      <Text style={[styles.detailValue1, { 
+                      <Text style={[styles.detailValue1, {
                         color: '#ff9800',
-                        fontWeight: 'bold' 
+                        fontWeight: 'bold'
                       }]}>
                         Return
                       </Text>
