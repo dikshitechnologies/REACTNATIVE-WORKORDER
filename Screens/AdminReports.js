@@ -12,6 +12,7 @@ import {
     Alert,
     KeyboardAvoidingView,
     ScrollView,
+    SectionList,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import React from 'react';
@@ -1447,518 +1448,530 @@ const AdminReports = ({ navigation }) => {
             return groups;
         }, {});
     };
-    const renderUndelivered = () => (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => setActiveSection(null)}>
-                    <Ionicons name="arrow-undo" size={30} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Pending</Text>
-                <View style={{ width: 30 }} />
-            </View>
-            <Modal
-                visible={!!fullscreenImage}
-                transparent={false}
-                onRequestClose={() => setFullscreenImage(null)}
-            >
-                <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-                    <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
-                        <View
-                            style={{
-                                flex: 1,
-                                borderWidth: 2,
-                                borderColor: "#000",
-                                margin: 10,
-                                padding: 10,
-                                justifyContent: "center",
-                                alignItems: "center",
-                                backgroundColor: "#fff",
-                            }}
-                        >
+    
+    const renderUndelivered = () => {
+        const sectionsData = Object.entries(groupByIssueDate(tableData))
+            .map(([date, items]) => ({
+                title: date,
+                data: items,
+            }))
+            .sort((a, b) => { // Sort by date, most recent first
+                const partsA = a.title.split('/');
+                const dateA = new Date(+partsA[2], partsA[1] - 1, +partsA[0]);
+                const partsB = b.title.split('/');
+                const dateB = new Date(+partsB[2], partsB[1] - 1, +partsB[0]);
+                return dateB - dateA;
+            });
+    
+        return (
+            <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => setActiveSection(null)}>
+                        <Ionicons name="arrow-undo" size={30} color="#fff" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Pending</Text>
+                    <View style={{ width: 30 }} />
+                </View>
+                <Modal
+                    visible={!!fullscreenImage}
+                    transparent={false}
+                    onRequestClose={() => setFullscreenImage(null)}
+                >
+                    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+                        <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
                             <View
                                 style={{
-                                    width: '100%',
-                                    height: '75%',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
+                                    flex: 1,
+                                    borderWidth: 2,
+                                    borderColor: "#000",
+                                    margin: 10,
+                                    padding: 10,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    backgroundColor: "#fff",
                                 }}
                             >
-                                <ImageZoom
-                                    cropWidth={screenWidth}
-                                    cropHeight={screenHeight * 0.75}
-                                    imageWidth={screenWidth * 0.8}
-                                    imageHeight={screenHeight * 0.75}
-                                    enableSwipeDown={false}
-                                    pinchToZoom={true}
-                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                                <View
+                                    style={{
+                                        width: '100%',
+                                        height: '75%',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                    }}
                                 >
-                                    <Image
-                                        source={{ uri: fullscreenImage }}
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            resizeMode: 'contain',
-                                            alignSelf: 'center',
-                                        }}
-                                    />
-                                </ImageZoom>
-                            </View>
-                            {selectedItem && (
-                                <View style={{ width: "90%", marginTop: 20, borderTopWidth: 1, borderColor: "#ffffffff", paddingTop: 10 }}>
-                                    <View style={styles.detailRowFix}>
-                                        <Text style={styles.detailLabel1}>SNo :</Text>
-                                        <Text style={styles.detailValue1}>{selectedItem.sNo}</Text>
-                                        <Text style={styles.detailLabel1}>Weight :</Text>
-                                        <Text style={styles.detailValue1}>{selectedItem.weight}</Text>
-                                    </View>
-                                    <View style={styles.detailRowFix}>
-                                        <Text style={styles.detailLabel1}>Size :</Text>
-                                        <Text style={styles.detailValue1}>{selectedItem.size}</Text>
-                                        <Text style={styles.detailLabel1}>Qty :</Text>
-                                        <Text style={styles.detailValue1}>{selectedItem.qty}</Text>
-                                    </View>
-                                    <View style={styles.detailRowFix}>
-                                        <Text style={styles.detailLabel1}>Design :</Text>
-                                        <Text style={styles.detailValue1}>{selectedItem.design}</Text>
-                                        <Text style={styles.detailLabel1}>Order No :</Text>
-                                        <Text style={styles.detailValue1}>{selectedItem.orderNo}</Text>
-                                    </View>
+                                    <ImageZoom
+                                        cropWidth={screenWidth}
+                                        cropHeight={screenHeight * 0.75}
+                                        imageWidth={screenWidth * 0.8}
+                                        imageHeight={screenHeight * 0.75}
+                                        enableSwipeDown={false}
+                                        pinchToZoom={true}
+                                        centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                                    >
+                                        <Image
+                                            source={{ uri: fullscreenImage }}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                resizeMode: 'contain',
+                                                alignSelf: 'center',
+                                            }}
+                                        />
+                                    </ImageZoom>
                                 </View>
-                            )}
+                                {selectedItem && (
+                                    <View style={{ width: "90%", marginTop: 20, borderTopWidth: 1, borderColor: "#ffffffff", paddingTop: 10 }}>
+                                        <View style={styles.detailRowFix}>
+                                            <Text style={styles.detailLabel1}>SNo :</Text>
+                                            <Text style={styles.detailValue1}>{selectedItem.sNo}</Text>
+                                            <Text style={styles.detailLabel1}>Weight :</Text>
+                                            <Text style={styles.detailValue1}>{selectedItem.weight}</Text>
+                                        </View>
+                                        <View style={styles.detailRowFix}>
+                                            <Text style={styles.detailLabel1}>Size :</Text>
+                                            <Text style={styles.detailValue1}>{selectedItem.size}</Text>
+                                            <Text style={styles.detailLabel1}>Qty :</Text>
+                                            <Text style={styles.detailValue1}>{selectedItem.qty}</Text>
+                                        </View>
+                                        <View style={styles.detailRowFix}>
+                                            <Text style={styles.detailLabel1}>Design :</Text>
+                                            <Text style={styles.detailValue1}>{selectedItem.design}</Text>
+                                            <Text style={styles.detailLabel1}>Order No :</Text>
+                                            <Text style={styles.detailValue1}>{selectedItem.orderNo}</Text>
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+                        </ViewShot>
+    
+                        {/* Bottom buttons */}
+                        <View style={styles.modalFooterButtons}>
+                            <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
+                                <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={shareToWhatsApp} style={styles.modalShareButton}>
+                                <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
+                                <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
+                            </TouchableOpacity>
                         </View>
-                    </ViewShot>
-
-                    {/* Bottom buttons */}
-                    <View style={styles.modalFooterButtons}>
-                        <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
-                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={shareToWhatsApp} style={styles.modalShareButton}>
-                            <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
-                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Share</Text>
-                        </TouchableOpacity>
-                    </View>
-                </SafeAreaView>
-            </Modal>
-
-
-            {/* Artisan Selection */}
-            <View style={{ padding: 12 }}>
-                <TouchableOpacity onPress={() => setShowArtisanModal(true)}>
-                    <View
-                        style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                        }}
-                    >
-                        <TextInput
-                            style={{
-                                borderWidth: 1,
-                                borderColor: "#ccc",
-                                padding: 10,
-                                borderRadius: 10,
-                                color: "#000",
-                                width: isTablet ? wp("90%") : wp("85%"),
-                                marginRight: 8,
-                            }}
-                            placeholderTextColor={"#7c7c7cff"}
-                            placeholder="Select Artisan"
-                            value={
-                                selectedArtisans.length === artisans.length
-                                    ? "Selected All"
-                                    : selectedArtisans
-                                        .map((id) => {
-                                            const artisan = artisans.find((a) => a.id === id);
-                                            return artisan
-                                                ? `${artisan.name} (${artisan.code})`
-                                                : "";
-                                        })
-                                        .join(", ")
-                            }
-                            editable={false}
-                            pointerEvents="none"
-
-                        />
-                        <Ionicons name="search" size={26} color="#7c7c7c" /></View>
-                </TouchableOpacity>
-            </View>
-
-            {/* Search S.No / Design */}
-            <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
-                <TextInput
-                    style={{
-                        borderWidth: 1,
-                        borderColor: "#ccc",
-                        padding: 10,
-                        borderRadius: 10,
-                    }}
-                    placeholderTextColor={"#7c7c7cff"}
-                    placeholder="Search S.No / Design / Product / Order No"
-                    value={searchSNo}
-                    onChangeText={setSearchSNo}
-                />
-            </View>
-
-            {/* Artisan Modal */}
-            <Modal visible={showArtisanModal} transparent animationType="slide">
-                <View
-                    style={{
-                        flex: 1,
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        justifyContent: "center",
-                        padding: 20,
-                    }}
-                >
-                    <View
-                        style={{
-                            backgroundColor: "#fff",
-                            borderRadius: 16,
-                            padding: 20,
-                            maxHeight: "80%",
-                        }}
-                    >
-                        {/* Header */}
+                    </SafeAreaView>
+                </Modal>
+    
+    
+                {/* Artisan Selection */}
+                <View style={{ padding: 12 }}>
+                    <TouchableOpacity onPress={() => setShowArtisanModal(true)}>
                         <View
                             style={{
                                 flexDirection: "row",
-                                justifyContent: "space-between",
                                 alignItems: "center",
-                                marginBottom: 12,
                             }}
                         >
-                            <Text style={{ fontSize: 18, fontWeight: "700" }}>
-                                Select Artisan
-                            </Text>
-                            <TouchableOpacity
-                                onPress={() => setShowArtisanModal(false)}
-                            >
-                                <Ionicons name="close" size={28} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Search Bar */}
-                        <TextInput
+                            <TextInput
+                                style={{
+                                    borderWidth: 1,
+                                    borderColor: "#ccc",
+                                    padding: 10,
+                                    borderRadius: 10,
+                                    color: "#000",
+                                    width: isTablet ? wp("90%") : wp("85%"),
+                                    marginRight: 8,
+                                }}
+                                placeholderTextColor={"#7c7c7cff"}
+                                placeholder="Select Artisan"
+                                value={
+                                    selectedArtisans.length === artisans.length
+                                        ? "Selected All"
+                                        : selectedArtisans
+                                            .map((id) => {
+                                                const artisan = artisans.find((a) => a.id === id);
+                                                return artisan
+                                                    ? `${artisan.name} (${artisan.code})`
+                                                    : "";
+                                            })
+                                            .join(", ")
+                                }
+                                editable={false}
+                                pointerEvents="none"
+    
+                            />
+                            <Ionicons name="search" size={26} color="#7c7c7c" /></View>
+                    </TouchableOpacity>
+                </View>
+    
+                {/* Search S.No / Design */}
+                <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
+                    <TextInput
+                        style={{
+                            borderWidth: 1,
+                            borderColor: "#ccc",
+                            padding: 10,
+                            borderRadius: 10,
+                        }}
+                        placeholderTextColor={"#7c7c7cff"}
+                        placeholder="Search S.No / Design / Product / Order No"
+                        value={searchSNo}
+                        onChangeText={setSearchSNo}
+                    />
+                </View>
+    
+                {/* Artisan Modal */}
+                <Modal visible={showArtisanModal} transparent animationType="slide">
+                    <View
+                        style={{
+                            flex: 1,
+                            backgroundColor: "rgba(0,0,0,0.5)",
+                            justifyContent: "center",
+                            padding: 20,
+                        }}
+                    >
+                        <View
                             style={{
-                                borderWidth: 1,
-                                borderColor: "#ccc",
-                                padding: 10,
-                                borderRadius: 10,
-                                marginBottom: 10,
+                                backgroundColor: "#fff",
+                                borderRadius: 16,
+                                padding: 20,
+                                maxHeight: "80%",
                             }}
-                            placeholder="Search Artisan"
-                            placeholderTextColor={"#7c7c7cff"}
-                            value={artisanSearch || ""}
-                            onChangeText={(text) => setArtisanSearch(text)}
-                        />
-                        <FlatList
-                            data={artisans}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({ item: artisan }) => (
+                        >
+                            {/* Header */}
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: 12,
+                                }}
+                            >
+                                <Text style={{ fontSize: 18, fontWeight: "700" }}>
+                                    Select Artisan
+                                </Text>
                                 <TouchableOpacity
-                                    style={{
-                                        flexDirection: "row",
-                                        alignItems: "center",
-                                        paddingVertical: 10,
-                                    }}
-                                    onPress={() => {
-                                        if (
-                                            selectedArtisans.includes(
-                                                artisan.id
-                                            )
-                                        ) {
-                                            setSelectedArtisans(
-                                                selectedArtisans.filter(
-                                                    (id) => id !== artisan.id
-                                                )
-                                            );
-                                        } else {
-                                            setSelectedArtisans([
-                                                ...selectedArtisans,
-                                                artisan.id,
-                                            ]);
-                                        }
-                                    }}
+                                    onPress={() => setShowArtisanModal(false)}
                                 >
-                                    <Ionicons
-                                        name={
-                                            selectedArtisans.includes(
-                                                artisan.id
-                                            )
-                                                ? "checkbox"
-                                                : "square-outline"
-                                        }
-                                        size={22}
-                                        color="#2d531a"
-                                    />
-                                    <Text
+                                    <Ionicons name="close" size={28} />
+                                </TouchableOpacity>
+                            </View>
+    
+                            {/* Search Bar */}
+                            <TextInput
+                                style={{
+                                    borderWidth: 1,
+                                    borderColor: "#ccc",
+                                    padding: 10,
+                                    borderRadius: 10,
+                                    marginBottom: 10,
+                                }}
+                                placeholder="Search Artisan"
+                                placeholderTextColor={"#7c7c7cff"}
+                                value={artisanSearch || ""}
+                                onChangeText={(text) => setArtisanSearch(text)}
+                            />
+                            <FlatList
+                                data={artisans}
+                                keyExtractor={(item) => item.id}
+                                renderItem={({ item: artisan }) => (
+                                    <TouchableOpacity
                                         style={{
-                                            fontSize: 16,
-                                            marginLeft: 8,
-                                            color: "#2d531a",
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            paddingVertical: 10,
+                                        }}
+                                        onPress={() => {
+                                            if (
+                                                selectedArtisans.includes(
+                                                    artisan.id
+                                                )
+                                            ) {
+                                                setSelectedArtisans(
+                                                    selectedArtisans.filter(
+                                                        (id) => id !== artisan.id
+                                                    )
+                                                );
+                                            } else {
+                                                setSelectedArtisans([
+                                                    ...selectedArtisans,
+                                                    artisan.id,
+                                                ]);
+                                            }
                                         }}
                                     >
-                                        {artisan.name} ({artisan.code})
+                                        <Ionicons
+                                            name={
+                                                selectedArtisans.includes(
+                                                    artisan.id
+                                                )
+                                                    ? "checkbox"
+                                                    : "square-outline"
+                                            }
+                                            size={22}
+                                            color="#2d531a"
+                                        />
+                                        <Text
+                                            style={{
+                                                fontSize: 16,
+                                                marginLeft: 8,
+                                                color: "#2d531a",
+                                            }}
+                                        >
+                                            {artisan.name} ({artisan.code})
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
+                                onEndReached={() => {
+                                    if (!loading && hasMore) {
+                                        const nextPage = artisanPage + 1;
+                                        setArtisanPage(nextPage);
+                                        fetchArtisans(nextPage, artisanSearch);
+                                    }
+                                }}
+                                onEndReachedThreshold={0.5}
+                                ListFooterComponent={
+                                    loading ? (
+                                        <Text
+                                            style={{
+                                                textAlign: "center",
+                                                padding: 10,
+                                            }}
+                                        >
+                                            Loading...
+                                        </Text>
+                                    ) : null
+                                }
+                            />
+    
+                            {/* Footer Buttons */}
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                }}
+                            >
+                                <TouchableOpacity
+                                    style={styles.clearButton}
+                                    onPress={() => {
+                                        setSelectedArtisans([]);
+                                        setArtisanSearch("");
+                                    }}
+                                >
+                                    <Text style={{ color: "#fff", fontWeight: "600" }}>
+                                        Clear
                                     </Text>
                                 </TouchableOpacity>
-                            )}
-                            onEndReached={() => {
-                                if (!loading && hasMore) {
-                                    const nextPage = artisanPage + 1;
-                                    setArtisanPage(nextPage);
-                                    fetchArtisans(nextPage, artisanSearch);
-                                }
-                            }}
-                            onEndReachedThreshold={0.5}
-                            ListFooterComponent={
-                                loading ? (
-                                    <Text
-                                        style={{
-                                            textAlign: "center",
-                                            padding: 10,
-                                        }}
-                                    >
-                                        Loading...
+                                <TouchableOpacity
+                                    style={styles.updateButton}
+                                    onPress={() => {
+                                        setShowArtisanModal(false);
+                                        setPageNumber(1); // Reset data page number
+                                        const codes = artisans
+                                            .filter((a) =>
+                                                selectedArtisans.includes(a.id)
+                                            )
+                                            .map((a) => a.code);
+                                        fetchPendingOrders(codes, 1);
+                                    }}
+                                >
+                                    <Text style={{ color: "#fff", fontWeight: "600" }}>
+                                        Apply
                                     </Text>
-                                ) : null
-                            }
-                        />
-
-                        {/* Footer Buttons */}
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                            }}
-                        >
-                            <TouchableOpacity
-                                style={styles.clearButton}
-                                onPress={() => {
-                                    setSelectedArtisans([]);
-                                    setArtisanSearch("");
-                                }}
-                            >
-                                <Text style={{ color: "#fff", fontWeight: "600" }}>
-                                    Clear
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.updateButton}
-                                onPress={() => {
-                                    setShowArtisanModal(false);
-                                    setPageNumber(1); // Reset data page number
-                                    const codes = artisans
-                                        .filter((a) =>
-                                            selectedArtisans.includes(a.id)
-                                        )
-                                        .map((a) => a.code);
-                                    fetchPendingOrders(codes, 1);
-                                }}
-                            >
-                                <Text style={{ color: "#fff", fontWeight: "600" }}>
-                                    Apply
-                                </Text>
-                            </TouchableOpacity>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
-            </Modal>
-
-            {/* Table */}
-            {tableData.length > 0 ? (
-                <FlatList
-                    data={Object.entries(groupByIssueDate(tableData))}
-                    keyExtractor={([date]) => date}
-                    contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
-                    renderItem={({ item: [date, items] }) => (
-                        <View style={{ marginBottom: 25 }}>
-                            {/* 🗓️ Date Heading */}
-                            <View style={styles.dateHeaderContainer}>
-                                <Text style={styles.dateHeaderText}>Issue Date: {date}</Text>
+                </Modal>
+    
+                {/* Table */}
+                {tableData.length > 0 ? (
+                    <SectionList
+                        sections={sectionsData}
+                        keyExtractor={(item, index) => item.id + index}
+                        stickySectionHeadersEnabled={true}
+                        renderSectionHeader={({ section: { title } }) => (
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionHeaderText}>Issue Date: {title}</Text>
                             </View>
-
-
-                            {/* 🧾 Cards for this date */}
-                            {items.map((item, index) => (
-                                <View key={item.id} style={styles.card}>
-                                    {item.dueFlag === "N" && (
-                                        <View style={styles.undeliveredOverdueBadge}>
-                                            <Text style={styles.undeliveredOverdueBadgeText}>
-                                                Overdue ({item.daysOverdue} days)
-                                            </Text>
-                                        </View>
-                                    )}
-
+                        )}
+                        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 5 }}
+                        renderItem={({ item, index }) => (
+                            <View style={styles.card}>
+                                {item.dueFlag === "N" && (
+                                    <View style={styles.undeliveredOverdueBadge}>
+                                        <Text style={styles.undeliveredOverdueBadgeText}>
+                                            Overdue ({item.daysOverdue} days)
+                                        </Text>
+                                    </View>
+                                )}
+    
+                                <View
+                                    style={{
+                                        flexDirection: "row",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        marginBottom: 10,
+                                    }}
+                                >
                                     <View
                                         style={{
                                             flexDirection: "row",
-                                            justifyContent: "space-between",
                                             alignItems: "center",
-                                            marginBottom: 10,
+                                            flex: 1,
+                                            marginRight: 50,
                                         }}
                                     >
-                                        <View
-                                            style={{
-                                                flexDirection: "row",
-                                                alignItems: "center",
-                                                flex: 1,
-                                                marginRight: 50,
-                                            }}
-                                        >
-                                            <Text style={styles.cardNumber}>#{index + 1}</Text>
-                                            {item.returnFlag === "R" && (
-                                                <View style={styles.returnBadge}>
-                                                    <Text style={styles.returnBadgeText}>Returned</Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                        <TouchableOpacity onPress={() => toggleRow(item.id)}>
-                                            <Ionicons
-                                                name={
-                                                    selectedRows.includes(item.id)
-                                                        ? "checkbox"
-                                                        : "square-outline"
-                                                }
-                                                size={28}
-                                                color="#2d531a"
-                                            />
-                                        </TouchableOpacity>
+                                        <Text style={styles.cardNumber}>#{index + 1}</Text>
+                                        {item.returnFlag === "R" && (
+                                            <View style={styles.returnBadge}>
+                                                <Text style={styles.returnBadgeText}>Returned</Text>
+                                            </View>
+                                        )}
                                     </View>
-
-                                    <View style={styles.imageWrapper}>
-                                        <FallbackImage
-                                            fileName={item.design}
-                                            style={{ width: "100%", height: "100%" }}
-                                            onPress={(url) => {
-                                                setFullscreenImage(url);
-                                                setSelectedItem(item);
-                                            }}
+                                    <TouchableOpacity onPress={() => toggleRow(item.id)}>
+                                        <Ionicons
+                                            name={
+                                                selectedRows.includes(item.id)
+                                                    ? "checkbox"
+                                                    : "square-outline"
+                                            }
+                                            size={28}
+                                            color="#2d531a"
                                         />
-                                    </View>
-
-                                    <View style={styles.detailsBox}>
-                                        <View style={styles.detailContainer}>
-                                            <View style={styles.detailRow}>
-                                                <Text style={[styles.highlights, { width: wp("30%") }]}>
-                                                    DESIGN:
-                                                </Text>
-                                                <Text
-                                                    style={[
-                                                        styles.highlight,
-                                                        { width: wp("40%"), marginRight: wp("5%") },
-                                                    ]}
-                                                >
-                                                    {item.design}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.detailRow}>
-                                                <Text style={[styles.highlights, { width: wp("30%") }]}>
-                                                    SNO:
-                                                </Text>
-                                                <Text
-                                                    style={[
-                                                        styles.highlight,
-                                                        { width: wp("40%"), marginRight: wp("5%") },
-                                                    ]}
-                                                >
-                                                    {item.sNo}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.detailRow}>
-                                                <Text style={[styles.highlights, { width: wp("30%") }]}>
-                                                    ORDER NO:
-                                                </Text>
-                                                <Text
-                                                    style={[
-                                                        styles.highlight,
-                                                        { width: wp("40%"), marginRight: wp("5%") },
-                                                    ]}
-                                                >
-                                                    {item.orderNo}
-                                                </Text>
-                                            </View>
-                                        </View>
-
+                                    </TouchableOpacity>
+                                </View>
+    
+                                <View style={styles.imageWrapper}>
+                                    <FallbackImage
+                                        fileName={item.design}
+                                        style={{ width: "100%", height: "100%" }}
+                                        onPress={(url) => {
+                                            setFullscreenImage(url);
+                                            setSelectedItem(item);
+                                        }}
+                                    />
+                                </View>
+    
+                                <View style={styles.detailsBox}>
+                                    <View style={styles.detailContainer}>
                                         <View style={styles.detailRow}>
-                                            <Text style={styles.label}>Weight:</Text>
-                                            <Text style={styles.value}>{item.weight}</Text>
-                                            <Text style={styles.label}>Size:</Text>
-                                            <Text style={styles.value}>{item.size}</Text>
-                                        </View>
-
-                                        <View style={styles.detailRow}>
-                                            <Text style={styles.label}>Product:</Text>
-                                            <Text style={styles.value}>{item.product}</Text>
-                                            <Text style={styles.label}>Qty:</Text>
-                                            <Text style={styles.value}>{item.qty}</Text>
-                                        </View>
-
-                                        <View style={styles.detailRow}>
-                                            <Text style={styles.label}>Order Date:</Text>
-                                            <Text style={styles.value}>
-                                                {new Date(item.orderDate).toLocaleDateString("en-GB")}
+                                            <Text style={[styles.highlights, { width: wp("30%") }]}>
+                                                DESIGN:
                                             </Text>
-                                            <Text style={styles.label}>Order Type:</Text>
-                                            <Text style={styles.value}>{item.orderType}</Text>
+                                            <Text
+                                                style={[
+                                                    styles.highlight,
+                                                    { width: wp("40%"), marginRight: wp("5%") },
+                                                ]}
+                                            >
+                                                {item.design}
+                                            </Text>
                                         </View>
-
                                         <View style={styles.detailRow}>
-                                            <Text style={styles.label}>Purity:</Text>
-                                            <Text style={styles.value}>{item.purity}</Text>
-                                            <Text style={styles.label}>Theme:</Text>
-                                            <Text style={styles.value}>{item.theme}</Text>
+                                            <Text style={[styles.highlights, { width: wp("30%") }]}>
+                                                SNO:
+                                            </Text>
+                                            <Text
+                                                style={[
+                                                    styles.highlight,
+                                                    { width: wp("40%"), marginRight: wp("5%") },
+                                                ]}
+                                            >
+                                                {item.sNo}
+                                            </Text>
                                         </View>
-
                                         <View style={styles.detailRow}>
-                                            <Text style={styles.label}>Status:</Text>
-                                            <Text style={styles.value}>{item.status}</Text>
+                                            <Text style={[styles.highlights, { width: wp("30%") }]}>
+                                                ORDER NO:
+                                            </Text>
+                                            <Text
+                                                style={[
+                                                    styles.highlight,
+                                                    { width: wp("40%"), marginRight: wp("5%") },
+                                                ]}
+                                            >
+                                                {item.orderNo}
+                                            </Text>
                                         </View>
+                                    </View>
+    
+                                    <View style={styles.detailRow}>
+                                        <Text style={styles.label}>Weight:</Text>
+                                        <Text style={styles.value}>{item.weight}</Text>
+                                        <Text style={styles.label}>Size:</Text>
+                                        <Text style={styles.value}>{item.size}</Text>
+                                    </View>
+    
+                                    <View style={styles.detailRow}>
+                                        <Text style={styles.label}>Product:</Text>
+                                        <Text style={styles.value}>{item.product}</Text>
+                                        <Text style={styles.label}>Qty:</Text>
+                                        <Text style={styles.value}>{item.qty}</Text>
+                                    </View>
+    
+                                    <View style={styles.detailRow}>
+                                        <Text style={styles.label}>Order Date:</Text>
+                                        <Text style={styles.value}>
+                                            {new Date(item.orderDate).toLocaleDateString("en-GB")}
+                                        </Text>
+                                        <Text style={styles.label}>Order Type:</Text>
+                                        <Text style={styles.value}>{item.orderType}</Text>
+                                    </View>
+    
+                                    <View style={styles.detailRow}>
+                                        <Text style={styles.label}>Purity:</Text>
+                                        <Text style={styles.value}>{item.purity}</Text>
+                                        <Text style={styles.label}>Theme:</Text>
+                                        <Text style={styles.value}>{item.theme}</Text>
+                                    </View>
+    
+                                    <View style={styles.detailRow}>
+                                        <Text style={styles.label}>Status:</Text>
+                                        <Text style={styles.value}>{item.status}</Text>
                                     </View>
                                 </View>
-                            ))}
-                        </View>
-                    )}
-                />
-            ) : loadings ? (
-                <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>Loading...</Text>
-                </View>
-            ) : selectedArtisans.length > 0 ? (
-                <View style={styles.emptyContainer}>
-                    <Image
-                        source={require("../asserts/Search.png")}
-                        style={styles.emptyImage}
+                            </View>
+                        )}
                     />
-                    <Text style={styles.emptyText}>No data found</Text>
+                ) : loadings ? (
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>Loading...</Text>
+                    </View>
+                ) : selectedArtisans.length > 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <Image
+                            source={require("../asserts/Search.png")}
+                            style={styles.emptyImage}
+                        />
+                        <Text style={styles.emptyText}>No data found</Text>
+                    </View>
+                ) : (
+                    <View style={styles.emptyContainer}>
+                        <Image
+                            source={require("../asserts/Search.png")}
+                            style={styles.emptyImage}
+                        />
+                        <Text style={styles.emptyText}>
+                            Select an artisan and/or search S.No or Design or Product or Order No to view the table.
+                        </Text>
+                    </View>
+                )}
+    
+                {/* Footer */}
+                <View style={styles.footer}>
+                    <TouchableOpacity
+                        style={styles.clearButton}
+                        onPress={clearSelection}
+                    >
+                        <Text style={styles.buttonText}>Clear</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.updateButton}
+                        onPress={updateData}
+                    >
+                        <Text style={styles.buttonText}>Update</Text>
+                    </TouchableOpacity>
                 </View>
-            ) : (
-                <View style={styles.emptyContainer}>
-                    <Image
-                        source={require("../asserts/Search.png")}
-                        style={styles.emptyImage}
-                    />
-                    <Text style={styles.emptyText}>
-                        Select an artisan and/or search S.No or Design or Product or Order No to view the table.
-                    </Text>
-                </View>
-            )}
-
-            {/* Footer */}
-            <View style={styles.footer}>
-                <TouchableOpacity
-                    style={styles.clearButton}
-                    onPress={clearSelection}
-                >
-                    <Text style={styles.buttonText}>Clear</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.updateButton}
-                    onPress={updateData}
-                >
-                    <Text style={styles.buttonText}>Update</Text>
-                </TouchableOpacity>
-            </View>
-        </SafeAreaView>
-    );
+            </SafeAreaView>
+        );
+    };
+    
 
     const renderReturn = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
@@ -3232,26 +3245,24 @@ const styles = StyleSheet.create({
         marginTop: 4,
         textAlign: "center",
     },
-    dateHeaderContainer: {
-        backgroundColor: "#e5f0db",     // soft greenish background
-        paddingVertical: 8,
-        paddingHorizontal: 14,
-        borderRadius: 10,
-        marginVertical: 10,
-        marginHorizontal: 5,
-        alignSelf: "flex-start",
+    // Styles for the date header, matching PendingReports.js
+    sectionHeader: {
+        backgroundColor: "#2d531a",
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        marginHorizontal: 10,
+        marginTop: 10,
+        borderRadius: 8,
+        elevation: 2,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.2,
         shadowRadius: 2,
-        elevation: 2,
     },
-
-    dateHeaderText: {
+    sectionHeaderText: {
+        color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
-        color: "#2d531a",
-        letterSpacing: 0.5,
+        textAlign: "center",
     },
-
 });
