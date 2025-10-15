@@ -190,7 +190,7 @@ const PendingReports = ({ navigation, route }) => {
   const getReturnFlagStatus = (returnFlag) => {
     if (returnFlag === "R") {
       return { 
-        text: "Return", 
+        text: "Returned", 
         color: "#ff9800" // Orange color for return
       };
     } else {
