@@ -22,6 +22,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"; // 👈 fo
 import { BASE_URL } from "./Links";
 
 import messaging from '@react-native-firebase/messaging';
+import { saveTokenForUser, persistCurrentUser } from '../utils/fcm';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -86,31 +87,7 @@ const LoginScreen = ({ navigation }) => {
     requestToken();
   }, []);
 
-  // helper to save FCM token for a user
-  const saveTokenForUser = async (userCode, token, userType) => {
-    try {
-      if (!userCode || !token || !userType) {
-        console.warn('saveTokenForUser missing params', { userCode, token, userType });
-        return;
-      }
-
-      const url = `${BASE_URL}UserToken/SaveToken`;
-      console.log('Saving token to:', url, { userCode, token, userType });
-
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userCode: userCode.toString(), token, userType }),
-      });
-
-      const text = await resp.text();
-      console.log('SaveToken response', resp.status, text);
-      return resp;
-    } catch (error) {
-      console.error('saveTokenForUser error', error);
-      throw error;
-    }
-  };
+  // (moved to utils/fcm.js)
 
 
 
@@ -197,15 +174,16 @@ const LoginScreen = ({ navigation }) => {
           setUsername("");
           setPassword("");
 
-          // send FCM token to backend for admin (userCode '001', userType 'A')
+          // persist current user and send FCM token to backend for admin
           try {
+            await persistCurrentUser('001', 'A');
             if (fcmToken) {
-              await saveTokenForUser("001", fcmToken, "A");
+              await saveTokenForUser('001', fcmToken, 'A');
             } else {
-              console.warn("No FCM token available to send for admin");
+              console.warn('No FCM token available to send for admin');
             }
           } catch (err) {
-            console.warn("Failed to send admin token", err);
+            console.warn('Failed to persist/send admin token', err);
           }
 
           navigation.navigate("AdminReports");
@@ -248,16 +226,17 @@ const LoginScreen = ({ navigation }) => {
           // ✅ Clear phone field
           setPhone("");
 
-          // send FCM token to backend for achari (userCode from response, userType 'U')
+          // persist current user and send FCM token to backend for achari
           try {
-            const userCode = data?.fCode ?? data?.fcode ?? data?.fCode?.toString?.() ?? "";
+            const userCode = data?.fCode ?? data?.fcode ?? (data?.fCode?.toString?.() ?? '');
+            await persistCurrentUser(userCode || '', 'U');
             if (fcmToken) {
-              await saveTokenForUser(userCode || "", fcmToken, "U");
+              await saveTokenForUser(userCode || '', fcmToken, 'U');
             } else {
-              console.warn("No FCM token available to send for achari");
+              console.warn('No FCM token available to send for achari');
             }
           } catch (err) {
-            console.warn("Failed to send achari token", err);
+            console.warn('Failed to persist/send achari token', err);
           }
 
           navigation.navigate("ArtisansReport", { user: data });
