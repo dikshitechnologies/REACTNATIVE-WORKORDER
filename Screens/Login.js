@@ -12,6 +12,7 @@ import {
   Animated,
   ScrollView,
   Alert,
+  PermissionsAndroid,
   Image, // 👈 Import Image
 } from "react-native";
 import { BackHandler } from "react-native";
@@ -20,10 +21,12 @@ import Ionicons from "react-native-vector-icons/Ionicons"; // 👈 for eye icon
 import AsyncStorage from "@react-native-async-storage/async-storage"; // 👈 for remember me
 import { BASE_URL } from "./Links";
 
+import messaging from '@react-native-firebase/messaging';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
+
 const { height } = Dimensions.get("window");
 const LoginScreen = ({ navigation }) => {
   const [mode, setMode] = useState(null); // "admin" | "achari" | null
@@ -32,6 +35,7 @@ const LoginScreen = ({ navigation }) => {
   const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [fcmToken, setFcmToken] = useState(null);
   useEffect(() => {
     const backAction = () => {
       BackHandler.exitApp(); // 👈 Close the app
@@ -53,6 +57,62 @@ const LoginScreen = ({ navigation }) => {
     outputRange: [0, 1],
     extrapolate: "clamp",
   });
+  const requestPermission = async () => {
+    try {
+      const result = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+      );
+      if (result === PermissionsAndroid.RESULTS.GRANTED) {
+        await requestToken();
+      } else {
+        Alert.alert('Permission Denied');
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const requestToken = async () => {
+    try {
+      await messaging().registerDeviceForRemoteMessages();
+      const token = await messaging().getToken();
+      console.log('FCM Token:', token);
+      setFcmToken(token);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  useEffect(() => {
+    requestPermission();
+    requestToken();
+  }, []);
+
+  // helper to save FCM token for a user
+  const saveTokenForUser = async (userCode, token, userType) => {
+    try {
+      if (!userCode || !token || !userType) {
+        console.warn('saveTokenForUser missing params', { userCode, token, userType });
+        return;
+      }
+
+      const url = `${BASE_URL}UserToken/SaveToken`;
+      console.log('Saving token to:', url, { userCode, token, userType });
+
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userCode: userCode.toString(), token, userType }),
+      });
+
+      const text = await resp.text();
+      console.log('SaveToken response', resp.status, text);
+      return resp;
+    } catch (error) {
+      console.error('saveTokenForUser error', error);
+      throw error;
+    }
+  };
+
+
 
   // Load saved credentials (if remember me was set)
   React.useEffect(() => {
@@ -137,6 +197,17 @@ const LoginScreen = ({ navigation }) => {
           setUsername("");
           setPassword("");
 
+          // send FCM token to backend for admin (userCode '001', userType 'A')
+          try {
+            if (fcmToken) {
+              await saveTokenForUser("001", fcmToken, "A");
+            } else {
+              console.warn("No FCM token available to send for admin");
+            }
+          } catch (err) {
+            console.warn("Failed to send admin token", err);
+          }
+
           navigation.navigate("AdminReports");
         } else {
           Alert.alert("Error", text || "Invalid admin credentials");
@@ -176,6 +247,18 @@ const LoginScreen = ({ navigation }) => {
 
           // ✅ Clear phone field
           setPhone("");
+
+          // send FCM token to backend for achari (userCode from response, userType 'U')
+          try {
+            const userCode = data?.fCode ?? data?.fcode ?? data?.fCode?.toString?.() ?? "";
+            if (fcmToken) {
+              await saveTokenForUser(userCode || "", fcmToken, "U");
+            } else {
+              console.warn("No FCM token available to send for achari");
+            }
+          } catch (err) {
+            console.warn("Failed to send achari token", err);
+          }
 
           navigation.navigate("ArtisansReport", { user: data });
         } else {
@@ -253,7 +336,6 @@ const LoginScreen = ({ navigation }) => {
                 />
               </ImageBackground>
             </View>
-
             {/* Form */}
             <Animatable.View
               animation="slideInUp"
@@ -373,8 +455,11 @@ const LoginScreen = ({ navigation }) => {
             </Animatable.View>
           </View>
         )}
+
+
       </ImageBackground>
     </KeyboardAvoidingView>
+
   );
 };
 
