@@ -383,20 +383,37 @@ const DeliveredReports = ({ navigation, route }) => {
       </View>
     </View>
   );
-  const printImage = async () => {
-    try {
-      if (!viewRef.current) return;
-
-      const uri = await captureRef(viewRef, {
-        format: "png",
-        quality: 1,
-      });
-
-      await RNPrint.print({ filePath: uri });
-    } catch (e) {
-      console.log("❌ Print error:", e);
-    }
-  };
+ const printImage = async () => {
+   try {
+     if (!viewRef.current) return;
+ 
+     // 1️⃣ Capture the view as base64
+     const base64Data = await captureRef(viewRef, {
+       format: "png",
+       quality: 1,
+       result: "base64",
+     });
+ 
+     // 2️⃣ Build HTML wrapper so Android print service can render it
+     const htmlContent = `
+       <html>
+         <body style="margin:0;padding:0;text-align:center;background-color:white;">
+           <img src="data:image/png;base64,${base64Data}" 
+                style="width:100%;max-width:100%;height:auto;" />
+         </body>
+       </html>
+     `;
+ 
+     // 3️⃣ Print using HTML (works on all Android & iOS)
+     await RNPrint.print({ html: htmlContent });
+ 
+     console.log("✅ Print started successfully");
+ 
+   } catch (e) {
+     console.log("❌ Print error:", e);
+     Alert.alert("Print Failed", "Unable to start print preview.");
+   }
+ };
 
   const shareToWhatsApp = async () => {
     try {
