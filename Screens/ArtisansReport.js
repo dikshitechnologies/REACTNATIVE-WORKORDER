@@ -86,10 +86,10 @@ const ArtisansReport = ({ navigation, route }) => {
     }
   };
 
-  const fetchOverdueData = async () => {
+  const fetchOverdueData = async (pageNum = 1) => {
     try {
       setLoading(true);
-      const url = `${BASE_URL}ItemTransaction/GetPendingOverdue?cusCodes=${user?.fCode}&search=&pageNumber=1&pageSize=10`;
+      const url = `${BASE_URL}ItemTransaction/GetPendingOverdue?cusCodes=${user?.fCode}&search=&pageNumber=${pageNum}&pageSize=50`;
       console.log("📡 Fetching overdue data for popup:", url);
 
       const res = await axios.get(url);
@@ -99,6 +99,9 @@ const ArtisansReport = ({ navigation, route }) => {
         setOverdueData(res.data.data);
         setShowOverduePopup(true);
       }
+
+
+      console.log("✅ Overdue data fetched:", res.data.data);
     } catch (err) {
       console.log("❌ Error fetching overdue data:", err);
     } finally {
@@ -246,9 +249,7 @@ const ArtisansReport = ({ navigation, route }) => {
 
             {/* Modal Content */}
             <ScrollView style={styles.modalContent}>
-              <Text style={styles.modalDescription}>
-                You have {overdueData.length} overdue order(s) that need attention:
-              </Text>
+              {/* <Text style={styles.modalDescription}>You have {overdueData.length} overdue order(s) that need attention:</Text>*/}
 
               {overdueData.map((item, index) => (
                 <View key={index} style={styles.overdueItem}>
