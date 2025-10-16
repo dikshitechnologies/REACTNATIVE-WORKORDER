@@ -1,4 +1,3 @@
-
 import {
     StyleSheet,
     Text,
@@ -27,11 +26,9 @@ import Share from 'react-native-share';
 import DeviceInfo from "react-native-device-info";
 import ImageZoom from 'react-native-image-pan-zoom';
 import { Dimensions } from 'react-native';
-
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
 const { width, height } = Dimensions.get("window");
-
 const isTablet = DeviceInfo.isTablet();
 // A common threshold for tablets
 
@@ -274,7 +271,7 @@ const AdminReports = ({ navigation }) => {
 
                         {/* Party Name with search icon */}
                         <Text style={{ marginBottom: 6, fontWeight: 'bold', color: "#2d531a" }}>Party Name</Text>
-                        <TouchableOpacity onPress={() => {fetchArtisans() ,setShowPartyModal(true)}}>
+                        <TouchableOpacity onPress={() => { fetchArtisans(), setShowPartyModal(true) }}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <TextInput
                                     style={[styles.input, { flex: 1, marginRight: 8 }]}
@@ -324,7 +321,7 @@ const AdminReports = ({ navigation }) => {
                                     style={[styles.input, { backgroundColor: "#f9f9f9" }]}
                                     value={dueDays}
                                     onChangeText={setDueDays}
-                                   
+
                                 />
                             </View>
                         ) : null}
@@ -619,8 +616,10 @@ const AdminReports = ({ navigation }) => {
     };
 
     useEffect(() => {
+    if (activeSection) {
         fetchArtisans(1);
-    }, []);
+    }
+}, [activeSection]);
 
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
@@ -699,37 +698,72 @@ const AdminReports = ({ navigation }) => {
     const fetchArtisans = async (page = 1, search = "") => {
         if (loading || (page !== 1 && !hasMore)) return;
         setLoading(true);
+
         try {
-            const res = await fetch(
-                `${BASE_URL}Party/GetPartyList?search=${search}&pageNumber=${page}&pageSize=30`
-            );
+            let url = "";
+
+            switch (activeSection) {
+                case "Delivered":
+                    url = `${BASE_URL}Party/GetDeliveredParties?pageNumber=${page}&pageSize=30`;
+                    break;
+                case "Pending":
+                    url = `${BASE_URL}Party/GetDeliveredPEnding?pageNumber=${page}&pageSize=30`;
+                    break;
+                case "Return List":
+                    url = `${BASE_URL}Party/GetReturnlistParties?pageNumber=${page}&pageSize=30`;
+                    break;
+                case "Overdue":
+                    url = `${BASE_URL}Party/GetOverdueParties?pageNumber=${page}&pageSize=30`;
+                    break;
+                case "Return":
+                    url = `${BASE_URL}Party/GetDeliveredParties?pageNumber=${page}&pageSize=30`;
+                    break;
+                default: // User Creation and fallback
+                    url = `${BASE_URL}Party/GetPartyList?search=${search}&pageNumber=${page}&pageSize=30`;
+                    break;
+            }
+
+            const res = await fetch(url);
             const data = await res.json();
-            if (data && data.data) {
-                const mapped = data.data.map((item, index) => ({
+
+            // handle data mapping based on response shape
+            let mapped = [];
+            if (Array.isArray(data)) {
+                mapped = data.map((item, index) => ({
+                    id: `${page}-${index}`,
+                    code: item.customerCode,
+                    name: item.partyName,
+                    phone: item.phone || "",
+                    dueDays: item.due || "0",
+                    dueDate: item.dueDate || null,
+                    overdueDays: item.overdueDays || null,
+                }));
+            } else if (data && data.data) {
+                mapped = data.data.map((item, index) => ({
                     id: `${page}-${index}`,
                     code: item.fCode,
                     name: item.fAcname,
                     phone: item.fphone,
                     dueDays: item.fDueDays || "0",
                 }));
-                if (page === 1) {
-                    setArtisans(mapped);
-                } else {
-                    setArtisans((prev) => [...prev, ...mapped]);
-                }
-                const total = data.totalRecords || 0;
-                const alreadyLoaded = (page - 1) * 30 + mapped.length;
-                setHasMore(alreadyLoaded < total);
-            } else {
-                if (page === 1) setArtisans([]);
-                setHasMore(false);
             }
+
+            if (page === 1) {
+                setArtisans(mapped);
+            } else {
+                setArtisans((prev) => [...prev, ...mapped]);
+            }
+
+            const total = data.totalRecords || 0;
+            const alreadyLoaded = (page - 1) * 30 + mapped.length;
+            setHasMore(alreadyLoaded < total);
         } catch (err) {
             console.error("Error fetching artisans:", err);
         } finally {
             setLoading(false);
         }
     };
+
 
     const fetchPendingOrders = async (selectedCodes, page = 1, search = "") => {
         if (!selectedCodes || selectedCodes.length === 0) return;
@@ -1448,7 +1482,7 @@ const AdminReports = ({ navigation }) => {
             return groups;
         }, {});
     };
-    
+
     const renderUndelivered = () => {
         const sectionsData = Object.entries(groupByIssueDate(tableData))
             .map(([date, items]) => ({
@@ -1462,7 +1496,7 @@ const AdminReports = ({ navigation }) => {
                 const dateB = new Date(+partsB[2], partsB[1] - 1, +partsB[0]);
                 return dateB - dateA;
             });
-    
+
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
                 <View style={styles.header}>
@@ -1543,7 +1577,7 @@ const AdminReports = ({ navigation }) => {
                                 )}
                             </View>
                         </ViewShot>
-    
+
                         {/* Bottom buttons */}
                         <View style={styles.modalFooterButtons}>
                             <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
@@ -1556,8 +1590,8 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     </SafeAreaView>
                 </Modal>
-    
-    
+
+
                 {/* Artisan Selection */}
                 <View style={{ padding: 12 }}>
                     <TouchableOpacity onPress={() => setShowArtisanModal(true)}>
@@ -1593,12 +1627,12 @@ const AdminReports = ({ navigation }) => {
                                 }
                                 editable={false}
                                 pointerEvents="none"
-    
+
                             />
                             <Ionicons name="search" size={26} color="#7c7c7c" /></View>
                     </TouchableOpacity>
                 </View>
-    
+
                 {/* Search S.No / Design */}
                 <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
                     <TextInput
@@ -1614,7 +1648,7 @@ const AdminReports = ({ navigation }) => {
                         onChangeText={setSearchSNo}
                     />
                 </View>
-    
+
                 {/* Artisan Modal */}
                 <Modal visible={showArtisanModal} transparent animationType="slide">
                     <View
@@ -1651,7 +1685,7 @@ const AdminReports = ({ navigation }) => {
                                     <Ionicons name="close" size={28} />
                                 </TouchableOpacity>
                             </View>
-    
+
                             {/* Search Bar */}
                             <TextInput
                                 style={{
@@ -1738,7 +1772,7 @@ const AdminReports = ({ navigation }) => {
                                     ) : null
                                 }
                             />
-    
+
                             {/* Footer Buttons */}
                             <View
                                 style={{
@@ -1778,7 +1812,7 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     </View>
                 </Modal>
-    
+
                 {/* Table */}
                 {tableData.length > 0 ? (
                     <SectionList
@@ -1800,7 +1834,7 @@ const AdminReports = ({ navigation }) => {
                                         </Text>
                                     </View>
                                 )}
-    
+
                                 <View
                                     style={{
                                         flexDirection: "row",
@@ -1836,7 +1870,7 @@ const AdminReports = ({ navigation }) => {
                                         />
                                     </TouchableOpacity>
                                 </View>
-    
+
                                 <View style={styles.imageWrapper}>
                                     <FallbackImage
                                         fileName={item.design}
@@ -1847,7 +1881,7 @@ const AdminReports = ({ navigation }) => {
                                         }}
                                     />
                                 </View>
-    
+
                                 <View style={styles.detailsBox}>
                                     <View style={styles.detailContainer}>
                                         <View style={styles.detailRow}>
@@ -1890,21 +1924,21 @@ const AdminReports = ({ navigation }) => {
                                             </Text>
                                         </View>
                                     </View>
-    
+
                                     <View style={styles.detailRow}>
                                         <Text style={styles.label}>Weight:</Text>
                                         <Text style={styles.value}>{item.weight}</Text>
                                         <Text style={styles.label}>Size:</Text>
                                         <Text style={styles.value}>{item.size}</Text>
                                     </View>
-    
+
                                     <View style={styles.detailRow}>
                                         <Text style={styles.label}>Product:</Text>
                                         <Text style={styles.value}>{item.product}</Text>
                                         <Text style={styles.label}>Qty:</Text>
                                         <Text style={styles.value}>{item.qty}</Text>
                                     </View>
-    
+
                                     <View style={styles.detailRow}>
                                         <Text style={styles.label}>Order Date:</Text>
                                         <Text style={styles.value}>
@@ -1913,14 +1947,14 @@ const AdminReports = ({ navigation }) => {
                                         <Text style={styles.label}>Order Type:</Text>
                                         <Text style={styles.value}>{item.orderType}</Text>
                                     </View>
-    
+
                                     <View style={styles.detailRow}>
                                         <Text style={styles.label}>Purity:</Text>
                                         <Text style={styles.value}>{item.purity}</Text>
                                         <Text style={styles.label}>Theme:</Text>
                                         <Text style={styles.value}>{item.theme}</Text>
                                     </View>
-    
+
                                     <View style={styles.detailRow}>
                                         <Text style={styles.label}>Status:</Text>
                                         <Text style={styles.value}>{item.status}</Text>
@@ -1952,7 +1986,7 @@ const AdminReports = ({ navigation }) => {
                         </Text>
                     </View>
                 )}
-    
+
                 {/* Footer */}
                 <View style={styles.footer}>
                     <TouchableOpacity
@@ -1971,7 +2005,7 @@ const AdminReports = ({ navigation }) => {
             </SafeAreaView>
         );
     };
-    
+
 
     const renderReturn = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>

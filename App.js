@@ -6,8 +6,6 @@ import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance } from '@notifee/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveTokenForUser, getStoredUser } from './utils/fcm';
-
-
 import AnimatedLogin from "./Screens/Login";
 import ArtisansReport from "./Screens/ArtisansReport";
 import PendingReports from "./Screens/PendingReports";
