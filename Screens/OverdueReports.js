@@ -539,7 +539,7 @@ const printImage = async () => {
           <Ionicons name="arrow-undo" size={30} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Overdue</Text>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.excelButton}
           onPress={handleExportToExcel}
           disabled={exportLoading || reports.length === 0}
@@ -549,7 +549,7 @@ const printImage = async () => {
           ) : (
             <Ionicons name="document-text" size={24} color="#fff" />
           )}
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {/* fullscreen image */}
