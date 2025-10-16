@@ -1,3 +1,4 @@
+
 import {
     StyleSheet,
     Text,
@@ -2115,12 +2116,7 @@ const AdminReports = ({ navigation }) => {
                                 onEndReachedThreshold={0.5}
                                 ListFooterComponent={
                                     loading ? (
-                                        <Text
-                                            style={{
-                                                textAlign: "center",
-                                                padding: 10,
-                                            }}
-                                        >
+                                        <Text style={{ textAlign: "center", padding: 10 }}>
                                             Loading...
                                         </Text>
                                     ) : null
@@ -2314,6 +2310,24 @@ const AdminReports = ({ navigation }) => {
                                 </View>
                             </View>
                         )}
+                        onEndReached={() => {
+                            if (!loadings && hasMore) {
+                                const nextPage = pageNumber + 1;
+                                setPageNumber(nextPage);
+                                const codes = artisans
+                                    .filter((a) => selectedArtisans.includes(a.id))
+                                    .map((a) => a.code);
+                                fetchPendingOrders(codes, nextPage, searchSNo);
+                            }
+                        }}
+                        onEndReachedThreshold={0.5}
+                        ListFooterComponent={
+                            loadings ? (
+                                <Text style={{ textAlign: "center", padding: 10 }}>Loading...</Text>
+                            ) : !hasMore && tableData.length > 0 ? (
+                                <Text style={{ textAlign: "center", padding: 10 }}>No more data</Text>
+                            ) : null
+                        }
                     />
                 ) : loadings ? (
                     <View style={styles.emptyContainer}>
