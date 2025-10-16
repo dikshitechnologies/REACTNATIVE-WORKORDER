@@ -95,7 +95,8 @@ const ArtisansReport = ({ navigation, route }) => {
       const res = await axios.get(url);
 
       if (res.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
-        setOverdueData(res.data.data.slice(0, 5)); // Show only first 5 records in popup
+        // Show all records returned by the API in the popup
+        setOverdueData(res.data.data);
         setShowOverduePopup(true);
       }
     } catch (err) {
