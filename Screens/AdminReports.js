@@ -484,7 +484,7 @@ const AdminReports = ({ navigation }) => {
     const returnUpdateData = async () => {
         if (returnSelectedRows.length === 0) {
             Alert.alert("Validation", "Please select at least one row to update");
-            return;
+            return false;
         }
 
         try {
@@ -512,7 +512,7 @@ const AdminReports = ({ navigation }) => {
                     .filter((a) => returnSelectedArtisans.includes(a.id))
                     .map((a) => a.code);
                 fetchReturnOrders(codes, 1, returnSearchSNo);
-                setReturnSelectedRows([]);
+                return true;
             } else {
                 const errText = await res.text();
                 console.error("Update failed:", errText);
@@ -521,7 +521,9 @@ const AdminReports = ({ navigation }) => {
         } catch (err) {
             console.error("Update error:", err);
             Alert.alert("Error", "Something went wrong");
+            return false;
         }
+        return false;
     };
 
     const fetchReturnOrders = async (codes = [], page = 1, search = "") => {
@@ -2719,16 +2721,19 @@ const AdminReports = ({ navigation }) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.updateButton}
-                    onPress={() => {
-                        returnUpdateData();
-                        setReturnSelectedRows([]);
-                        setReturnSelectedArtisans([]);
-                        setReturnSearchSNo("");
-                        setReturnArtisanSearch("");
-                        setReturnSelectAll(false);
-                        setReturnTableData([]);
-                        setReturnPageNumber(1);
-                        setReturnHasMore(true);
+                    onPress={async () => {
+                        const success = await returnUpdateData();
+                        if (success) {
+                            // Clear only after a successful update
+                            setReturnSelectedRows([]);
+                            setReturnSelectedArtisans([]);
+                            setReturnSearchSNo("");
+                            setReturnArtisanSearch("");
+                            setReturnSelectAll(false);
+                            setReturnTableData([]);
+                            setReturnPageNumber(1);
+                            setReturnHasMore(true);
+                        }
                     }}
                 >
                     <Text style={styles.buttonText}>Update</Text>
