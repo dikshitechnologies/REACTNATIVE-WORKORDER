@@ -947,44 +947,373 @@ const AdminReports = ({ navigation }) => {
         }
     };
 
+    // Helper: convert rows to CSV
+    const exportSelectedRowsToCSV = async () => {
+        try {
+            const rows = selectedRows.map((id) => tableData.find((r) => r.id === id)).filter(Boolean);
+            if (rows.length === 0) {
+                Alert.alert('Export', 'No rows to export');
+                return;
+            }
+
+            const headers = ['IssueNo', 'SNo', 'TransId', 'Design', 'OrderNo', 'Product', 'Weight', 'Size', 'Qty', 'Purity', 'Theme', 'Status', 'OrderDate'];
+            const csvRows = [headers.join(',')];
+
+            rows.forEach(row => {
+                const r = [
+                    row.issueNo,
+                    row.sNo,
+                    row.transaId || row.transId || '',
+                    quoteCSV(row.design),
+                    quoteCSV(row.orderNo),
+                    quoteCSV(row.product),
+                    row.weight,
+                    quoteCSV(row.size),
+                    row.qty,
+                    row.purity,
+                    quoteCSV(row.theme),
+                    quoteCSV(row.status),
+                    row.orderDate ? new Date(row.orderDate).toLocaleDateString('en-GB') : ''
+                ];
+                csvRows.push(r.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+
+            // Try to use react-native-fs to write a file if available
+            let filePath;
+            try {
+                const RNFS = require('react-native-fs');
+                const path = RNFS.DocumentDirectoryPath + `/export_${Date.now()}.csv`;
+                await RNFS.writeFile(path, csvString, 'utf8');
+                filePath = 'file://' + path;
+            } catch (e) {
+                // RNFS not available or write failed. We'll fallback to sharing via data URI
+                console.warn('RNFS not available or write failed, will use data URI fallback', e);
+            }
+
+            try {
+                if (filePath) {
+                    // Ensure we pass a proper file:// URL and MIME type to the native share sheet
+                    await Share.open({
+                        url: filePath,
+                        title: 'Exported CSV',
+                        type: 'text/csv',
+                        filename: filePath.split('/').pop(),
+                    });
+                    // Return actual filesystem path (without file://) so caller can show it later
+                    return filePath.replace(/^file:\/\//, '');
+                } else {
+                    // Data URI fallback (should provide a valid scheme so native code doesn't crash)
+                    const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvString);
+                    await Share.open({ url: dataUri, title: 'Exported CSV' });
+                    return null;
+                }
+            } catch (shareErr) {
+                console.error('Share.open error:', shareErr);
+                // Inform user and fallback to console/log so user can copy if needed
+                try {
+                    Alert.alert('Export Failed', 'Unable to open share dialog. CSV content has been logged to console for manual copy.');
+                    console.log('CSV export fallback content:\n', csvString);
+                } catch (finalErr) {
+                    console.error('Final export fallback failed:', finalErr);
+                }
+                return null;
+            }
+        } catch (err) {
+            console.error('Export error:', err);
+            Alert.alert('Export Error', 'Failed to export CSV.');
+        }
+    };
+
+    // Helper: export selected rows to real .xlsx using xlsx + RNFS
+    const exportSelectedRowsToXLSX = async () => {
+        try {
+            const rows = selectedRows.map((id) => tableData.find((r) => r.id === id)).filter(Boolean);
+            if (rows.length === 0) {
+                Alert.alert('Export', 'No rows to export');
+                return;
+            }
+
+            // Prepare worksheet data as array of objects
+            const wsData = rows.map(row => ({
+                IssueNo: row.issueNo,
+                SNo: row.sNo,
+                TransId: row.transaId || row.transId || '',
+                Design: row.design,
+                OrderNo: row.orderNo,
+                Product: row.product,
+                Weight: row.weight,
+                Size: row.size,
+                Qty: row.qty,
+                Purity: row.purity,
+                Theme: row.theme,
+                Status: row.status,
+                OrderDate: row.orderDate ? new Date(row.orderDate).toLocaleDateString('en-GB') : ''
+            }));
+
+            // Create workbook
+            const XLSX = require('xlsx');
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Export');
+
+            // Write workbook as base64
+            const wboutBase64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+
+            // Try to write directly to Downloads (Android) or Documents (iOS) so user gets a physical file
+            try {
+                const RNFS = require('react-native-fs');
+                const { Platform, PermissionsAndroid } = require('react-native');
+                const fileName = `export_${Date.now()}.xlsx`;
+
+                if (Platform.OS === 'android') {
+                    // Request WRITE_EXTERNAL_STORAGE (best-effort). On Android 11+ scoped storage may still prevent writes to arbitrary folders.
+                    try {
+                        const granted = await PermissionsAndroid.request(
+                            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                            {
+                                title: 'Storage Permission',
+                                message: 'App needs access to your storage to save the Excel file to Downloads',
+                                buttonNeutral: 'Ask Me Later',
+                                buttonNegative: 'Cancel',
+                                buttonPositive: 'OK',
+                            }
+                        );
+
+                        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                            console.warn('Storage permission denied by user');
+                            // Continue to attempt writing to app directories as fallback
+                        }
+                    } catch (permErr) {
+                        console.warn('Permission request failed or denied:', permErr);
+                    }
+
+                    // Candidate directories to try (in order)
+                    const candidates = [];
+                    if (RNFS.DownloadDirectoryPath) candidates.push(RNFS.DownloadDirectoryPath);
+                    if (RNFS.ExternalStorageDirectoryPath) {
+                        candidates.push(RNFS.ExternalStorageDirectoryPath + '/Download');
+                        candidates.push(RNFS.ExternalStorageDirectoryPath);
+                    }
+                    if (RNFS.ExternalCachesDirectoryPath) candidates.push(RNFS.ExternalCachesDirectoryPath);
+                    // Last resort: app document directory
+                    candidates.push(RNFS.DocumentDirectoryPath);
+
+                    let savedPath = null;
+                    let lastError = null;
+
+                    for (const dir of candidates) {
+                        try {
+                            if (!dir) continue;
+                            const destPath = dir.endsWith('/') ? dir + fileName : dir + '/' + fileName;
+
+                            try {
+                                // Ensure directory exists where possible
+                                await RNFS.mkdir(dir);
+                            } catch (mkErr) {
+                                // mkdir may fail on protected paths; ignore and try writing anyway
+                            }
+
+                            await RNFS.writeFile(destPath, wboutBase64, 'base64');
+
+                            const exists = await RNFS.exists(destPath);
+                            if (exists) {
+                                savedPath = destPath;
+
+                                // Attempt to notify Android media scanner so file becomes visible in Downloads/Gallery apps
+                                try {
+                                    if (typeof RNFS.scanFile === 'function') {
+                                        try {
+                                            await RNFS.scanFile(destPath);
+                                        } catch (scanErr) {
+                                            try {
+                                                await RNFS.scanFile([{ path: destPath, mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }]);
+                                            } catch (_) {
+                                                // ignore scanner errors
+                                            }
+                                        }
+                                    }
+                                } catch (scanErr) {
+                                    // ignore scan errors
+                                }
+
+                                break;
+                            }
+                        } catch (wErr) {
+                            lastError = wErr;
+                            console.warn('Failed to write to candidate dir', dir, wErr);
+                            // try next candidate
+                        }
+                    }
+
+                    if (savedPath) {
+                        Alert.alert('Downloaded', `Excel saved to:\n${savedPath}`);
+                        console.log('Excel saved to', savedPath);
+                        return;
+                    }
+
+                    // If none succeeded, throw last error to go to fallback
+                    throw lastError || new Error('Failed to save XLSX to any candidate directory');
+                } else {
+                    // iOS: save to app Documents and tell user where it is. To export to Files app we'd still need Share.
+                    const destPath = RNFS.DocumentDirectoryPath + `/${fileName}`;
+                    await RNFS.writeFile(destPath, wboutBase64, 'base64');
+
+                    const exists = await RNFS.exists(destPath);
+                    if (!exists) throw new Error('Failed to save file: ' + destPath);
+
+                    Alert.alert('Saved', `Excel saved to app Documents:\n${destPath}`);
+                    console.log('Excel saved to', destPath);
+                    return;
+                }
+            } catch (e) {
+                console.warn('Direct save to Downloads/Documents failed, will fallback to cache+share or CSV', e);
+            }
+
+            // Fallback: generate CSV if xlsx write/share fails
+            const csvResult = await exportSelectedRowsToCSV();
+            return csvResult || null;
+        } catch (err) {
+            console.error('XLSX export error:', err);
+            Alert.alert('Export Error', 'Failed to export XLSX.');
+            return null;
+        }
+    };
+
+    // Helper: ensure CSV fields with commas are quoted
+    const quoteCSV = (val) => {
+        if (val === null || val === undefined) return '';
+        const s = String(val);
+        if (s.includes(',') || s.includes('\"') || s.includes('\n')) {
+            return '"' + s.replace(/\"/g, '""') + '"';
+        }
+        return s;
+    };
+
     const updateData = async () => {
         if (selectedRows.length === 0) {
-            alert("Please select at least one row.");
+            Alert.alert('Validation', 'Please select at least one row.');
             return;
         }
 
-        const payload = selectedRows.map((id) => {
-            const row = tableData.find((r) => r.id === id);
-            return {
-                issueNo: row.issueNo,
-                sno: row.sNo,
-                transId: row.transaId
-            };
-        });
+        // First prompt: export to Excel (CSV)
+        Alert.alert(
+            'Do you want Excel?',
+            '',
+            [
+                {
+                    text: 'No',
+                    onPress: async () => {
+                        // Proceed to update confirmation with no saved file
+                        confirmAndUpdate(null);
+                    },
+                    style: 'cancel'
+                },
+                {
+                    text: 'Yes',
+                    onPress: async () => {
+                        // Export as real Excel (.xlsx) when possible
+                        try {
+                            const savedPath = await exportSelectedRowsToXLSX();
+                            // If exporter wrote a file and returned a path, show a success alert first
+                            if (savedPath) {
+                                Alert.alert(
+                                    'Excel saved successfully..',
+                                    '',
+                                    [
+                                        {
+                                            text: 'OK',
+                                            onPress: () => {
+                                                // After user acknowledges, ask for update confirmation
+                                                confirmAndUpdate(savedPath);
+                                            }
+                                        }
+                                    ],
+                                    { cancelable: false }
+                                );
+                            } else {
+                                // No physical file saved (share or fallback). Proceed to update confirmation.
+                                confirmAndUpdate(null);
+                            }
+                        } catch (expErr) {
+                            console.warn('Export error:', expErr);
+                            // If export failed, still proceed to update confirmation
+                            confirmAndUpdate(null);
+                        }
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
+    };
 
-        console.log("Update payload:", payload);
+    const confirmAndUpdate = async (savedFilePath = null) => {
+        Alert.alert(
+            'Do you want to update?',
+            '',
+            [
+                {
+                    text: 'No',
+                    onPress: () => {
+                        // Do nothing
+                    },
+                    style: 'cancel'
+                },
+                {
+                    text: 'Yes',
+                    onPress: async () => {
+                        const payload = selectedRows.map((id) => {
+                            const row = tableData.find((r) => r.id === id);
+                            return {
+                                issueNo: row.issueNo,
+                                sno: row.sNo,
+                                transId: row.transaId
+                            };
+                        });
 
-        try {
-            const res = await axios.put(
-                `${BASE_URL}ItemTransaction/UpdateConfirmStatus`,
-                payload,
-                { headers: { "Content-Type": "application/json" } }
-            );
+                        console.log('Update payload:', payload);
 
-            if (res.status === 200) {
-                alert("Update successful!");
-                clearSelection();
-                const codes = artisans
-                    .filter((a) => selectedArtisans.includes(a.id))
-                    .map((a) => a.code);
-                fetchPendingOrders(codes, 1, searchSNo);
-            } else {
-                alert("Update failed. Please try again.");
-            }
-        } catch (err) {
-            console.error("Error updating data:", err);
-            alert("Error while updating data.");
-        }
+                        try {
+                            const res = await axios.put(
+                                `${BASE_URL}ItemTransaction/UpdateConfirmStatus`,
+                                payload,
+                                { headers: { 'Content-Type': 'application/json' } }
+                            );
+
+                            if (res.status === 200) {
+                                // After successful update, inform user about saved file (if any)
+                                if (savedFilePath) {
+                                    Alert.alert('Success', `Update successful!\nExcel saved to:\n${savedFilePath}`);
+                                } else {
+                                    Alert.alert('Success', 'Update successful! No Excel file was saved.');
+                                }
+
+                                clearSelection();
+                                const codes = artisans
+                                    .filter((a) => selectedArtisans.includes(a.id))
+                                    .map((a) => a.code);
+                                fetchPendingOrders(codes, 1, searchSNo);
+                            } else {
+                                if (savedFilePath) {
+                                    Alert.alert('Error', `Update failed. But Excel was saved to:\n${savedFilePath}`);
+                                } else {
+                                    Alert.alert('Error', 'Update failed. Please try again.');
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Error updating data:', err);
+                            if (savedFilePath) {
+                                Alert.alert('Error', `Error while updating data. But Excel was saved to:\n${savedFilePath}`);
+                            } else {
+                                Alert.alert('Error', 'Error while updating data.');
+                            }
+                        }
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
     };
 
     const clearSelection = () => {
