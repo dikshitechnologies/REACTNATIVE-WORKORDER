@@ -30,7 +30,6 @@ const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
 const { width, height } = Dimensions.get("window");
 const isTablet = DeviceInfo.isTablet();
-// A common threshold for tablets
 
 const AdminReports = ({ navigation }) => {
     const [partyName, setPartyName] = useState("");
@@ -53,16 +52,17 @@ const AdminReports = ({ navigation }) => {
     const [searchSNo, setSearchSNo] = useState("");
     const [validUrl, setValidUrl] = useState(null);
 
-    const [tableData, setTableData] = useState([]);  // ✅ start empty
+    const [tableData, setTableData] = useState([]);
     const [selectedRows, setSelectedRows] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
     const [artisans, setArtisans] = useState([]);
     const [pageNumber, setPageNumber] = useState(1);
-    const [artisanPage, setArtisanPage] = useState(1); // ✅ FIX: Dedicated page state for artisan modals
+    const [artisanPage, setArtisanPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [loadings, setLoadings] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [artisanSearch, setArtisanSearch] = useState("");
+
     // States for Return
     const [returnShowArtisanModal, setReturnShowArtisanModal] = useState(false);
     const [returnSelectedArtisans, setReturnSelectedArtisans] = useState([]);
@@ -74,6 +74,7 @@ const AdminReports = ({ navigation }) => {
     const [returnLoading, setReturnLoading] = useState(false);
     const [returnHasMore, setReturnHasMore] = useState(true);
     const [returnArtisanSearch, setReturnArtisanSearch] = useState("");
+
     // States for Delivered
     const [deliveredShowArtisanModal, setDeliveredShowArtisanModal] = useState(false);
     const [deliveredSelectedArtisans, setDeliveredSelectedArtisans] = useState([]);
@@ -82,8 +83,8 @@ const AdminReports = ({ navigation }) => {
     const [deliveredSelectedRows, setDeliveredSelectedRows] = useState([]);
     const [deliveredSelectAll, setDeliveredSelectAll] = useState(false);
     const [deliveredPageNumber, setDeliveredPageNumber] = useState(1);
-    const [deliveredLoading, setDeliveredLoading] = useState(false); // ✅ FIX: Dedicated loading state
-    const [fullscreenImage, setFullscreenImage] = useState(null); // holds the fileName (design)
+    const [deliveredLoading, setDeliveredLoading] = useState(false);
+    const [fullscreenImage, setFullscreenImage] = useState(null);
     const [deliveredHasMore, setDeliveredHasMore] = useState(true);
     const [deliveredArtisanSearch, setDeliveredArtisanSearch] = useState("");
 
@@ -108,22 +109,99 @@ const AdminReports = ({ navigation }) => {
     const [returnListArtisanSearch, setReturnListArtisanSearch] = useState("");
     const [showReturnListArtisanModal, setShowReturnListArtisanModal] = useState(false);
 
+    // Clear all section data when navigating back
+    const clearAllSectionData = () => {
+        // Clear Pending section data
+        setTableData([]);
+        setSelectedRows([]);
+        setSelectedArtisans([]);
+        setSearchSNo("");
+        setArtisanSearch("");
+        setSelectAll(false);
+        setPageNumber(1);
+        setHasMore(true);
+        setLoadings(false);
+
+        // Clear Return section data
+        setReturnTableData([]);
+        setReturnSelectedRows([]);
+        setReturnSelectedArtisans([]);
+        setReturnSearchSNo("");
+        setReturnArtisanSearch("");
+        setReturnSelectAll(false);
+        setReturnPageNumber(1);
+        setReturnHasMore(true);
+        setReturnLoading(false);
+
+        // Clear Delivered section data
+        setDeliveredTableData([]);
+        setDeliveredSelectedArtisans([]);
+        setDeliveredSearchSNo("");
+        setDeliveredArtisanSearch("");
+        setDeliveredPageNumber(1);
+        setDeliveredHasMore(true);
+        setDeliveredLoading(false);
+
+        // Clear Overdue section data
+        setOverdueTableData([]);
+        setOverdueSelectedArtisans([]);
+        setOverdueSearch("");
+        setOverdueArtisanSearch("");
+        setOverduePageNumber(1);
+        setOverdueHasMore(true);
+        setOverdueLoading(false);
+        setOverdueTotalRecords(0);
+
+        // Clear Return List section data
+        setReturnListTableData([]);
+        setReturnListSelectedArtisans([]);
+        setReturnListSearch("");
+        setReturnListArtisanSearch("");
+        setReturnListPageNumber(1);
+        setReturnListHasMore(true);
+        setReturnListLoading(false);
+
+        // Clear User Creation data
+        setPartyName("");
+        setPhoneWarning("");
+        setPhone("");
+        setSelectedPartyCode(null);
+        setDueDays("");
+        setPartySearch("");
+        setShowPartyModal(false);
+
+        // Clear modal states
+        setShowArtisanModal(false);
+        setReturnShowArtisanModal(false);
+        setDeliveredShowArtisanModal(false);
+        setShowOverdueArtisanModal(false);
+        setShowReturnListArtisanModal(false);
+
+        // Clear image states
+        setFullscreenImage(null);
+        setSelectedItem(null);
+    };
+
+    const handleBackPress = () => {
+        clearAllSectionData();
+        setActiveSection(null);
+        return true;
+    };
 
     const clearForm = () => {
         setPartyName("");
         setPhoneWarning("");
         setPhone("");
         setDueDays("");
+        setSelectedPartyCode(null);
     };
 
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         try {
-            // Handle ISO format like "2025-08-18T16:16:15.31"
             if (dateString.includes('T')) {
                 return new Date(dateString).toLocaleDateString("en-GB");
             }
-            // Handle "DD-MM-YYYY" format
             const parts = dateString.split('-');
             if (parts.length === 3) {
                 const [day, month, year] = parts;
@@ -131,11 +209,10 @@ const AdminReports = ({ navigation }) => {
                     return `${day}/${month}/${year}`;
                 }
             }
-            // Return original if format is unexpected
             return dateString;
         } catch (error) {
             console.log("Date formatting error:", error);
-            return dateString; // Fallback
+            return dateString;
         }
     };
 
@@ -153,38 +230,27 @@ const AdminReports = ({ navigation }) => {
             return;
         }
 
-        // Optional: validate dueDays if editable
         if (dueDays && isNaN(dueDays)) {
             Alert.alert("Validation", "Due Days must be a valid number");
             return;
         }
 
         try {
-            // ✅ Include fDueDays in the API call
             const url = `${BASE_URL}Party/UpdatePhone?fCode=${selectedPartyCode}&phone=${phone}&fDueDays=${dueDays}`;
             console.log("Updating party with URL:", url);
             const res = await axios.put(url);
 
             if (res.status === 200) {
                 Alert.alert("Success", res.data?.message || "Party details updated successfully!");
-
-                // Clear input fields
-                setPartyName("");
-                setSelectedPartyCode(null);
-                setPhone("");
-                setPhoneWarning("");
-                setDueDays("");
+                clearForm();
             } else {
-                // Handle unexpected HTTP statuses
                 Alert.alert(
                     "Error",
                     res.data?.message || `Failed to update party details. Status code: ${res.status}`
                 );
             }
         } catch (err) {
-            // ---------- Detailed error handling ----------
             console.error("Update error:", err.response?.data || err.message);
-
             const status = err.response?.status;
             const serverMessage = err.response?.data?.message;
 
@@ -200,7 +266,6 @@ const AdminReports = ({ navigation }) => {
         }
     };
 
-
     const shareToWhatsApp = async () => {
         try {
             if (!viewRef.current || !selectedItem) return;
@@ -212,7 +277,6 @@ const AdminReports = ({ navigation }) => {
 
             let message = `S.No: ${selectedItem.sNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}\nDesign: ${selectedItem.design}\nOrder No: ${selectedItem.orderNo}`;
 
-            // Conditionally add overdue details
             if (selectedItem.daysOverdue !== undefined) {
                 message += `\nDays Overdue: ${selectedItem.daysOverdue}\nDue Date: ${formatDate(selectedItem.dueDate)}`;
             }
@@ -236,9 +300,8 @@ const AdminReports = ({ navigation }) => {
     const renderUserCreation = () => {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
-                {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => setActiveSection(null)}>
+                    <TouchableOpacity onPress={handleBackPress}>
                         <Ionicons name="arrow-undo" size={30} color="#fff" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>User Creation</Text>
@@ -251,7 +314,6 @@ const AdminReports = ({ navigation }) => {
                     enableOnAndroid={true}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Card Container */}
                     <View
                         style={{
                             backgroundColor: "#fff",
@@ -264,12 +326,10 @@ const AdminReports = ({ navigation }) => {
                             elevation: 4,
                         }}
                     >
-                        {/* Card Heading */}
                         <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 15, color: "#2d531a" }}>
                             Add / Update Phone Number
                         </Text>
 
-                        {/* Party Name with search icon */}
                         <Text style={{ marginBottom: 6, fontWeight: 'bold', color: "#2d531a" }}>Party Name</Text>
                         <TouchableOpacity onPress={() => { fetchArtisans(), setShowPartyModal(true) }}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -285,33 +345,31 @@ const AdminReports = ({ navigation }) => {
                             </View>
                         </TouchableOpacity>
 
-                        {/* Phone Number */}
                         {phoneWarning ? (
                             <Text
                                 style={{
-                                    color: phone.includes("⚠️") ? "red" : "#2d531a", // red for missing, greenish for info
+                                    color: phone.includes("⚠️") ? "red" : "#2d531a",
                                     marginBottom: 6,
                                 }}
                             >
                                 {phoneWarning}
                             </Text>
                         ) : null}
-                        {/* Phone Number */}
+
                         <Text style={{ marginTop: 16, marginBottom: 6, fontWeight: 'bold', color: "#2d531a" }}>Phone No</Text>
                         <TextInput
                             style={styles.input}
                             value={phone}
                             onChangeText={(text) => {
-                                // allow only numbers and max 10 digits
                                 const cleaned = text.replace(/[^0-9]/g, "");
                                 if (cleaned.length <= 10) {
                                     setPhone(cleaned);
                                 }
                             }}
                             keyboardType="number-pad"
-                            maxLength={10}  // 👈 ensures only 10 digits
+                            maxLength={10}
                         />
-                        {/* ✅ Due Days Display */}
+
                         {dueDays ? (
                             <View style={{ marginTop: 16 }}>
                                 <Text style={{ fontWeight: "bold", color: "#2d531a", marginBottom: 6 }}>
@@ -321,12 +379,10 @@ const AdminReports = ({ navigation }) => {
                                     style={[styles.input, { backgroundColor: "#f9f9f9" }]}
                                     value={dueDays}
                                     onChangeText={setDueDays}
-
                                 />
                             </View>
                         ) : null}
 
-                        {/* Buttons inside card */}
                         <View
                             style={{
                                 flexDirection: "row",
@@ -344,7 +400,6 @@ const AdminReports = ({ navigation }) => {
                     </View>
                 </KeyboardAwareScrollView>
 
-                {/* Party Modal (same as before) */}
                 <Modal visible={showPartyModal} transparent animationType="slide">
                     <View
                         style={{
@@ -376,7 +431,6 @@ const AdminReports = ({ navigation }) => {
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Search input */}
                             <TextInput
                                 style={styles.input}
                                 placeholder="Search Party"
@@ -385,7 +439,6 @@ const AdminReports = ({ navigation }) => {
                                 onChangeText={setPartySearch}
                             />
 
-                            {/* Party List */}
                             <FlatList
                                 data={artisans.filter((a) =>
                                     a.name.toLowerCase().includes(partySearch.toLowerCase())
@@ -401,7 +454,7 @@ const AdminReports = ({ navigation }) => {
                                         onPress={() => {
                                             setPartyName(item.name);
                                             setSelectedPartyCode(item.code);
-                                            setDueDays(item.dueDays || "0"); // ✅ show due days after select
+                                            setDueDays(item.dueDays || "0");
 
                                             if (!item.phone || item.phone.trim() === "") {
                                                 setPhone("");
@@ -413,9 +466,6 @@ const AdminReports = ({ navigation }) => {
 
                                             setShowPartyModal(false);
                                         }}
-
-
-
                                     >
                                         <Text style={{ fontSize: 16, color: "#2d531a" }}>
                                             {item.name} ({item.code})
@@ -440,7 +490,7 @@ const AdminReports = ({ navigation }) => {
             const payload = returnTableData
                 .filter(item => returnSelectedRows.includes(item.id))
                 .map(item => ({
-                    IssueNo: item.issueNo,   // 👈 PascalCase
+                    IssueNo: item.issueNo,
                     SNo: item.sNo,
                     TransId: item.transId,
                 }));
@@ -564,7 +614,6 @@ const AdminReports = ({ navigation }) => {
         }
     };
 
-
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
             if (returnSelectedArtisans.length > 0) {
@@ -580,7 +629,6 @@ const AdminReports = ({ navigation }) => {
 
         return () => clearTimeout(delayDebounce);
     }, [returnSearchSNo, returnSelectedArtisans]);
-
 
     const FallbackImage = ({ fileName, style, onSuccess, onPress }) => {
         const [uriIndex, setUriIndex] = useState(0);
@@ -601,14 +649,12 @@ const AdminReports = ({ navigation }) => {
                     onError={() => {
                         if (uriIndex < sources.length - 1) {
                             setUriIndex(uriIndex + 1);
-                        } else {
-                            // console.log("No valid image found for", fileName);
                         }
                     }}
                     onLoad={() => {
                         const validUrl = sources[uriIndex];
                         setResolvedUrl(validUrl);
-                        if (onSuccess) onSuccess(validUrl); // ✅ report back valid URL
+                        if (onSuccess) onSuccess(validUrl);
                     }}
                 />
             </TouchableOpacity>
@@ -623,14 +669,14 @@ const AdminReports = ({ navigation }) => {
 
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
-            if (selectedArtisans.length > 0) {   // ✅ only fetch when artisan(s) selected
+            if (selectedArtisans.length > 0) {
                 setPageNumber(1);
                 const codes = artisans
                     .filter((a) => selectedArtisans.includes(a.id))
                     .map((a) => a.code);
                 fetchPendingOrders(codes, 1, searchSNo);
             } else {
-                setTableData([]); // ✅ keep it empty
+                setTableData([]);
             }
         }, 500);
 
@@ -652,7 +698,6 @@ const AdminReports = ({ navigation }) => {
 
         return () => clearTimeout(delayDebounce);
     }, [returnListSearch, returnListSelectedArtisans]);
-
 
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
@@ -693,7 +738,6 @@ const AdminReports = ({ navigation }) => {
         }, 500);
         return () => clearTimeout(delayDebounce);
     }, [overdueArtisanSearch]);
-
 
     const fetchArtisans = async (page = 1, search = "") => {
         if (loading || (page !== 1 && !hasMore)) return;
@@ -775,7 +819,6 @@ const AdminReports = ({ navigation }) => {
             );
 
             if (res.data) {
-                // The API response seems to have a `data` property which is the array
                 const responseData = res.data.data || res.data;
 
                 if (Array.isArray(responseData)) {
@@ -796,8 +839,8 @@ const AdminReports = ({ navigation }) => {
                         sNo: item.fSNo,
                         status: item.fconfirmStatus === "N" ? "Undelivered" : "Delivered",
                         returnFlag: item.fReturnFlag,
-                        dueFlag: item.dueFlag, // Capture dueFlag
-                        daysOverdue: item.daysOverdue, // Capture daysOverdue
+                        dueFlag: item.dueFlag,
+                        daysOverdue: item.daysOverdue,
                     }));
 
                     if (page === 1) {
@@ -922,7 +965,6 @@ const AdminReports = ({ navigation }) => {
         } finally {
             setOverdueLoading(false);
         }
-
     };
 
     useEffect(() => {
@@ -945,7 +987,7 @@ const AdminReports = ({ navigation }) => {
     useEffect(() => {
         const backAction = () => {
             if (activeSection) {
-                setActiveSection(null);
+                handleBackPress();
                 return true;
             } else {
                 Alert.alert(
@@ -981,44 +1023,373 @@ const AdminReports = ({ navigation }) => {
         }
     };
 
+    // Helper: convert rows to CSV
+    const exportSelectedRowsToCSV = async () => {
+        try {
+            const rows = selectedRows.map((id) => tableData.find((r) => r.id === id)).filter(Boolean);
+            if (rows.length === 0) {
+                Alert.alert('Export', 'No rows to export');
+                return;
+            }
+
+            const headers = ['IssueNo', 'SNo', 'TransId', 'Design', 'OrderNo', 'Product', 'Weight', 'Size', 'Qty', 'Purity', 'Theme', 'Status', 'OrderDate'];
+            const csvRows = [headers.join(',')];
+
+            rows.forEach(row => {
+                const r = [
+                    row.issueNo,
+                    row.sNo,
+                    row.transaId || row.transId || '',
+                    quoteCSV(row.design),
+                    quoteCSV(row.orderNo),
+                    quoteCSV(row.product),
+                    row.weight,
+                    quoteCSV(row.size),
+                    row.qty,
+                    row.purity,
+                    quoteCSV(row.theme),
+                    quoteCSV(row.status),
+                    row.orderDate ? new Date(row.orderDate).toLocaleDateString('en-GB') : ''
+                ];
+                csvRows.push(r.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+
+            // Try to use react-native-fs to write a file if available
+            let filePath;
+            try {
+                const RNFS = require('react-native-fs');
+                const path = RNFS.DocumentDirectoryPath + `/export_${Date.now()}.csv`;
+                await RNFS.writeFile(path, csvString, 'utf8');
+                filePath = 'file://' + path;
+            } catch (e) {
+                // RNFS not available or write failed. We'll fallback to sharing via data URI
+                console.warn('RNFS not available or write failed, will use data URI fallback', e);
+            }
+
+            try {
+                if (filePath) {
+                    // Ensure we pass a proper file:// URL and MIME type to the native share sheet
+                    await Share.open({
+                        url: filePath,
+                        title: 'Exported CSV',
+                        type: 'text/csv',
+                        filename: filePath.split('/').pop(),
+                    });
+                    // Return actual filesystem path (without file://) so caller can show it later
+                    return filePath.replace(/^file:\/\//, '');
+                } else {
+                    // Data URI fallback (should provide a valid scheme so native code doesn't crash)
+                    const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvString);
+                    await Share.open({ url: dataUri, title: 'Exported CSV' });
+                    return null;
+                }
+            } catch (shareErr) {
+                console.error('Share.open error:', shareErr);
+                // Inform user and fallback to console/log so user can copy if needed
+                try {
+                    Alert.alert('Export Failed', 'Unable to open share dialog. CSV content has been logged to console for manual copy.');
+                    console.log('CSV export fallback content:\n', csvString);
+                } catch (finalErr) {
+                    console.error('Final export fallback failed:', finalErr);
+                }
+                return null;
+            }
+        } catch (err) {
+            console.error('Export error:', err);
+            Alert.alert('Export Error', 'Failed to export CSV.');
+        }
+    };
+
+    // Helper: export selected rows to real .xlsx using xlsx + RNFS
+    const exportSelectedRowsToXLSX = async () => {
+        try {
+            const rows = selectedRows.map((id) => tableData.find((r) => r.id === id)).filter(Boolean);
+            if (rows.length === 0) {
+                Alert.alert('Export', 'No rows to export');
+                return;
+            }
+
+            // Prepare worksheet data as array of objects
+            const wsData = rows.map(row => ({
+                IssueNo: row.issueNo,
+                SNo: row.sNo,
+                TransId: row.transaId || row.transId || '',
+                Design: row.design,
+                OrderNo: row.orderNo,
+                Product: row.product,
+                Weight: row.weight,
+                Size: row.size,
+                Qty: row.qty,
+                Purity: row.purity,
+                Theme: row.theme,
+                Status: row.status,
+                OrderDate: row.orderDate ? new Date(row.orderDate).toLocaleDateString('en-GB') : ''
+            }));
+
+            // Create workbook
+            const XLSX = require('xlsx');
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Export');
+
+            // Write workbook as base64
+            const wboutBase64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+
+            // Try to write directly to Downloads (Android) or Documents (iOS) so user gets a physical file
+            try {
+                const RNFS = require('react-native-fs');
+                const { Platform, PermissionsAndroid } = require('react-native');
+                const fileName = `export_${Date.now()}.xlsx`;
+
+                if (Platform.OS === 'android') {
+                    // Request WRITE_EXTERNAL_STORAGE (best-effort). On Android 11+ scoped storage may still prevent writes to arbitrary folders.
+                    try {
+                        const granted = await PermissionsAndroid.request(
+                            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                            {
+                                title: 'Storage Permission',
+                                message: 'App needs access to your storage to save the Excel file to Downloads',
+                                buttonNeutral: 'Ask Me Later',
+                                buttonNegative: 'Cancel',
+                                buttonPositive: 'OK',
+                            }
+                        );
+
+                        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                            console.warn('Storage permission denied by user');
+                            // Continue to attempt writing to app directories as fallback
+                        }
+                    } catch (permErr) {
+                        console.warn('Permission request failed or denied:', permErr);
+                    }
+
+                    // Candidate directories to try (in order)
+                    const candidates = [];
+                    if (RNFS.DownloadDirectoryPath) candidates.push(RNFS.DownloadDirectoryPath);
+                    if (RNFS.ExternalStorageDirectoryPath) {
+                        candidates.push(RNFS.ExternalStorageDirectoryPath + '/Download');
+                        candidates.push(RNFS.ExternalStorageDirectoryPath);
+                    }
+                    if (RNFS.ExternalCachesDirectoryPath) candidates.push(RNFS.ExternalCachesDirectoryPath);
+                    // Last resort: app document directory
+                    candidates.push(RNFS.DocumentDirectoryPath);
+
+                    let savedPath = null;
+                    let lastError = null;
+
+                    for (const dir of candidates) {
+                        try {
+                            if (!dir) continue;
+                            const destPath = dir.endsWith('/') ? dir + fileName : dir + '/' + fileName;
+
+                            try {
+                                // Ensure directory exists where possible
+                                await RNFS.mkdir(dir);
+                            } catch (mkErr) {
+                                // mkdir may fail on protected paths; ignore and try writing anyway
+                            }
+
+                            await RNFS.writeFile(destPath, wboutBase64, 'base64');
+
+                            const exists = await RNFS.exists(destPath);
+                            if (exists) {
+                                savedPath = destPath;
+
+                                // Attempt to notify Android media scanner so file becomes visible in Downloads/Gallery apps
+                                try {
+                                    if (typeof RNFS.scanFile === 'function') {
+                                        try {
+                                            await RNFS.scanFile(destPath);
+                                        } catch (scanErr) {
+                                            try {
+                                                await RNFS.scanFile([{ path: destPath, mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }]);
+                                            } catch (_) {
+                                                // ignore scanner errors
+                                            }
+                                        }
+                                    }
+                                } catch (scanErr) {
+                                    // ignore scan errors
+                                }
+
+                                break;
+                            }
+                        } catch (wErr) {
+                            lastError = wErr;
+                            console.warn('Failed to write to candidate dir', dir, wErr);
+                            // try next candidate
+                        }
+                    }
+
+                    if (savedPath) {
+                        Alert.alert('Downloaded', `Excel saved to:\n${savedPath}`);
+                        console.log('Excel saved to', savedPath);
+                        return;
+                    }
+
+                    // If none succeeded, throw last error to go to fallback
+                    throw lastError || new Error('Failed to save XLSX to any candidate directory');
+                } else {
+                    // iOS: save to app Documents and tell user where it is. To export to Files app we'd still need Share.
+                    const destPath = RNFS.DocumentDirectoryPath + `/${fileName}`;
+                    await RNFS.writeFile(destPath, wboutBase64, 'base64');
+
+                    const exists = await RNFS.exists(destPath);
+                    if (!exists) throw new Error('Failed to save file: ' + destPath);
+
+                    Alert.alert('Saved', `Excel saved to app Documents:\n${destPath}`);
+                    console.log('Excel saved to', destPath);
+                    return;
+                }
+            } catch (e) {
+                console.warn('Direct save to Downloads/Documents failed, will fallback to cache+share or CSV', e);
+            }
+
+            // Fallback: generate CSV if xlsx write/share fails
+            const csvResult = await exportSelectedRowsToCSV();
+            return csvResult || null;
+        } catch (err) {
+            console.error('XLSX export error:', err);
+            Alert.alert('Export Error', 'Failed to export XLSX.');
+            return null;
+        }
+    };
+
+    // Helper: ensure CSV fields with commas are quoted
+    const quoteCSV = (val) => {
+        if (val === null || val === undefined) return '';
+        const s = String(val);
+        if (s.includes(',') || s.includes('\"') || s.includes('\n')) {
+            return '"' + s.replace(/\"/g, '""') + '"';
+        }
+        return s;
+    };
+
     const updateData = async () => {
         if (selectedRows.length === 0) {
-            alert("Please select at least one row.");
+            Alert.alert('Validation', 'Please select at least one row.');
             return;
         }
 
-        const payload = selectedRows.map((id) => {
-            const row = tableData.find((r) => r.id === id);
-            return {
-                issueNo: row.issueNo,
-                sno: row.sNo,
-                transId: row.transaId
-            };
-        });
+        // First prompt: export to Excel (CSV)
+        Alert.alert(
+            'Do you want Excel?',
+            '',
+            [
+                {
+                    text: 'No',
+                    onPress: async () => {
+                        // Proceed to update confirmation with no saved file
+                        confirmAndUpdate(null);
+                    },
+                    style: 'cancel'
+                },
+                {
+                    text: 'Yes',
+                    onPress: async () => {
+                        // Export as real Excel (.xlsx) when possible
+                        try {
+                            const savedPath = await exportSelectedRowsToXLSX();
+                            // If exporter wrote a file and returned a path, show a success alert first
+                            if (savedPath) {
+                                Alert.alert(
+                                    'Excel saved successfully..',
+                                    '',
+                                    [
+                                        {
+                                            text: 'OK',
+                                            onPress: () => {
+                                                // After user acknowledges, ask for update confirmation
+                                                confirmAndUpdate(savedPath);
+                                            }
+                                        }
+                                    ],
+                                    { cancelable: false }
+                                );
+                            } else {
+                                // No physical file saved (share or fallback). Proceed to update confirmation.
+                                confirmAndUpdate(null);
+                            }
+                        } catch (expErr) {
+                            console.warn('Export error:', expErr);
+                            // If export failed, still proceed to update confirmation
+                            confirmAndUpdate(null);
+                        }
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
+    };
 
-        console.log("Update payload:", payload);
+    const confirmAndUpdate = async (savedFilePath = null) => {
+        Alert.alert(
+            'Do you want to update?',
+            '',
+            [
+                {
+                    text: 'No',
+                    onPress: () => {
+                        // Do nothing
+                    },
+                    style: 'cancel'
+                },
+                {
+                    text: 'Yes',
+                    onPress: async () => {
+                        const payload = selectedRows.map((id) => {
+                            const row = tableData.find((r) => r.id === id);
+                            return {
+                                issueNo: row.issueNo,
+                                sno: row.sNo,
+                                transId: row.transaId
+                            };
+                        });
 
-        try {
-            const res = await axios.put(
-                `${BASE_URL}ItemTransaction/UpdateConfirmStatus`,
-                payload,
-                { headers: { "Content-Type": "application/json" } }
-            );
+                        console.log('Update payload:', payload);
 
-            if (res.status === 200) {
-                alert("Update successful!");
-                clearSelection();
-                const codes = artisans
-                    .filter((a) => selectedArtisans.includes(a.id))
-                    .map((a) => a.code);
-                fetchPendingOrders(codes, 1, searchSNo);
-            } else {
-                alert("Update failed. Please try again.");
-            }
-        } catch (err) {
-            console.error("Error updating data:", err);
-            alert("Error while updating data.");
-        }
+                        try {
+                            const res = await axios.put(
+                                `${BASE_URL}ItemTransaction/UpdateConfirmStatus`,
+                                payload,
+                                { headers: { 'Content-Type': 'application/json' } }
+                            );
+
+                            if (res.status === 200) {
+                                // After successful update, inform user about saved file (if any)
+                                if (savedFilePath) {
+                                    Alert.alert('Success', `Update successful!\nExcel saved to:\n${savedFilePath}`);
+                                } else {
+                                    Alert.alert('Success', 'Update successful! No Excel file was saved.');
+                                }
+
+                                clearSelection();
+                                const codes = artisans
+                                    .filter((a) => selectedArtisans.includes(a.id))
+                                    .map((a) => a.code);
+                                fetchPendingOrders(codes, 1, searchSNo);
+                            } else {
+                                if (savedFilePath) {
+                                    Alert.alert('Error', `Update failed. But Excel was saved to:\n${savedFilePath}`);
+                                } else {
+                                    Alert.alert('Error', 'Update failed. Please try again.');
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Error updating data:', err);
+                            if (savedFilePath) {
+                                Alert.alert('Error', `Error while updating data. But Excel was saved to:\n${savedFilePath}`);
+                            } else {
+                                Alert.alert('Error', 'Error while updating data.');
+                            }
+                        }
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
     };
 
     const clearSelection = () => {
@@ -1053,16 +1424,14 @@ const AdminReports = ({ navigation }) => {
 
     const renderDelivered = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
-            {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => setActiveSection(null)}>
+                <TouchableOpacity onPress={handleBackPress}>
                     <Ionicons name="arrow-undo" size={30} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Delivered</Text>
                 <View style={{ width: 30 }} />
             </View>
 
-            {/* Fullscreen Image Viewer with Sharing */}
             <Modal
                 visible={!!fullscreenImage}
                 transparent={false}
@@ -1097,7 +1466,7 @@ const AdminReports = ({ navigation }) => {
                                     imageHeight={screenHeight * 0.75}
                                     enableSwipeDown={false}
                                     pinchToZoom={true}
-                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }}
                                 >
                                     <Image
                                         source={{ uri: fullscreenImage }}
@@ -1135,7 +1504,6 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     </ViewShot>
 
-                    {/* Bottom buttons */}
                     <View style={styles.modalFooterButtons}>
                         <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
                             <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
@@ -1148,7 +1516,6 @@ const AdminReports = ({ navigation }) => {
                 </SafeAreaView>
             </Modal>
 
-            {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
                 <TouchableOpacity onPress={() => setDeliveredShowArtisanModal(true)}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -1182,7 +1549,6 @@ const AdminReports = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Search S.No / Design */}
             <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
                 <TextInput
                     style={{
@@ -1198,7 +1564,6 @@ const AdminReports = ({ navigation }) => {
                 />
             </View>
 
-            {/* Artisan Modal */}
             <Modal visible={deliveredShowArtisanModal} transparent animationType="slide">
                 <View
                     style={{
@@ -1216,7 +1581,6 @@ const AdminReports = ({ navigation }) => {
                             maxHeight: "80%",
                         }}
                     >
-                        {/* Header */}
                         <View
                             style={{
                                 flexDirection: "row",
@@ -1235,7 +1599,6 @@ const AdminReports = ({ navigation }) => {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Search Bar */}
                         <TextInput
                             style={{
                                 borderWidth: 1,
@@ -1311,7 +1674,6 @@ const AdminReports = ({ navigation }) => {
                             }
                         />
 
-                        {/* Footer Buttons */}
                         <View
                             style={{
                                 flexDirection: "row",
@@ -1331,7 +1693,7 @@ const AdminReports = ({ navigation }) => {
                                 style={styles.updateButton}
                                 onPress={() => {
                                     setDeliveredShowArtisanModal(false);
-                                    setDeliveredPageNumber(1); // Reset data page number
+                                    setDeliveredPageNumber(1);
                                     const codes = artisans
                                         .filter((a) =>
                                             deliveredSelectedArtisans.includes(a.id)
@@ -1347,7 +1709,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             </Modal>
 
-            {/* Table */}
             {deliveredTableData.length > 0 ? (
                 <FlatList
                     data={deliveredFilteredData}
@@ -1455,7 +1816,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             )}
 
-            {/* Footer */}
             <View style={styles.footer}>
                 <TouchableOpacity
                     style={styles.clearButton}
@@ -1474,6 +1834,7 @@ const AdminReports = ({ navigation }) => {
             </View>
         </SafeAreaView>
     );
+
     const groupByIssueDate = (data) => {
         return data.reduce((groups, item) => {
             const date = new Date(item.issueNoDate || item.orderDate).toLocaleDateString("en-GB");
@@ -1489,7 +1850,7 @@ const AdminReports = ({ navigation }) => {
                 title: date,
                 data: items,
             }))
-            .sort((a, b) => { // Sort by date, most recent first
+            .sort((a, b) => {
                 const partsA = a.title.split('/');
                 const dateA = new Date(+partsA[2], partsA[1] - 1, +partsA[0]);
                 const partsB = b.title.split('/');
@@ -1500,7 +1861,7 @@ const AdminReports = ({ navigation }) => {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => setActiveSection(null)}>
+                    <TouchableOpacity onPress={handleBackPress}>
                         <Ionicons name="arrow-undo" size={30} color="#fff" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Pending</Text>
@@ -1540,7 +1901,7 @@ const AdminReports = ({ navigation }) => {
                                         imageHeight={screenHeight * 0.75}
                                         enableSwipeDown={false}
                                         pinchToZoom={true}
-                                        centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                                        centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }}
                                     >
                                         <Image
                                             source={{ uri: fullscreenImage }}
@@ -1577,8 +1938,7 @@ const AdminReports = ({ navigation }) => {
                                 )}
                             </View>
                         </ViewShot>
-
-                        {/* Bottom buttons */}
+    
                         <View style={styles.modalFooterButtons}>
                             <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
                                 <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
@@ -1590,9 +1950,7 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     </SafeAreaView>
                 </Modal>
-
-
-                {/* Artisan Selection */}
+    
                 <View style={{ padding: 12 }}>
                     <TouchableOpacity onPress={() => setShowArtisanModal(true)}>
                         <View
@@ -1632,8 +1990,7 @@ const AdminReports = ({ navigation }) => {
                             <Ionicons name="search" size={26} color="#7c7c7c" /></View>
                     </TouchableOpacity>
                 </View>
-
-                {/* Search S.No / Design */}
+    
                 <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
                     <TextInput
                         style={{
@@ -1648,8 +2005,7 @@ const AdminReports = ({ navigation }) => {
                         onChangeText={setSearchSNo}
                     />
                 </View>
-
-                {/* Artisan Modal */}
+    
                 <Modal visible={showArtisanModal} transparent animationType="slide">
                     <View
                         style={{
@@ -1667,7 +2023,6 @@ const AdminReports = ({ navigation }) => {
                                 maxHeight: "80%",
                             }}
                         >
-                            {/* Header */}
                             <View
                                 style={{
                                     flexDirection: "row",
@@ -1685,8 +2040,7 @@ const AdminReports = ({ navigation }) => {
                                     <Ionicons name="close" size={28} />
                                 </TouchableOpacity>
                             </View>
-
-                            {/* Search Bar */}
+    
                             <TextInput
                                 style={{
                                     borderWidth: 1,
@@ -1772,8 +2126,7 @@ const AdminReports = ({ navigation }) => {
                                     ) : null
                                 }
                             />
-
-                            {/* Footer Buttons */}
+    
                             <View
                                 style={{
                                     flexDirection: "row",
@@ -1795,7 +2148,7 @@ const AdminReports = ({ navigation }) => {
                                     style={styles.updateButton}
                                     onPress={() => {
                                         setShowArtisanModal(false);
-                                        setPageNumber(1); // Reset data page number
+                                        setPageNumber(1);
                                         const codes = artisans
                                             .filter((a) =>
                                                 selectedArtisans.includes(a.id)
@@ -1812,8 +2165,7 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     </View>
                 </Modal>
-
-                {/* Table */}
+    
                 {tableData.length > 0 ? (
                     <SectionList
                         sections={sectionsData}
@@ -1986,8 +2338,7 @@ const AdminReports = ({ navigation }) => {
                         </Text>
                     </View>
                 )}
-
-                {/* Footer */}
+    
                 <View style={styles.footer}>
                     <TouchableOpacity
                         style={styles.clearButton}
@@ -2006,11 +2357,10 @@ const AdminReports = ({ navigation }) => {
         );
     };
 
-
     const renderReturn = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => setActiveSection(null)}>
+                <TouchableOpacity onPress={handleBackPress}>
                     <Ionicons name="arrow-undo" size={30} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Return</Text>
@@ -2050,7 +2400,7 @@ const AdminReports = ({ navigation }) => {
                                     imageHeight={screenHeight * 0.75}
                                     enableSwipeDown={false}
                                     pinchToZoom={true}
-                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }}
                                 >
                                     <Image
                                         source={{ uri: fullscreenImage }}
@@ -2088,7 +2438,6 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     </ViewShot>
 
-                    {/* Bottom buttons */}
                     <View style={styles.modalFooterButtons}>
                         <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
                             <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
@@ -2350,7 +2699,6 @@ const AdminReports = ({ navigation }) => {
                         setReturnTableData([]);
                         setReturnPageNumber(1);
                         setReturnHasMore(true);
-
                     }}
                 >
                     <Text style={styles.buttonText}>Clear</Text>
@@ -2377,16 +2725,14 @@ const AdminReports = ({ navigation }) => {
 
     const renderReturnList = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
-            {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => setActiveSection(null)}>
+                <TouchableOpacity onPress={handleBackPress}>
                     <Ionicons name="arrow-undo" size={30} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Return List</Text>
                 <View style={{ width: 30 }} />
             </View>
 
-            {/* Fullscreen Image Viewer */}
             <Modal visible={!!fullscreenImage} transparent={false} onRequestClose={() => setFullscreenImage(null)}>
                 <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
                     <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -2417,7 +2763,6 @@ const AdminReports = ({ navigation }) => {
                 </SafeAreaView>
             </Modal>
 
-            {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
                 <TouchableOpacity onPress={() => setShowReturnListArtisanModal(true)}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -2434,7 +2779,6 @@ const AdminReports = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Search Bar */}
             <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
                 <TextInput
                     style={styles.input}
@@ -2445,7 +2789,6 @@ const AdminReports = ({ navigation }) => {
                 />
             </View>
 
-            {/* Artisan Modal */}
             <Modal visible={showReturnListArtisanModal} transparent animationType="slide">
                 <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}>
                     <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, maxHeight: "80%" }}>
@@ -2490,7 +2833,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             </Modal>
 
-            {/* Table */}
             {returnListTableData.length > 0 ? (
                 <FlatList
                     data={returnListTableData}
@@ -2542,7 +2884,6 @@ const AdminReports = ({ navigation }) => {
                 <View style={styles.emptyContainer}><Image source={require("../asserts/Search.png")} style={styles.emptyImage} /><Text style={styles.emptyText}>Select an artisan to view the return list.</Text></View>
             )}
 
-            {/* Footer */}
             <View style={styles.footer}>
                 <TouchableOpacity
                     style={styles.clearButton}
@@ -2561,19 +2902,16 @@ const AdminReports = ({ navigation }) => {
         </SafeAreaView>
     );
 
-
     const renderOverdue = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
-            {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => setActiveSection(null)}>
+                <TouchableOpacity onPress={handleBackPress}>
                     <Ionicons name="arrow-undo" size={30} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Overdue</Text>
                 <View style={{ width: 30 }} />
             </View>
 
-            {/* Fullscreen Image Viewer with Sharing */}
             <Modal
                 visible={!!fullscreenImage}
                 transparent={false}
@@ -2626,7 +2964,6 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     </ViewShot>
 
-                    {/* Bottom buttons */}
                     <View style={styles.modalFooterButtons}>
                         <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
                             <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
@@ -2639,7 +2976,6 @@ const AdminReports = ({ navigation }) => {
                 </SafeAreaView>
             </Modal>
 
-            {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
                 <TouchableOpacity onPress={() => setShowOverdueArtisanModal(true)}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -2663,7 +2999,6 @@ const AdminReports = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Search Bar */}
             <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
                 <TextInput
                     style={styles.input}
@@ -2674,7 +3009,6 @@ const AdminReports = ({ navigation }) => {
                 />
             </View>
 
-            {/* Total Overdue Count */}
             {overdueTableData.length > 0 && (
                 <View style={styles.statsContainer}>
                     <View style={styles.statItem}>
@@ -2684,7 +3018,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             )}
 
-            {/* Artisan Modal for Overdue */}
             <Modal visible={showOverdueArtisanModal} transparent animationType="slide">
                 <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}>
                     <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, maxHeight: "80%" }}>
@@ -2744,7 +3077,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             </Modal>
 
-            {/* Table */}
             {overdueTableData.length > 0 ? (
                 <FlatList
                     data={overdueTableData}
@@ -2805,7 +3137,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             )}
 
-            {/* Footer */}
             <View style={styles.footer}>
                 <TouchableOpacity
                     style={styles.clearButton}
@@ -2835,7 +3166,7 @@ const AdminReports = ({ navigation }) => {
         return (
             <View style={styles.sectionContainer}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => setActiveSection(null)}>
+                    <TouchableOpacity onPress={handleBackPress}>
                         <Ionicons name="arrow-undo" size={30} color="#fff" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>{activeSection}</Text>
@@ -2881,7 +3212,6 @@ const AdminReports = ({ navigation }) => {
                         color="#fff"
                         style={{ transform: [{ scaleX: -1 }] }}
                     />
-
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Admin Reports</Text>
                 <View style={{ width: 30 }} />
@@ -3180,7 +3510,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     returnBadge: {
-        backgroundColor: '#ff9800', // Orange color
+        backgroundColor: '#ff9800',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 6,
@@ -3191,7 +3521,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
     },
-    // Styles for Overdue Section
     overdueBadge: {
         position: 'absolute',
         top: 8,
@@ -3207,16 +3536,15 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: 'bold',
     },
-    // New styles for Overdue badge in Undelivered section
     undeliveredOverdueBadge: {
         position: 'absolute',
         top: 15,
         right: 50,
-        backgroundColor: '#d32f2f', // Red color
+        backgroundColor: '#d32f2f',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 6,
-        zIndex: 2, // Ensure it's on top
+        zIndex: 2,
     },
     undeliveredOverdueBadgeText: {
         color: '#fff',
@@ -3279,7 +3607,6 @@ const styles = StyleSheet.create({
         marginTop: 4,
         textAlign: "center",
     },
-    // Styles for the date header, matching PendingReports.js
     sectionHeader: {
         backgroundColor: "#2d531a",
         paddingVertical: 12,
