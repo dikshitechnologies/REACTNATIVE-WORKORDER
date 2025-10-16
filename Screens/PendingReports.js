@@ -128,46 +128,50 @@ const PendingReports = ({ navigation, route }) => {
   };
 
   // ✅ Format date for grouping (YYYY-MM-DD format for consistent sorting)
-  const formatDateForGrouping = (dateString) => {
-    if (!dateString) return "Unknown Date";
+const formatDateForGrouping = (dateString) => {
+  if (!dateString) return "Unknown Date";
 
-    try {
-      if (dateString.includes('T')) {
-        // ISO format
-        return new Date(dateString).toISOString().split('T')[0]; // YYYY-MM-DD
-      } else {
-        // DD-MM-YYYY format
-        const [day, month, year] = dateString.split('-');
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`; // YYYY-MM-DD
-      }
-    } catch (error) {
-      console.log("Date grouping error:", error);
-      return "Unknown Date";
+  try {
+    if (dateString.includes('T')) {
+      // ISO format
+      return new Date(dateString).toISOString().split('T')[0]; // YYYY-MM-DD
+    } else {
+      // DD-MM-YYYY format
+      const [day, month, year] = dateString.split('-');
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`; // YYYY-MM-DD
     }
-  };
+  } catch (error) {
+    console.log("Date grouping error:", error);
+    return "Unknown Date";
+  }
+};
 
   // ✅ Get display date for section headers in dd/mm/yyyy format
   const getDisplayDate = (dateString) => {
-    if (!dateString) return "Unknown Date";
+  if (!dateString) return "Unknown Date";
 
-    try {
-      if (dateString.includes('T')) {
-        // ISO format - convert to dd/mm/yyyy
-        const date = new Date(dateString);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-      } else {
-        // DD-MM-YYYY format - convert to dd/mm/yyyy
-        const [day, month, year] = dateString.split('-');
-        return `${day}/${month}/${year}`;
-      }
-    } catch (error) {
-      console.log("Date display error:", error);
-      return dateString;
+  try {
+    if (dateString.includes('T')) {
+      // ISO format - convert to dd/mm/yyyy
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } else if (dateString.includes('-') && dateString.length === 10) {
+      // Handle YYYY-MM-DD format (from grouping)
+      const [year, month, day] = dateString.split('-');
+      return `${day}/${month}/${year}`;
+    } else {
+      // DD-MM-YYYY format - convert to dd/mm/yyyy
+      const [day, month, year] = dateString.split('-');
+      return `${day}/${month}/${year}`;
     }
-  };
+  } catch (error) {
+    console.log("Date display error:", error);
+    return dateString;
+  }
+};
 
   // ✅ Get overdue status based on dueFlag and daysOverdue
   const getOverdueStatus = (dueFlag, daysOverdue) => {
@@ -200,26 +204,26 @@ const PendingReports = ({ navigation, route }) => {
 
   // ✅ Group reports by issue date
   const groupReportsByDate = (reportsData) => {
-    const grouped = {};
+  const grouped = {};
 
-    reportsData.forEach((item) => {
-      const issueDate = formatDateForGrouping(item.issueDate);
-      if (!grouped[issueDate]) {
-        grouped[issueDate] = [];
-      }
-      grouped[issueDate].push(item);
-    });
+  reportsData.forEach((item) => {
+    const issueDate = formatDateForGrouping(item.issueDate);
+    if (!grouped[issueDate]) {
+      grouped[issueDate] = [];
+    }
+    grouped[issueDate].push(item);
+  });
 
-    // Convert to array and sort by date (ascending)
-    const sortedGroups = Object.keys(grouped)
-      .sort() // This will sort dates in YYYY-MM-DD format correctly
-      .map(date => ({
-        title: date,
-        data: grouped[date]
-      }));
+  // Convert to array and sort by date (descending - most recent first)
+  const sortedGroups = Object.keys(grouped)
+    .sort((a, b) => new Date(b) - new Date(a)) // Most recent first
+    .map(date => ({
+      title: getDisplayDate(date), // Convert to dd/mm/yyyy for display
+      data: grouped[date]
+    }));
 
-    return sortedGroups;
-  };
+  return sortedGroups;
+};
 
   // ✅ fetch reports with stable IDs
   const fetchReports = async (query = "", pageNum = 1, append = false) => {
@@ -537,14 +541,15 @@ const PendingReports = ({ navigation, route }) => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // ✅ Render section header
-  const renderSectionHeader = ({ section: { title } }) => (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>
-        Issue Date: {getDisplayDate(title)}
-      </Text>
-    </View>
-  );
+
+// ✅ Render section header
+const renderSectionHeader = ({ section: { title } }) => (
+  <View style={styles.sectionHeader}>
+    <Text style={styles.sectionHeaderText}>
+      Issue Date: {title} {/* This will now show as 18/07/2025 */}
+    </Text>
+  </View>
+);
 
   // ✅ Render individual item - UPDATED to only show Return badge for "R"
   const renderItem = ({ item }) => {
