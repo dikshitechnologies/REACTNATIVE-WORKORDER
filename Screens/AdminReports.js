@@ -1,4 +1,3 @@
-
 import {
     StyleSheet,
     Text,
@@ -33,7 +32,6 @@ const screenHeight = Dimensions.get('window').height;
 const { width, height } = Dimensions.get("window");
 
 const isTablet = DeviceInfo.isTablet();
-// A common threshold for tablets
 
 const AdminReports = ({ navigation }) => {
     const [partyName, setPartyName] = useState("");
@@ -56,16 +54,17 @@ const AdminReports = ({ navigation }) => {
     const [searchSNo, setSearchSNo] = useState("");
     const [validUrl, setValidUrl] = useState(null);
 
-    const [tableData, setTableData] = useState([]);  // ✅ start empty
+    const [tableData, setTableData] = useState([]);
     const [selectedRows, setSelectedRows] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
     const [artisans, setArtisans] = useState([]);
     const [pageNumber, setPageNumber] = useState(1);
-    const [artisanPage, setArtisanPage] = useState(1); // ✅ FIX: Dedicated page state for artisan modals
+    const [artisanPage, setArtisanPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [loadings, setLoadings] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [artisanSearch, setArtisanSearch] = useState("");
+
     // States for Return
     const [returnShowArtisanModal, setReturnShowArtisanModal] = useState(false);
     const [returnSelectedArtisans, setReturnSelectedArtisans] = useState([]);
@@ -77,6 +76,7 @@ const AdminReports = ({ navigation }) => {
     const [returnLoading, setReturnLoading] = useState(false);
     const [returnHasMore, setReturnHasMore] = useState(true);
     const [returnArtisanSearch, setReturnArtisanSearch] = useState("");
+
     // States for Delivered
     const [deliveredShowArtisanModal, setDeliveredShowArtisanModal] = useState(false);
     const [deliveredSelectedArtisans, setDeliveredSelectedArtisans] = useState([]);
@@ -85,8 +85,8 @@ const AdminReports = ({ navigation }) => {
     const [deliveredSelectedRows, setDeliveredSelectedRows] = useState([]);
     const [deliveredSelectAll, setDeliveredSelectAll] = useState(false);
     const [deliveredPageNumber, setDeliveredPageNumber] = useState(1);
-    const [deliveredLoading, setDeliveredLoading] = useState(false); // ✅ FIX: Dedicated loading state
-    const [fullscreenImage, setFullscreenImage] = useState(null); // holds the fileName (design)
+    const [deliveredLoading, setDeliveredLoading] = useState(false);
+    const [fullscreenImage, setFullscreenImage] = useState(null);
     const [deliveredHasMore, setDeliveredHasMore] = useState(true);
     const [deliveredArtisanSearch, setDeliveredArtisanSearch] = useState("");
 
@@ -111,22 +111,99 @@ const AdminReports = ({ navigation }) => {
     const [returnListArtisanSearch, setReturnListArtisanSearch] = useState("");
     const [showReturnListArtisanModal, setShowReturnListArtisanModal] = useState(false);
 
+    // Clear all section data when navigating back
+    const clearAllSectionData = () => {
+        // Clear Pending section data
+        setTableData([]);
+        setSelectedRows([]);
+        setSelectedArtisans([]);
+        setSearchSNo("");
+        setArtisanSearch("");
+        setSelectAll(false);
+        setPageNumber(1);
+        setHasMore(true);
+        setLoadings(false);
+
+        // Clear Return section data
+        setReturnTableData([]);
+        setReturnSelectedRows([]);
+        setReturnSelectedArtisans([]);
+        setReturnSearchSNo("");
+        setReturnArtisanSearch("");
+        setReturnSelectAll(false);
+        setReturnPageNumber(1);
+        setReturnHasMore(true);
+        setReturnLoading(false);
+
+        // Clear Delivered section data
+        setDeliveredTableData([]);
+        setDeliveredSelectedArtisans([]);
+        setDeliveredSearchSNo("");
+        setDeliveredArtisanSearch("");
+        setDeliveredPageNumber(1);
+        setDeliveredHasMore(true);
+        setDeliveredLoading(false);
+
+        // Clear Overdue section data
+        setOverdueTableData([]);
+        setOverdueSelectedArtisans([]);
+        setOverdueSearch("");
+        setOverdueArtisanSearch("");
+        setOverduePageNumber(1);
+        setOverdueHasMore(true);
+        setOverdueLoading(false);
+        setOverdueTotalRecords(0);
+
+        // Clear Return List section data
+        setReturnListTableData([]);
+        setReturnListSelectedArtisans([]);
+        setReturnListSearch("");
+        setReturnListArtisanSearch("");
+        setReturnListPageNumber(1);
+        setReturnListHasMore(true);
+        setReturnListLoading(false);
+
+        // Clear User Creation data
+        setPartyName("");
+        setPhoneWarning("");
+        setPhone("");
+        setSelectedPartyCode(null);
+        setDueDays("");
+        setPartySearch("");
+        setShowPartyModal(false);
+
+        // Clear modal states
+        setShowArtisanModal(false);
+        setReturnShowArtisanModal(false);
+        setDeliveredShowArtisanModal(false);
+        setShowOverdueArtisanModal(false);
+        setShowReturnListArtisanModal(false);
+
+        // Clear image states
+        setFullscreenImage(null);
+        setSelectedItem(null);
+    };
+
+    const handleBackPress = () => {
+        clearAllSectionData();
+        setActiveSection(null);
+        return true;
+    };
 
     const clearForm = () => {
         setPartyName("");
         setPhoneWarning("");
         setPhone("");
         setDueDays("");
+        setSelectedPartyCode(null);
     };
 
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         try {
-            // Handle ISO format like "2025-08-18T16:16:15.31"
             if (dateString.includes('T')) {
                 return new Date(dateString).toLocaleDateString("en-GB");
             }
-            // Handle "DD-MM-YYYY" format
             const parts = dateString.split('-');
             if (parts.length === 3) {
                 const [day, month, year] = parts;
@@ -134,11 +211,10 @@ const AdminReports = ({ navigation }) => {
                     return `${day}/${month}/${year}`;
                 }
             }
-            // Return original if format is unexpected
             return dateString;
         } catch (error) {
             console.log("Date formatting error:", error);
-            return dateString; // Fallback
+            return dateString;
         }
     };
 
@@ -156,38 +232,27 @@ const AdminReports = ({ navigation }) => {
             return;
         }
 
-        // Optional: validate dueDays if editable
         if (dueDays && isNaN(dueDays)) {
             Alert.alert("Validation", "Due Days must be a valid number");
             return;
         }
 
         try {
-            // ✅ Include fDueDays in the API call
             const url = `${BASE_URL}Party/UpdatePhone?fCode=${selectedPartyCode}&phone=${phone}&fDueDays=${dueDays}`;
             console.log("Updating party with URL:", url);
             const res = await axios.put(url);
 
             if (res.status === 200) {
                 Alert.alert("Success", res.data?.message || "Party details updated successfully!");
-
-                // Clear input fields
-                setPartyName("");
-                setSelectedPartyCode(null);
-                setPhone("");
-                setPhoneWarning("");
-                setDueDays("");
+                clearForm();
             } else {
-                // Handle unexpected HTTP statuses
                 Alert.alert(
                     "Error",
                     res.data?.message || `Failed to update party details. Status code: ${res.status}`
                 );
             }
         } catch (err) {
-            // ---------- Detailed error handling ----------
             console.error("Update error:", err.response?.data || err.message);
-
             const status = err.response?.status;
             const serverMessage = err.response?.data?.message;
 
@@ -203,7 +268,6 @@ const AdminReports = ({ navigation }) => {
         }
     };
 
-
     const shareToWhatsApp = async () => {
         try {
             if (!viewRef.current || !selectedItem) return;
@@ -215,7 +279,6 @@ const AdminReports = ({ navigation }) => {
 
             let message = `S.No: ${selectedItem.sNo}\nWeight: ${selectedItem.weight}\nSize: ${selectedItem.size}\nQty: ${selectedItem.qty}\nDesign: ${selectedItem.design}\nOrder No: ${selectedItem.orderNo}`;
 
-            // Conditionally add overdue details
             if (selectedItem.daysOverdue !== undefined) {
                 message += `\nDays Overdue: ${selectedItem.daysOverdue}\nDue Date: ${formatDate(selectedItem.dueDate)}`;
             }
@@ -239,9 +302,8 @@ const AdminReports = ({ navigation }) => {
     const renderUserCreation = () => {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
-                {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => setActiveSection(null)}>
+                    <TouchableOpacity onPress={handleBackPress}>
                         <Ionicons name="arrow-undo" size={30} color="#fff" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>User Creation</Text>
@@ -254,7 +316,6 @@ const AdminReports = ({ navigation }) => {
                     enableOnAndroid={true}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Card Container */}
                     <View
                         style={{
                             backgroundColor: "#fff",
@@ -267,12 +328,10 @@ const AdminReports = ({ navigation }) => {
                             elevation: 4,
                         }}
                     >
-                        {/* Card Heading */}
                         <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 15, color: "#2d531a" }}>
                             Add / Update Phone Number
                         </Text>
 
-                        {/* Party Name with search icon */}
                         <Text style={{ marginBottom: 6, fontWeight: 'bold', color: "#2d531a" }}>Party Name</Text>
                         <TouchableOpacity onPress={() => {fetchArtisans() ,setShowPartyModal(true)}}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -288,33 +347,31 @@ const AdminReports = ({ navigation }) => {
                             </View>
                         </TouchableOpacity>
 
-                        {/* Phone Number */}
                         {phoneWarning ? (
                             <Text
                                 style={{
-                                    color: phone.includes("⚠️") ? "red" : "#2d531a", // red for missing, greenish for info
+                                    color: phone.includes("⚠️") ? "red" : "#2d531a",
                                     marginBottom: 6,
                                 }}
                             >
                                 {phoneWarning}
                             </Text>
                         ) : null}
-                        {/* Phone Number */}
+
                         <Text style={{ marginTop: 16, marginBottom: 6, fontWeight: 'bold', color: "#2d531a" }}>Phone No</Text>
                         <TextInput
                             style={styles.input}
                             value={phone}
                             onChangeText={(text) => {
-                                // allow only numbers and max 10 digits
                                 const cleaned = text.replace(/[^0-9]/g, "");
                                 if (cleaned.length <= 10) {
                                     setPhone(cleaned);
                                 }
                             }}
                             keyboardType="number-pad"
-                            maxLength={10}  // 👈 ensures only 10 digits
+                            maxLength={10}
                         />
-                        {/* ✅ Due Days Display */}
+
                         {dueDays ? (
                             <View style={{ marginTop: 16 }}>
                                 <Text style={{ fontWeight: "bold", color: "#2d531a", marginBottom: 6 }}>
@@ -324,12 +381,10 @@ const AdminReports = ({ navigation }) => {
                                     style={[styles.input, { backgroundColor: "#f9f9f9" }]}
                                     value={dueDays}
                                     onChangeText={setDueDays}
-                                   
                                 />
                             </View>
                         ) : null}
 
-                        {/* Buttons inside card */}
                         <View
                             style={{
                                 flexDirection: "row",
@@ -347,7 +402,6 @@ const AdminReports = ({ navigation }) => {
                     </View>
                 </KeyboardAwareScrollView>
 
-                {/* Party Modal (same as before) */}
                 <Modal visible={showPartyModal} transparent animationType="slide">
                     <View
                         style={{
@@ -379,7 +433,6 @@ const AdminReports = ({ navigation }) => {
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Search input */}
                             <TextInput
                                 style={styles.input}
                                 placeholder="Search Party"
@@ -388,7 +441,6 @@ const AdminReports = ({ navigation }) => {
                                 onChangeText={setPartySearch}
                             />
 
-                            {/* Party List */}
                             <FlatList
                                 data={artisans.filter((a) =>
                                     a.name.toLowerCase().includes(partySearch.toLowerCase())
@@ -404,7 +456,7 @@ const AdminReports = ({ navigation }) => {
                                         onPress={() => {
                                             setPartyName(item.name);
                                             setSelectedPartyCode(item.code);
-                                            setDueDays(item.dueDays || "0"); // ✅ show due days after select
+                                            setDueDays(item.dueDays || "0");
 
                                             if (!item.phone || item.phone.trim() === "") {
                                                 setPhone("");
@@ -416,9 +468,6 @@ const AdminReports = ({ navigation }) => {
 
                                             setShowPartyModal(false);
                                         }}
-
-
-
                                     >
                                         <Text style={{ fontSize: 16, color: "#2d531a" }}>
                                             {item.name} ({item.code})
@@ -443,7 +492,7 @@ const AdminReports = ({ navigation }) => {
             const payload = returnTableData
                 .filter(item => returnSelectedRows.includes(item.id))
                 .map(item => ({
-                    IssueNo: item.issueNo,   // 👈 PascalCase
+                    IssueNo: item.issueNo,
                     SNo: item.sNo,
                     TransId: item.transId,
                 }));
@@ -567,7 +616,6 @@ const AdminReports = ({ navigation }) => {
         }
     };
 
-
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
             if (returnSelectedArtisans.length > 0) {
@@ -583,7 +631,6 @@ const AdminReports = ({ navigation }) => {
 
         return () => clearTimeout(delayDebounce);
     }, [returnSearchSNo, returnSelectedArtisans]);
-
 
     const FallbackImage = ({ fileName, style, onSuccess, onPress }) => {
         const [uriIndex, setUriIndex] = useState(0);
@@ -604,14 +651,12 @@ const AdminReports = ({ navigation }) => {
                     onError={() => {
                         if (uriIndex < sources.length - 1) {
                             setUriIndex(uriIndex + 1);
-                        } else {
-                            // console.log("No valid image found for", fileName);
                         }
                     }}
                     onLoad={() => {
                         const validUrl = sources[uriIndex];
                         setResolvedUrl(validUrl);
-                        if (onSuccess) onSuccess(validUrl); // ✅ report back valid URL
+                        if (onSuccess) onSuccess(validUrl);
                     }}
                 />
             </TouchableOpacity>
@@ -624,14 +669,14 @@ const AdminReports = ({ navigation }) => {
 
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
-            if (selectedArtisans.length > 0) {   // ✅ only fetch when artisan(s) selected
+            if (selectedArtisans.length > 0) {
                 setPageNumber(1);
                 const codes = artisans
                     .filter((a) => selectedArtisans.includes(a.id))
                     .map((a) => a.code);
                 fetchPendingOrders(codes, 1, searchSNo);
             } else {
-                setTableData([]); // ✅ keep it empty
+                setTableData([]);
             }
         }, 500);
 
@@ -653,7 +698,6 @@ const AdminReports = ({ navigation }) => {
 
         return () => clearTimeout(delayDebounce);
     }, [returnListSearch, returnListSelectedArtisans]);
-
 
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
@@ -694,7 +738,6 @@ const AdminReports = ({ navigation }) => {
         }, 500);
         return () => clearTimeout(delayDebounce);
     }, [overdueArtisanSearch]);
-
 
     const fetchArtisans = async (page = 1, search = "") => {
         if (loading || (page !== 1 && !hasMore)) return;
@@ -741,7 +784,6 @@ const AdminReports = ({ navigation }) => {
             );
 
             if (res.data) {
-                // The API response seems to have a `data` property which is the array
                 const responseData = res.data.data || res.data;
 
                 if (Array.isArray(responseData)) {
@@ -762,8 +804,8 @@ const AdminReports = ({ navigation }) => {
                         sNo: item.fSNo,
                         status: item.fconfirmStatus === "N" ? "Undelivered" : "Delivered",
                         returnFlag: item.fReturnFlag,
-                        dueFlag: item.dueFlag, // Capture dueFlag
-                        daysOverdue: item.daysOverdue, // Capture daysOverdue
+                        dueFlag: item.dueFlag,
+                        daysOverdue: item.daysOverdue,
                     }));
 
                     if (page === 1) {
@@ -888,7 +930,6 @@ const AdminReports = ({ navigation }) => {
         } finally {
             setOverdueLoading(false);
         }
-
     };
 
     useEffect(() => {
@@ -911,7 +952,7 @@ const AdminReports = ({ navigation }) => {
     useEffect(() => {
         const backAction = () => {
             if (activeSection) {
-                setActiveSection(null);
+                handleBackPress();
                 return true;
             } else {
                 Alert.alert(
@@ -1348,16 +1389,14 @@ const AdminReports = ({ navigation }) => {
 
     const renderDelivered = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
-            {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => setActiveSection(null)}>
+                <TouchableOpacity onPress={handleBackPress}>
                     <Ionicons name="arrow-undo" size={30} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Delivered</Text>
                 <View style={{ width: 30 }} />
             </View>
 
-            {/* Fullscreen Image Viewer with Sharing */}
             <Modal
                 visible={!!fullscreenImage}
                 transparent={false}
@@ -1392,7 +1431,7 @@ const AdminReports = ({ navigation }) => {
                                     imageHeight={screenHeight * 0.75}
                                     enableSwipeDown={false}
                                     pinchToZoom={true}
-                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }}
                                 >
                                     <Image
                                         source={{ uri: fullscreenImage }}
@@ -1430,7 +1469,6 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     </ViewShot>
 
-                    {/* Bottom buttons */}
                     <View style={styles.modalFooterButtons}>
                         <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
                             <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
@@ -1443,7 +1481,6 @@ const AdminReports = ({ navigation }) => {
                 </SafeAreaView>
             </Modal>
 
-            {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
                 <TouchableOpacity onPress={() => setDeliveredShowArtisanModal(true)}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -1477,7 +1514,6 @@ const AdminReports = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Search S.No / Design */}
             <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
                 <TextInput
                     style={{
@@ -1493,7 +1529,6 @@ const AdminReports = ({ navigation }) => {
                 />
             </View>
 
-            {/* Artisan Modal */}
             <Modal visible={deliveredShowArtisanModal} transparent animationType="slide">
                 <View
                     style={{
@@ -1511,7 +1546,6 @@ const AdminReports = ({ navigation }) => {
                             maxHeight: "80%",
                         }}
                     >
-                        {/* Header */}
                         <View
                             style={{
                                 flexDirection: "row",
@@ -1530,7 +1564,6 @@ const AdminReports = ({ navigation }) => {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Search Bar */}
                         <TextInput
                             style={{
                                 borderWidth: 1,
@@ -1606,7 +1639,6 @@ const AdminReports = ({ navigation }) => {
                             }
                         />
 
-                        {/* Footer Buttons */}
                         <View
                             style={{
                                 flexDirection: "row",
@@ -1626,7 +1658,7 @@ const AdminReports = ({ navigation }) => {
                                 style={styles.updateButton}
                                 onPress={() => {
                                     setDeliveredShowArtisanModal(false);
-                                    setDeliveredPageNumber(1); // Reset data page number
+                                    setDeliveredPageNumber(1);
                                     const codes = artisans
                                         .filter((a) =>
                                             deliveredSelectedArtisans.includes(a.id)
@@ -1642,7 +1674,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             </Modal>
 
-            {/* Table */}
             {deliveredTableData.length > 0 ? (
                 <FlatList
                     data={deliveredFilteredData}
@@ -1750,7 +1781,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             )}
 
-            {/* Footer */}
             <View style={styles.footer}>
                 <TouchableOpacity
                     style={styles.clearButton}
@@ -1769,6 +1799,7 @@ const AdminReports = ({ navigation }) => {
             </View>
         </SafeAreaView>
     );
+
     const groupByIssueDate = (data) => {
         return data.reduce((groups, item) => {
             const date = new Date(item.issueNoDate || item.orderDate).toLocaleDateString("en-GB");
@@ -1784,7 +1815,7 @@ const AdminReports = ({ navigation }) => {
                 title: date,
                 data: items,
             }))
-            .sort((a, b) => { // Sort by date, most recent first
+            .sort((a, b) => {
                 const partsA = a.title.split('/');
                 const dateA = new Date(+partsA[2], partsA[1] - 1, +partsA[0]);
                 const partsB = b.title.split('/');
@@ -1795,7 +1826,7 @@ const AdminReports = ({ navigation }) => {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => setActiveSection(null)}>
+                    <TouchableOpacity onPress={handleBackPress}>
                         <Ionicons name="arrow-undo" size={30} color="#fff" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Pending</Text>
@@ -1835,7 +1866,7 @@ const AdminReports = ({ navigation }) => {
                                         imageHeight={screenHeight * 0.75}
                                         enableSwipeDown={false}
                                         pinchToZoom={true}
-                                        centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                                        centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }}
                                     >
                                         <Image
                                             source={{ uri: fullscreenImage }}
@@ -1873,7 +1904,6 @@ const AdminReports = ({ navigation }) => {
                             </View>
                         </ViewShot>
     
-                        {/* Bottom buttons */}
                         <View style={styles.modalFooterButtons}>
                             <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
                                 <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
@@ -1886,8 +1916,6 @@ const AdminReports = ({ navigation }) => {
                     </SafeAreaView>
                 </Modal>
     
-    
-                {/* Artisan Selection */}
                 <View style={{ padding: 12 }}>
                     <TouchableOpacity onPress={() => setShowArtisanModal(true)}>
                         <View
@@ -1928,7 +1956,6 @@ const AdminReports = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
     
-                {/* Search S.No / Design */}
                 <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
                     <TextInput
                         style={{
@@ -1944,7 +1971,6 @@ const AdminReports = ({ navigation }) => {
                     />
                 </View>
     
-                {/* Artisan Modal */}
                 <Modal visible={showArtisanModal} transparent animationType="slide">
                     <View
                         style={{
@@ -1962,7 +1988,6 @@ const AdminReports = ({ navigation }) => {
                                 maxHeight: "80%",
                             }}
                         >
-                            {/* Header */}
                             <View
                                 style={{
                                     flexDirection: "row",
@@ -1981,7 +2006,6 @@ const AdminReports = ({ navigation }) => {
                                 </TouchableOpacity>
                             </View>
     
-                            {/* Search Bar */}
                             <TextInput
                                 style={{
                                     borderWidth: 1,
@@ -2068,7 +2092,6 @@ const AdminReports = ({ navigation }) => {
                                 }
                             />
     
-                            {/* Footer Buttons */}
                             <View
                                 style={{
                                     flexDirection: "row",
@@ -2090,7 +2113,7 @@ const AdminReports = ({ navigation }) => {
                                     style={styles.updateButton}
                                     onPress={() => {
                                         setShowArtisanModal(false);
-                                        setPageNumber(1); // Reset data page number
+                                        setPageNumber(1);
                                         const codes = artisans
                                             .filter((a) =>
                                                 selectedArtisans.includes(a.id)
@@ -2108,7 +2131,6 @@ const AdminReports = ({ navigation }) => {
                     </View>
                 </Modal>
     
-                {/* Table */}
                 {tableData.length > 0 ? (
                     <SectionList
                         sections={sectionsData}
@@ -2282,7 +2304,6 @@ const AdminReports = ({ navigation }) => {
                     </View>
                 )}
     
-                {/* Footer */}
                 <View style={styles.footer}>
                     <TouchableOpacity
                         style={styles.clearButton}
@@ -2300,12 +2321,11 @@ const AdminReports = ({ navigation }) => {
             </SafeAreaView>
         );
     };
-    
 
     const renderReturn = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => setActiveSection(null)}>
+                <TouchableOpacity onPress={handleBackPress}>
                     <Ionicons name="arrow-undo" size={30} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Return</Text>
@@ -2345,7 +2365,7 @@ const AdminReports = ({ navigation }) => {
                                     imageHeight={screenHeight * 0.75}
                                     enableSwipeDown={false}
                                     pinchToZoom={true}
-                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }} // ✅ ensures it starts centered
+                                    centerOn={{ x: 0, y: 0, scale: 1, duration: 100 }}
                                 >
                                     <Image
                                         source={{ uri: fullscreenImage }}
@@ -2383,7 +2403,6 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     </ViewShot>
 
-                    {/* Bottom buttons */}
                     <View style={styles.modalFooterButtons}>
                         <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
                             <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
@@ -2645,7 +2664,6 @@ const AdminReports = ({ navigation }) => {
                         setReturnTableData([]);
                         setReturnPageNumber(1);
                         setReturnHasMore(true);
-
                     }}
                 >
                     <Text style={styles.buttonText}>Clear</Text>
@@ -2672,16 +2690,14 @@ const AdminReports = ({ navigation }) => {
 
     const renderReturnList = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
-            {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => setActiveSection(null)}>
+                <TouchableOpacity onPress={handleBackPress}>
                     <Ionicons name="arrow-undo" size={30} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Return List</Text>
                 <View style={{ width: 30 }} />
             </View>
 
-            {/* Fullscreen Image Viewer */}
             <Modal visible={!!fullscreenImage} transparent={false} onRequestClose={() => setFullscreenImage(null)}>
                 <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
                     <ViewShot ref={viewRef} style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -2712,7 +2728,6 @@ const AdminReports = ({ navigation }) => {
                 </SafeAreaView>
             </Modal>
 
-            {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
                 <TouchableOpacity onPress={() => setShowReturnListArtisanModal(true)}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -2729,7 +2744,6 @@ const AdminReports = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Search Bar */}
             <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
                 <TextInput
                     style={styles.input}
@@ -2740,7 +2754,6 @@ const AdminReports = ({ navigation }) => {
                 />
             </View>
 
-            {/* Artisan Modal */}
             <Modal visible={showReturnListArtisanModal} transparent animationType="slide">
                 <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}>
                     <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, maxHeight: "80%" }}>
@@ -2785,7 +2798,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             </Modal>
 
-            {/* Table */}
             {returnListTableData.length > 0 ? (
                 <FlatList
                     data={returnListTableData}
@@ -2837,7 +2849,6 @@ const AdminReports = ({ navigation }) => {
                 <View style={styles.emptyContainer}><Image source={require("../asserts/Search.png")} style={styles.emptyImage} /><Text style={styles.emptyText}>Select an artisan to view the return list.</Text></View>
             )}
 
-            {/* Footer */}
             <View style={styles.footer}>
                 <TouchableOpacity
                     style={styles.clearButton}
@@ -2856,19 +2867,16 @@ const AdminReports = ({ navigation }) => {
         </SafeAreaView>
     );
 
-
     const renderOverdue = () => (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9f5" }}>
-            {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => setActiveSection(null)}>
+                <TouchableOpacity onPress={handleBackPress}>
                     <Ionicons name="arrow-undo" size={30} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Overdue</Text>
                 <View style={{ width: 30 }} />
             </View>
 
-            {/* Fullscreen Image Viewer with Sharing */}
             <Modal
                 visible={!!fullscreenImage}
                 transparent={false}
@@ -2921,7 +2929,6 @@ const AdminReports = ({ navigation }) => {
                         </View>
                     </ViewShot>
 
-                    {/* Bottom buttons */}
                     <View style={styles.modalFooterButtons}>
                         <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.modalCloseButton}>
                             <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
@@ -2934,7 +2941,6 @@ const AdminReports = ({ navigation }) => {
                 </SafeAreaView>
             </Modal>
 
-            {/* Artisan Selection */}
             <View style={{ padding: 12 }}>
                 <TouchableOpacity onPress={() => setShowOverdueArtisanModal(true)}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -2958,7 +2964,6 @@ const AdminReports = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Search Bar */}
             <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
                 <TextInput
                     style={styles.input}
@@ -2969,7 +2974,6 @@ const AdminReports = ({ navigation }) => {
                 />
             </View>
 
-            {/* Total Overdue Count */}
             {overdueTableData.length > 0 && (
                 <View style={styles.statsContainer}>
                     <View style={styles.statItem}>
@@ -2979,7 +2983,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             )}
 
-            {/* Artisan Modal for Overdue */}
             <Modal visible={showOverdueArtisanModal} transparent animationType="slide">
                 <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}>
                     <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, maxHeight: "80%" }}>
@@ -3039,7 +3042,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             </Modal>
 
-            {/* Table */}
             {overdueTableData.length > 0 ? (
                 <FlatList
                     data={overdueTableData}
@@ -3100,7 +3102,6 @@ const AdminReports = ({ navigation }) => {
                 </View>
             )}
 
-            {/* Footer */}
             <View style={styles.footer}>
                 <TouchableOpacity
                     style={styles.clearButton}
@@ -3130,7 +3131,7 @@ const AdminReports = ({ navigation }) => {
         return (
             <View style={styles.sectionContainer}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => setActiveSection(null)}>
+                    <TouchableOpacity onPress={handleBackPress}>
                         <Ionicons name="arrow-undo" size={30} color="#fff" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>{activeSection}</Text>
@@ -3176,7 +3177,6 @@ const AdminReports = ({ navigation }) => {
                         color="#fff"
                         style={{ transform: [{ scaleX: -1 }] }}
                     />
-
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Admin Reports</Text>
                 <View style={{ width: 30 }} />
@@ -3475,7 +3475,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     returnBadge: {
-        backgroundColor: '#ff9800', // Orange color
+        backgroundColor: '#ff9800',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 6,
@@ -3486,7 +3486,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
     },
-    // Styles for Overdue Section
     overdueBadge: {
         position: 'absolute',
         top: 8,
@@ -3502,16 +3501,15 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: 'bold',
     },
-    // New styles for Overdue badge in Undelivered section
     undeliveredOverdueBadge: {
         position: 'absolute',
         top: 15,
         right: 50,
-        backgroundColor: '#d32f2f', // Red color
+        backgroundColor: '#d32f2f',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 6,
-        zIndex: 2, // Ensure it's on top
+        zIndex: 2,
     },
     undeliveredOverdueBadgeText: {
         color: '#fff',
@@ -3574,7 +3572,6 @@ const styles = StyleSheet.create({
         marginTop: 4,
         textAlign: "center",
     },
-    // Styles for the date header, matching PendingReports.js
     sectionHeader: {
         backgroundColor: "#2d531a",
         paddingVertical: 12,
